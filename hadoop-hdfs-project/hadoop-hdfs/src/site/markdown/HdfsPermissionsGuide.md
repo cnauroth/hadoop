@@ -97,45 +97,47 @@ The following table describes the permission checks performed by HDFS for each c
 * **Final:** The final component of the requested path.  For example, for the path `/foo/bar/baz`, the final path component is `/foo/bar/baz`.
 * **Sub-tree:** For a path that is a directory, the directory itself and all of its child sub-directories, recursively.  For example, for the path `/foo/bar/baz`, which has 2 sub-directories named `buz` and `boo`, the sub-tree is `/foo/bar/baz`, `/foo/bar/baz/buz` and `/foo/bar/baz/boo`.
 
-Operation             | Ownership | Parent         | Ancestor            | Final         | Sub-tree
---------------------- | --------- | -------------- | ------------------- | ------------- | --------
-append                | NO        | N/A            | N/A                 | WRITE         | N/A
-concat                | NO        | N/A            | N/A                 | WRITE         | N/A
-create                | NO        | N/A            | WRITE               | WRITE [1]     | N/A
-createSnapshot        | YES       | N/A            | N/A                 | N/A           | N/A
-delete                | NO [2]    | WRITE          | N/A                 | N/A           | READ, WRITE, EXECUTE
-deleteSnapshot        | YES       | N/A            | N/A                 | N/A           | N/A
-getAclStatus          | NO        | N/A            | N/A                 | N/A           | N/A
-getBlockLocations     | NO        | N/A            | N/A                 | READ          | N/A
-getContentSummary     | NO        | N/A            | N/A                 | N/A           | READ, EXECUTE
-getFileInfo           | NO        | N/A            | N/A                 | N/A           | N/A
-getFileLinkInfo       | NO        | N/A            | N/A                 | N/A           | N/A
-getLinkTarget         | NO        | N/A            | N/A                 | N/A           | N/A
-getListing            | NO        | N/A            | N/A                 | READ, EXECUTE | N/A
-getSnapshotDiffReport | NO        | N/A            | N/A                 | READ          | READ
-getStoragePolicy      | NO        | N/A            | N/A                 | READ          | N/A
-getXAttrs             | NO        | N/A            | N/A                 | READ          | N/A
-listXAttrs            | NO        | EXECUTE        | N/A                 | N/A           | N/A
-mkdirs                | NO        | N/A            | WRITE               | N/A           | N/A
-modifyAclEntries      | YES       | N/A            | N/A                 | N/A           | N/A
-removeAcl             | YES       | N/A            | N/A                 | N/A           | N/A
-removeAclEntries      | YES       | N/A            | N/A                 | N/A           | N/A
-removeDefaultAcl      | YES       | N/A            | N/A                 | N/A           | N/A
-removeXAttr           | NO [2]    | N/A            | N/A                 | WRITE         | N/A
-rename                | NO [2]    | WRITE (source) | WRITE (destination) | N/A           | N/A
-renameSnapshot        | YES       | N/A            | N/A                 | N/A           | N/A
-setAcl                | YES       | N/A            | N/A                 | N/A           | N/A
-setOwner              | YES       | N/A            | N/A                 | N/A           | N/A
-setPermission         | YES       | N/A            | N/A                 | N/A           | N/A
-setReplication        | NO        | N/A            | N/A                 | WRITE         | N/A
-setStoragePolicy      | NO        | N/A            | N/A                 | WRITE         | N/A
-setTimes              | NO        | N/A            | N/A                 | WRITE         | N/A
-setXAttr              | NO [2]    | N/A            | N/A                 | WRITE         | N/A
-truncate              | NO        | N/A            | N/A                 | WRITE         | N/A
+Operation             | Ownership | Parent         | Ancestor            | Final                              | Sub-tree
+--------------------- | --------- | -------------- | ------------------- | ---------------------------------- | --------
+append                | NO        | N/A            | N/A                 | WRITE                              | N/A
+concat                | NO [2]    | WRITE (source) | N/A                 | READ (source), WRITE (destination) | N/A
+create                | NO        | N/A            | WRITE               | WRITE [1]                          | N/A
+createSnapshot        | YES       | N/A            | N/A                 | N/A                                | N/A
+delete                | NO [2]    | WRITE          | N/A                 | N/A                                | READ, WRITE, EXECUTE
+deleteSnapshot        | YES       | N/A            | N/A                 | N/A                                | N/A
+getAclStatus          | NO        | N/A            | N/A                 | N/A                                | N/A
+getBlockLocations     | NO        | N/A            | N/A                 | READ                               | N/A
+getContentSummary     | NO        | N/A            | N/A                 | N/A                                | READ, EXECUTE
+getFileInfo           | NO        | N/A            | N/A                 | N/A                                | N/A
+getFileLinkInfo       | NO        | N/A            | N/A                 | N/A                                | N/A
+getLinkTarget         | NO        | N/A            | N/A                 | N/A                                | N/A
+getListing            | NO        | N/A            | N/A                 | READ, EXECUTE                      | N/A
+getSnapshotDiffReport | NO        | N/A            | N/A                 | READ                               | READ
+getStoragePolicy      | NO        | N/A            | N/A                 | READ                               | N/A
+getXAttrs             | NO        | N/A            | N/A                 | READ                               | N/A
+listXAttrs            | NO        | EXECUTE        | N/A                 | N/A                                | N/A
+mkdirs                | NO        | N/A            | WRITE               | N/A                                | N/A
+modifyAclEntries      | YES       | N/A            | N/A                 | N/A                                | N/A
+removeAcl             | YES       | N/A            | N/A                 | N/A                                | N/A
+removeAclEntries      | YES       | N/A            | N/A                 | N/A                                | N/A
+removeDefaultAcl      | YES       | N/A            | N/A                 | N/A                                | N/A
+removeXAttr           | NO [2]    | N/A            | N/A                 | WRITE                              | N/A
+rename                | NO [2]    | WRITE (source) | WRITE (destination) | N/A                                | N/A
+renameSnapshot        | YES       | N/A            | N/A                 | N/A                                | N/A
+setAcl                | YES       | N/A            | N/A                 | N/A                                | N/A
+setOwner              | YES [3]   | N/A            | N/A                 | N/A                                | N/A
+setPermission         | YES       | N/A            | N/A                 | N/A                                | N/A
+setReplication        | NO        | N/A            | N/A                 | WRITE                              | N/A
+setStoragePolicy      | NO        | N/A            | N/A                 | WRITE                              | N/A
+setTimes              | NO        | N/A            | N/A                 | WRITE                              | N/A
+setXAttr              | NO [2]    | N/A            | N/A                 | WRITE                              | N/A
+truncate              | NO        | N/A            | N/A                 | WRITE                              | N/A
 
-[1] WRITE access on the final path component during create is only required if the create uses the overwrite option and there is an existing file at the path.
+[1] WRITE access on the final path component during `create` is only required if the call uses the overwrite option and there is an existing file at the path.
 
-[2] If the sticky bit is set on the parent directory, then these operations also check ownership.
+[2] Any operation that checks WRITE permission on the parent directory also checks ownership if the [sticky bit](#Overview) is set.
+
+[3] Calling `setOwner` to change the user that owns a file requires [HDFS super-user](#The_Super-User) access.  HDFS super-user access is not required to change the group, but the caller must be a member of the specified group.
 
 Understanding the Implementation
 --------------------------------
