@@ -896,6 +896,9 @@ Release 2.9.0 - UNRELEASED
     HDFS-9129. Move the safemode block count into BlockManager. (Mingliang Liu
     via jing9)
 
+    HDFS-9281. Change TestDeleteBlockPool to not explicitly use File to check
+    block pool existence. (lei)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -1445,6 +1448,8 @@ Release 2.8.0 - UNRELEASED
     HDFS-9019. Adding informative message to sticky bit permission denied
     exception. (xyao)
 
+    HDFS-8860. Remove unused Replica copyOnWrite code (Lei (Eddy) Xu via Colin P. McCabe)
+
     HDFS-8716. Introduce a new config specifically for safe mode block count
     (Chang Li via kihwal)
 
@@ -1736,6 +1741,20 @@ Release 2.8.0 - UNRELEASED
 
     HDFS-9472. concat() API does not give proper exception messages on ./reserved 
     relative path (Rakesh R via umamahesh)
+
+    HDFS-9528. Cleanup namenode audit/log/exception messages. (szetszwo via umamahesh)
+
+    HDFS-9532. Detailed exception info is lost in reportTo methods of
+    ErrorReportAction and ReportBadBlockAction. (Yongjun Zhang)
+
+    HDFS-9519. Some coding improvement in SecondaryNameNode#main.
+    (Xiao Chen via Yongjun Zhang)
+
+    HDFS-9514. TestDistributedFileSystem.testDFSClientPeerWriteTimeout failing;
+    exception being swallowed. (Wei-Chiu Chuang via Yongjun Zhang)
+
+    HDFS-9535. Newly completed blocks in IBR should not be considered
+    under-replicated too quickly. (Mingliang Liu via jing9)
 
   OPTIMIZATIONS
 

@@ -15,24 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.hadoop.hdfs.server.datanode;
-
-import java.io.IOException;
-
-public class BPServiceActorActionException extends IOException {
+package org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity;
 
 /**
- * An exception for BPSerivceActor call related issues
+ * diagnostic messages for AMcontainer launching
  */
-  private static final long serialVersionUID = 1L;
-
-  public BPServiceActorActionException(String message) {
-    super(message);
-  }
-
-  public BPServiceActorActionException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
+public interface CSAMContainerLaunchDiagnosticsConstants {
+  String SKIP_AM_ALLOCATION_IN_IGNORE_EXCLUSIVE_MODE =
+      "Skipping assigning to Node in Ignore Exclusivity mode. ";
+  String SKIP_AM_ALLOCATION_IN_BLACK_LISTED_NODE =
+      "Skipped scheduling for this Node as its black listed. ";
+  String SKIP_AM_ALLOCATION_DUE_TO_LOCALITY =
+      "Skipping assigning to Node as request locality is not matching. ";
+  String QUEUE_AM_RESOURCE_LIMIT_EXCEED =
+      "Queue's AM resource limit exceeded. ";
+  String USER_AM_RESOURCE_LIMIT_EXCEED = "User's AM resource limit exceeded. ";
+  String LAST_NODE_PROCESSED_MSG =
+      " Last Node which was processed for the application : ";
 }
