@@ -899,9 +899,14 @@ Release 2.9.0 - UNRELEASED
     HDFS-9281. Change TestDeleteBlockPool to not explicitly use File to check
     block pool existence. (lei)
 
+    HDFS-9371. Code cleanup for DatanodeManager. (jing9)
+
   OPTIMIZATIONS
 
   BUG FIXES
+
+    HDFS-9516. Truncate file fails with data dirs on multiple disks.
+    (Plamen Jeliazkov via shv)
 
 Release 2.8.0 - UNRELEASED
 
@@ -1755,6 +1760,12 @@ Release 2.8.0 - UNRELEASED
 
     HDFS-9535. Newly completed blocks in IBR should not be considered
     under-replicated too quickly. (Mingliang Liu via jing9)
+
+    HDFS-8894. Set SO_KEEPALIVE on DN server sockets.
+    (Kanaka Kumar Avvaru via wang)
+
+    HDFS-9557. Reduce object allocation in PB conversion
+    (Daryn Sharp via cnauroth)
 
   OPTIMIZATIONS
 

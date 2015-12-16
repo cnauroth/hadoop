@@ -618,6 +618,10 @@ Release 2.8.0 - UNRELEASED
 
     YARN-4418. AM Resource Limit per partition can be updated to ResourceUsage as well.
     (Sunil G via wangda)
+    
+    YARN-4207. Add a non-judgemental YARN app completion status. (Rich Haase via sseth)
+
+    YARN-4293. ResourceUtilization should be a part of yarn node CLI. (Sunil G via wangda)
 
   OPTIMIZATIONS
 
@@ -1129,6 +1133,24 @@ Release 2.8.0 - UNRELEASED
     YARN-4421. Remove dead code in RmAppImpl.RMAppRecoveredTransition.
     (Daniel Templeton via rohithsharmaks)
 
+    YARN-4403. (AM/NM/Container)LivelinessMonitor should use monotonic time
+    when calculating period. (Junping Du via jianhe)
+
+    YARN-4402. TestNodeManagerShutdown And TestNodeManagerResync fails with
+    bind exception. (Brahma Reddy Battula via jianhe)
+
+    YARN-4440. FSAppAttempt#getAllowedLocalityLevelByTime should init the
+    lastScheduler time. (Lin Yiqun via zxu)
+
+    YARN-4452. NPE when submit Unmanaged application. (Naganarasimha G R
+    via junping_du)
+
+    YARN-4225. Add preemption status to yarn queue -status for capacity scheduler.
+    (Eric Payne via wangda)
+
+    YARN-4416. Deadlock due to synchronised get Methods in AbstractCSQueue.
+    (Naganarasimha G R via wangda)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1174,6 +1196,11 @@ Release 2.7.3 - UNRELEASED
 
     YARN-4422. Generic AHS sometimes doesn't show started, node, or logs on App page
     (Eric Payne via jeagles)
+
+    YARN-4439. Clarify NMContainerStatus#toString method. (Jian He via xgong)
+
+    YARN-4452. NPE when submit Unmanaged application. (Naganarasimha G R via
+    junping_du)
 
 Release 2.7.2 - UNRELEASED
 
@@ -2022,6 +2049,15 @@ Release 2.6.4 - UNRELEASED
   OPTIMIZATIONS
 
   BUG FIXES
+
+  YARN-3857: Memory leak in ResourceManager with SIMPLE mode.
+  (mujunchao via zxu)
+
+  YARN-3535. Scheduler must re-request container resources when RMContainer transitions
+  from ALLOCATED to KILLED (rohithsharma and peng.zhang via asuresh)
+
+  YARN-4452. NPE when submit Unmanaged application. (Naganarasimha G R
+  via junping_du)
 
 Release 2.6.3 - UNRELEASED
 

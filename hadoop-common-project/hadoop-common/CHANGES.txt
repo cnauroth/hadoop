@@ -540,6 +540,9 @@ Trunk (Unreleased)
 
     HADOOP-12553. [JDK8] Fix javadoc error caused by illegal tag. (aajisaka)
 
+    HADOOP-12638. UnsatisfiedLinkError while checking ISA-L in checknative
+    command. (Kai Sasaki via Colin P. McCabe)
+
   OPTIMIZATIONS
 
     HADOOP-7761. Improve the performance of raw comparisons. (todd)
@@ -1003,6 +1006,8 @@ Release 2.8.0 - UNRELEASED
     Stable interface. (cnauroth)
 
     HADOOP-12618. Fix NPE in TestSequenceFile. (Brahma Reddy Battula via umamahesh)
+
+    HADOOP-12639. Improve JavaDoc for getTrimmedStrings. (BELUGA BEHR via umamahesh)
 
   OPTIMIZATIONS
 
@@ -1585,6 +1590,9 @@ Release 2.7.2 - UNRELEASED
     (Jagadesh Kiran N via aajisaka)
 
     HADOOP-12464. Interrupted client may try to fail-over and retry (kihwal)
+
+    HADOOP-12415. Fixed pom files to correctly include compile-time dependency on
+    netty. (Tom Zeng via cos)
 
 Release 2.7.1 - 2015-07-06 
 
