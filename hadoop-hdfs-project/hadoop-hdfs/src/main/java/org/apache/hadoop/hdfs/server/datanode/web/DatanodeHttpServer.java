@@ -47,7 +47,6 @@ import org.apache.hadoop.http.HttpServer2;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.http.RestCsrfPreventionFilter;
-import org.apache.hadoop.security.http.RestCsrfPreventionFilterInitializer;
 import org.apache.hadoop.security.ssl.SSLFactory;
 
 import java.io.Closeable;
