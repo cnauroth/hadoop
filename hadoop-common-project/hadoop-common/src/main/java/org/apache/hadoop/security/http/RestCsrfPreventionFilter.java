@@ -74,10 +74,22 @@ public class RestCsrfPreventionFilter implements Filter {
     }
   }
 
+  /**
+   * Returns the configured custom header name.
+   *
+   * @return custom header name
+   */
   public String getHeaderName() {
     return headerName;
   }
 
+  /**
+   * Returns whether or not the request is allowed.
+   *
+   * @param method HTTP Method
+   * @param header value of HTTP header defined by {@link #getHeaderName()}
+   * @return true if the request is allowed, otherwise false
+   */
   public boolean isRequestAllowed(String method, String header) {
     return methodsToIgnore.contains(method) || header != null;
   }
