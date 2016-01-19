@@ -30,6 +30,9 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceStability;
+
 /**
  * This filter provides protection against cross site request forgery (CSRF)
  * attacks for REST APIs. Enabling this filter on an endpoint results in the
@@ -37,6 +40,8 @@ import javax.servlet.http.HttpServletResponse;
  * with every request. In the absense of this header the filter will reject the
  * attempt as a bad request.
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 public class RestCsrfPreventionFilter implements Filter {
   public static final String CUSTOM_HEADER_PARAM = "custom-header";
   public static final String CUSTOM_METHODS_TO_IGNORE_PARAM =
@@ -69,12 +74,20 @@ public class RestCsrfPreventionFilter implements Filter {
     }
   }
 
+  public String getHeaderName() {
+    return headerName;
+  }
+
+  public boolean isRequestAllowed(String method, String header) {
+    return methodsToIgnore.contains(method) || header != null;
+  }
+
   @Override
   public void doFilter(ServletRequest request, ServletResponse response,
       FilterChain chain) throws IOException, ServletException {
     HttpServletRequest httpRequest = (HttpServletRequest)request;
-    if (methodsToIgnore.contains(httpRequest.getMethod()) ||
-        httpRequest.getHeader(headerName) != null) {
+    if (isRequestAllowed(httpRequest.getMethod(),
+        httpRequest.getHeader(headerName))) {
       chain.doFilter(request, response);
     } else {
       ((HttpServletResponse)response).sendError(

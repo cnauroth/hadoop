@@ -46,6 +46,7 @@ import org.apache.hadoop.http.HttpConfig;
 import org.apache.hadoop.http.HttpServer2;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.authorize.AccessControlList;
+import org.apache.hadoop.security.http.RestCsrfPreventionFilterInitializer;
 import org.apache.hadoop.security.ssl.SSLFactory;
 
 import java.io.Closeable;
@@ -167,7 +168,11 @@ public class DatanodeHttpServer implements Closeable {
             p.addLast(
               new SslHandler(sslFactory.createSSLEngine()),
               new HttpRequestDecoder(),
-              new HttpResponseEncoder(),
+              new HttpResponseEncoder());
+            if (conf.getBoolean("dfs.datanode.http.rest-csrf.enabled", false)) {
+              p.addLast(new RestCsrfPreventionFilterHandler(conf));
+            }
+            p.addLast(
               new ChunkedWriteHandler(),
               new URLDispatcher(jettyAddr, conf, confForCreate));
           }

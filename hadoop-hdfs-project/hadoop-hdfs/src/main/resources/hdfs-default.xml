@@ -2751,4 +2751,63 @@
   </description>
 </property>
 
+<property>
+  <name>dfs.namenode.http.rest-csrf.enabled</name>
+  <value>false</value>
+  <description>
+    If true, then enables NameNode HTTP server protection against cross-site
+    request forgery (CSRF).
+  </description>
+</property>
+
+<property>
+  <name>dfs.namenode.http.rest-csrf.custom-header</name>
+  <value>${hadoop.http.rest-csrf.custom-header}</value>
+  <description>
+    The name of a custom header that HTTP requests must send when protection
+    against cross-site request forgery (CSRF) is enabled for the NameNode by
+    setting dfs.namenode.http.rest-csrf.enabled to true.
+  </description>
+</property>
+
+<property>
+  <name>dfs.namenode.http.rest-csrf.methods-to-ignore</name>
+  <value>${hadoop.http.rest-csrf.methods-to-ignore}</value>
+  <description>
+    A comma-separated list of HTTP methods that do not require HTTP requests to
+    include a custom header when protection against cross-site request forgery
+    (CSRF) is enabled for the NameNode by setting
+    dfs.namenode.http.rest-csrf.enabled to true.
+  </description>
+</property>
+
+<property>
+  <name>dfs.datanode.http.rest-csrf.enabled</name>
+  <value>false</value>
+  <description>
+    If true, then enables DataNode HTTP server protection against cross-site
+    request forgery (CSRF).
+  </description>
+</property>
+
+<property>
+  <name>dfs.datanode.http.rest-csrf.custom-header</name>
+  <value>${hadoop.http.rest-csrf.custom-header}</value>
+  <description>
+    The name of a custom header that HTTP requests must send when protection
+    against cross-site request forgery (CSRF) is enabled for the DataNode by
+    setting dfs.datanode.http.rest-csrf.enabled to true.
+  </description>
+</property>
+
+<property>
+  <name>dfs.datanode.http.rest-csrf.methods-to-ignore</name>
+  <value>${hadoop.http.rest-csrf.methods-to-ignore}</value>
+  <description>
+    A comma-separated list of HTTP methods that do not require HTTP requests to
+    include a custom header when protection against cross-site request forgery
+    (CSRF) is enabled for the DataNode by setting
+    dfs.datanode.http.rest-csrf.enabled to true.
+  </description>
+</property>
 </configuration>

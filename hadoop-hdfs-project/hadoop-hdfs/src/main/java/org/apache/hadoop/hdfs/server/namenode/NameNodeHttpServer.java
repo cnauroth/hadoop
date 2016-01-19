@@ -20,6 +20,7 @@ package org.apache.hadoop.hdfs.server.namenode;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,6 +43,7 @@ import org.apache.hadoop.http.HttpServer2;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.http.RestCsrfPreventionFilterInitializer;
 
 /**
  * Encapsulates the HTTP server started by the NameNode. 
@@ -66,6 +68,8 @@ public class NameNodeHttpServer {
     this.conf = conf;
     this.nn = nn;
     this.bindAddress = bindAddress;
+    Class<?>[] filterInitializers = conf.getClasses(
+        "hadoop.http.filter.initializers");
   }
 
   private void initWebHdfs(Configuration conf) throws IOException {
@@ -99,6 +103,15 @@ public class NameNodeHttpServer {
    * Http Policy is decided.
    */
   void start() throws IOException {
+    Class<?>[] filterInitializers = conf.getClasses(
+        "hadoop.http.filter.initializers");
+    if (filterInitializers != null &&
+        Arrays.asList(filterInitializers).contains(
+            RestCsrfPreventionFilterInitializer.class)) {
+        conf.set("hadoop.http.rest-csrf.prefix",
+            "dfs.namenode.http.rest-csrf.");
+    }
+
     HttpConfig.Policy policy = DFSUtil.getHttpPolicy(conf);
     final String infoHost = bindAddress.getHostName();
 

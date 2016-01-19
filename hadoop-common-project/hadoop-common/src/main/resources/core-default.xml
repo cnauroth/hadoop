@@ -1477,6 +1477,42 @@ for ldap providers in the same way as above does.
 </property>
 
 <property>
+  <name>hadoop.http.rest-csrf.custom-header</name>
+  <value>X-XSRF-HEADER</value>
+  <description>
+    The name of a custom header that HTTP requests must send when protection
+    against cross-site request forgery (CSRF) is enabled.
+
+    Individual Hadoop daemons use a configuration property dedicated to that
+    daemon for controlling the name of this header.  This property is provided
+    only as a convenience, so that the individual daemon configurations can
+    reference it through property substitution and receive a consistent default
+    value.
+  </description>
+</property>
+
+<property>
+  <name>hadoop.http.rest-csrf.methods-to-ignore</name>
+  <value>GET,OPTIONS,HEAD,TRACE</value>
+  <description>
+    A comma-separated list of HTTP methods that do not require HTTP requests to
+    include a custom header when protection against cross-site request forgery
+    (CSRF) is enabled.  By default, this includes the safe methods GET and HEAD
+    as described in section 9.1.1 of RFC 2616, and also OPTIONS and TRACE, which
+    are idempotent as described in section 9.1.2 and not expected to cause any
+    privileged action.  This list is configurable to support the possibility of
+    server implementations that do not strictly adhere to the semantics
+    described in RFC 2616.
+
+    Individual Hadoop daemons use a configuration property dedicated to that
+    daemon for controlling the name of this header.  This property is provided
+    only as a convenience, so that the individual daemon configurations can
+    reference it through property substitution and receive a consistent default
+    value.
+  </description>
+</property>
+
+<property>
   <name>dfs.ha.fencing.methods</name>
   <value></value>
   <description>
