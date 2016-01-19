@@ -20,7 +20,6 @@ package org.apache.hadoop.hdfs.server.namenode;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -103,15 +102,8 @@ public class NameNodeHttpServer {
    * Http Policy is decided.
    */
   void start() throws IOException {
-    Class<?>[] filterInitializers = conf.getClasses(
-        "hadoop.http.filter.initializers");
-    if (filterInitializers != null &&
-        Arrays.asList(filterInitializers).contains(
-            RestCsrfPreventionFilterInitializer.class)) {
-        conf.set("hadoop.http.rest-csrf.prefix",
-            "dfs.namenode.http.rest-csrf.");
-    }
-
+    RestCsrfPreventionFilterInitializer.setConfigurationPrefix(conf,
+        "hadoop.http.filter.initializers", "dfs.namenode.http.rest-csrf.");
     HttpConfig.Policy policy = DFSUtil.getHttpPolicy(conf);
     final String infoHost = bindAddress.getHostName();
 

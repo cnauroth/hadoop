@@ -46,6 +46,7 @@ import org.apache.hadoop.http.HttpConfig;
 import org.apache.hadoop.http.HttpServer2;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.authorize.AccessControlList;
+import org.apache.hadoop.security.http.RestCsrfPreventionFilter;
 import org.apache.hadoop.security.http.RestCsrfPreventionFilterInitializer;
 import org.apache.hadoop.security.ssl.SSLFactory;
 
@@ -74,6 +75,7 @@ public class DatanodeHttpServer implements Closeable {
   private final ServerBootstrap httpsServer;
   private final Configuration conf;
   private final Configuration confForCreate;
+  private final RestCsrfPreventionFilter restCsrfPreventionFilter;
   private InetSocketAddress httpAddress;
   private InetSocketAddress httpsAddress;
   static final Log LOG = LogFactory.getLog(DatanodeHttpServer.class);
@@ -82,6 +84,8 @@ public class DatanodeHttpServer implements Closeable {
       final DataNode datanode,
       final ServerSocketChannel externalHttpChannel)
     throws IOException {
+    this.restCsrfPreventionFilter =
+        DataNodeRestCsrfPreventionFilterFactory.create(conf);
     this.conf = conf;
 
     Configuration confForInfoServer = new Configuration(conf);
@@ -118,7 +122,7 @@ public class DatanodeHttpServer implements Closeable {
         @Override
         protected void initChannel(SocketChannel ch) throws Exception {
           ch.pipeline().addLast(new PortUnificationServerHandler(jettyAddr,
-              conf, confForCreate));
+              conf, confForCreate, restCsrfPreventionFilter));
         }
       });
 
@@ -170,7 +174,8 @@ public class DatanodeHttpServer implements Closeable {
               new HttpRequestDecoder(),
               new HttpResponseEncoder());
             if (conf.getBoolean("dfs.datanode.http.rest-csrf.enabled", false)) {
-              p.addLast(new RestCsrfPreventionFilterHandler(conf));
+              p.addLast(new RestCsrfPreventionFilterHandler(
+                  restCsrfPreventionFilter));
             }
             p.addLast(
               new ChunkedWriteHandler(),

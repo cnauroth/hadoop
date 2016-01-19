@@ -72,15 +72,28 @@ public class RestCsrfPreventionFilterInitializer extends FilterInitializer {
   /**
    * Modifies the configuration by setting the configuration prefix.  All
    * properties that have a name starting with the prefix will then be passed to
-   * the filter during initialization.
+   * the filter during initialization.  If this filter initializer is not listed
+   * in the configuration property specified by the caller, then this method is
+   * a no-op.
    *
    * @param conf configuration to modify
+   * @param filterInitializersConfName configuration property name that contains
+   *     the list of filter initializers
    * @param confPrefix prefix of configuration properties to be passed to filter
    *     during initialization
    */
   public static void setConfigurationPrefix(Configuration conf,
-      String confPrefix) {
-    conf.set(CONF_PREFIX, confPrefix);
+      String filterInitializersConfName, String confPrefix) {
+    Class<?>[] filterInitializers = conf.getClasses(filterInitializersConfName);
+    if (filterInitializers != null) {
+      for (Class<?> filterInitializer : filterInitializers) {
+        if (RestCsrfPreventionFilterInitializer.class.isAssignableFrom(
+            filterInitializer)) {
+          conf.set(CONF_PREFIX, confPrefix);
+          break;
+        }
+      }
+    }
   }
 
   /**
