@@ -33,12 +33,28 @@ import io.netty.util.ReferenceCountUtil;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.http.RestCsrfPreventionFilter;
 
+/**
+ * Netty handler that integrates with the {@link RestCsrfPreventionFilter}.  If
+ * the filter determines that the request is allowed, then this handler forwards
+ * the request to the next handler in the Netty pipeline.  Otherwise, this
+ * handlers drops the request and immediately sends an HTTP 400 response.
+ */
 @InterfaceAudience.Private
 final class RestCsrfPreventionFilterHandler
     extends SimpleChannelInboundHandler<HttpRequest> {
 
   private final RestCsrfPreventionFilter restCsrfPreventionFilter;
 
+  /**
+   * Creates a new RestCsrfPreventionFilterHandler.  There will be a new
+   * instance created for each new Netty channel/pipeline serving a new request.
+   * To prevent the cost of repeated initialization of the filter, this
+   * constructor requires the caller to pass in a pre-built, fully initialized
+   * filter instance.  The filter is stateless after initialization, so it can
+   * be shared across multiple Netty channels/pipelines.
+   *
+   * @param restCsrfPreventionFilter initialized filter
+   */
   public RestCsrfPreventionFilterHandler(
       RestCsrfPreventionFilter restCsrfPreventionFilter) {
     this.restCsrfPreventionFilter = restCsrfPreventionFilter;
