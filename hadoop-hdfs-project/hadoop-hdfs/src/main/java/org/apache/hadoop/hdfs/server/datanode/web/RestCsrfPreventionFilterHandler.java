@@ -49,11 +49,9 @@ final class RestCsrfPreventionFilterHandler
       throws Exception {
     if (this.restCsrfPreventionFilter.isRequestAllowed(req.getMethod().name(),
         req.headers().get(this.restCsrfPreventionFilter.getHeaderName()))) {
-      System.out.println("cn channelRead0, request is allowed");
       ReferenceCountUtil.retain(req);
       ctx.fireChannelRead(req);
     } else {
-      System.out.println("cn channelRead0, request is denied");
       HttpResponseStatus status = new HttpResponseStatus(BAD_REQUEST.code(),
           "Missing Required Header for Vulnerability Protection");
       DefaultHttpResponse resp = new DefaultHttpResponse(HTTP_1_1, status);
