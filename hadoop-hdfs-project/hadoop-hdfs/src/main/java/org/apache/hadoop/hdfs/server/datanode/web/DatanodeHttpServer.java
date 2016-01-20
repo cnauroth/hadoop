@@ -172,7 +172,7 @@ public class DatanodeHttpServer implements Closeable {
               new SslHandler(sslFactory.createSSLEngine()),
               new HttpRequestDecoder(),
               new HttpResponseEncoder());
-            if (conf.getBoolean("dfs.datanode.http.rest-csrf.enabled", false)) {
+            if (restCsrfPreventionFilter != null) {
               p.addLast(new RestCsrfPreventionFilterHandler(
                   restCsrfPreventionFilter));
             }

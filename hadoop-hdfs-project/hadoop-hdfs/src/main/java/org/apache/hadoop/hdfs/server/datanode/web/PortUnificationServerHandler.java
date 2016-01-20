@@ -65,7 +65,7 @@ public class PortUnificationServerHandler extends ByteToMessageDecoder {
 
   private void configureHttp1(ChannelHandlerContext ctx) {
     ctx.pipeline().addLast(new HttpServerCodec());
-    if (conf.getBoolean("dfs.datanode.http.rest-csrf.enabled", false)) {
+    if (this.restCsrfPreventionFilter != null) {
       ctx.pipeline().addLast(new RestCsrfPreventionFilterHandler(
           this.restCsrfPreventionFilter));
     }
@@ -74,7 +74,7 @@ public class PortUnificationServerHandler extends ByteToMessageDecoder {
   }
 
   private void configureHttp2(ChannelHandlerContext ctx) {
-    if (conf.getBoolean("dfs.datanode.http.rest-csrf.enabled", false)) {
+    if (this.restCsrfPreventionFilter != null) {
       ctx.pipeline().addLast(new RestCsrfPreventionFilterHandler(
           this.restCsrfPreventionFilter));
     }
