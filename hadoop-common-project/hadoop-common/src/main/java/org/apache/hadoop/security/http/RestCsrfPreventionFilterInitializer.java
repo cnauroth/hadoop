@@ -57,7 +57,7 @@ public class RestCsrfPreventionFilterInitializer extends FilterInitializer {
       return;
     }
     Map<String, String> filterConfigMap = getFilterConfigMap(conf, confPrefix);
-    if (Boolean.parseBoolean(filterConfigMap.get("enabled"))) {
+    if (Boolean.parseBoolean(filterConfigMap.get(CONF_ENABLED))) {
       LOG.info("Adding cross-site request forgery (CSRF) protection from "
           + "configuration prefix {}, with configuration {}", confPrefix,
           filterConfigMap);

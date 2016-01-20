@@ -1483,11 +1483,10 @@ for ldap providers in the same way as above does.
     The name of a custom header that HTTP requests must send when protection
     against cross-site request forgery (CSRF) is enabled.
 
-    Individual Hadoop daemons use a configuration property dedicated to that
-    daemon for controlling the name of this header.  This property is provided
-    only as a convenience, so that the individual daemon configurations can
-    reference it through property substitution and receive a consistent default
-    value.
+    Each individual Hadoop daemon uses a configuration property dedicated to
+    that daemon for controlling this setting.  This property is provided only as
+    a convenience, so that the individual daemon configurations can reference it
+    through property substitution and receive a consistent default value.
   </description>
 </property>
 
@@ -1504,11 +1503,10 @@ for ldap providers in the same way as above does.
     server implementations that do not strictly adhere to the semantics
     described in RFC 2616.
 
-    Individual Hadoop daemons use a configuration property dedicated to that
-    daemon for controlling the name of this header.  This property is provided
-    only as a convenience, so that the individual daemon configurations can
-    reference it through property substitution and receive a consistent default
-    value.
+    Each individual Hadoop daemon uses a configuration property dedicated to
+    that daemon for controlling this setting.  This property is provided only as
+    a convenience, so that the individual daemon configurations can reference it
+    through property substitution and receive a consistent default value.
   </description>
 </property>
 

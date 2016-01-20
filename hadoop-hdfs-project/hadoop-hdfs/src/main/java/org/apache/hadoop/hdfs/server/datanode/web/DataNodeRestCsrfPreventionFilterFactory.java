@@ -106,23 +106,24 @@ final class DataNodeRestCsrfPreventionFilterFactory {
    */
   private static final class MapBasedFilterConfig implements FilterConfig {
 
-    private final String name;
+    private final String filterName;
     private final Map<String, String> parameters;
 
     /**
      * Creates a new MapBasedFilterConfig.
      *
-     * @param name filter name
+     * @param filterName filter name
      * @param parameters mapping of filter initialization parameters
      */
-    public MapBasedFilterConfig(String name, Map<String, String> parameters) {
-      this.name = name;
+    public MapBasedFilterConfig(String filterName,
+        Map<String, String> parameters) {
+      this.filterName = filterName;
       this.parameters = parameters;
     }
 
     @Override
     public String getFilterName() {
-      return this.name;
+      return this.filterName;
     }
 
     @Override

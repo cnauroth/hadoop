@@ -67,8 +67,6 @@ public class NameNodeHttpServer {
     this.conf = conf;
     this.nn = nn;
     this.bindAddress = bindAddress;
-    Class<?>[] filterInitializers = conf.getClasses(
-        "hadoop.http.filter.initializers");
   }
 
   private void initWebHdfs(Configuration conf) throws IOException {
