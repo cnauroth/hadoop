@@ -936,6 +936,9 @@ Release 2.9.0 - UNRELEASED
     HDFS-9624. DataNode start slowly due to the initial DU command operations.
     (Lin Yiqun via wang)
 
+    HDFS-9576: HTrace: collect position/length information on read operations
+    (zhz via cmccabe)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -1818,6 +1821,9 @@ Release 2.8.0 - UNRELEASED
 
     HDFS-9415. Document dfs.cluster.administrators and
     dfs.permissions.superusergroup. (Xiaobing Zhou via Arpit Agarwal)
+
+    HDFS-9655. NN should start JVM pause monitor before loading fsimage.
+    (John Zhuge via Lei (Eddy) Xu)
 
   OPTIMIZATIONS
 
