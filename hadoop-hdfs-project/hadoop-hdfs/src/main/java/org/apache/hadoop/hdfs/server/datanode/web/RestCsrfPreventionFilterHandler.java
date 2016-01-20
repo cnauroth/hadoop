@@ -20,6 +20,7 @@ package org.apache.hadoop.hdfs.server.datanode.web;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONNECTION;
 import static io.netty.handler.codec.http.HttpHeaderValues.CLOSE;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import io.netty.channel.ChannelFutureListener;
@@ -29,6 +30,8 @@ import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.ReferenceCountUtil;
+
+import org.apache.commons.logging.Log;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.http.RestCsrfPreventionFilter;
@@ -42,6 +45,8 @@ import org.apache.hadoop.security.http.RestCsrfPreventionFilter;
 @InterfaceAudience.Private
 final class RestCsrfPreventionFilterHandler
     extends SimpleChannelInboundHandler<HttpRequest> {
+
+  private static final Log LOG = DatanodeHttpServer.LOG;
 
   private final RestCsrfPreventionFilter restCsrfPreventionFilter;
 
@@ -70,9 +75,28 @@ final class RestCsrfPreventionFilterHandler
     } else {
       HttpResponseStatus status = new HttpResponseStatus(BAD_REQUEST.code(),
           "Missing Required Header for Vulnerability Protection");
-      DefaultHttpResponse resp = new DefaultHttpResponse(HTTP_1_1, status);
-      resp.headers().set(CONNECTION, CLOSE);
-      ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
+      sendResponseAndClose(ctx, new DefaultHttpResponse(HTTP_1_1, status));
     }
+  }
+
+  @Override
+  public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+    LOG.error("Exception in " + this.getClass().getSimpleName(), cause);
+    sendResponseAndClose(ctx,
+        new DefaultHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR));
+  }
+
+  /**
+   * Finish handling this pipeline by writing a response with the
+   * "Connection: close" header, flushing, and scheduling a close of the
+   * connection.
+   *
+   * @param ctx context to receive the response
+   * @param resp response to send
+   */
+  private static void sendResponseAndClose(ChannelHandlerContext ctx,
+      DefaultHttpResponse resp) {
+    resp.headers().set(CONNECTION, CLOSE);
+    ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
   }
 }
