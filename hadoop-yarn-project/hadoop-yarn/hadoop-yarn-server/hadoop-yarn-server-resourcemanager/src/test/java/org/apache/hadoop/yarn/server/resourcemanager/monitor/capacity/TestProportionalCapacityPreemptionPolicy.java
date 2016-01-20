@@ -24,7 +24,7 @@ import static org.apache.hadoop.yarn.server.resourcemanager.monitor.capacity.Pro
 import static org.apache.hadoop.yarn.server.resourcemanager.monitor.capacity.ProportionalCapacityPreemptionPolicy.TOTAL_PREEMPTION_PER_ROUND;
 import static org.apache.hadoop.yarn.server.resourcemanager.monitor.capacity.ProportionalCapacityPreemptionPolicy.WAIT_TIME_BEFORE_KILL;
 import static org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.SchedulerEventType.KILL_PREEMPTED_CONTAINER;
-import static org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.SchedulerEventType.PREEMPT_CONTAINER;
+import static org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.SchedulerEventType.MARK_CONTAINER_FOR_PREEMPTION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -935,7 +935,7 @@ public class TestProportionalCapacityPreemptionPolicy {
     private final ApplicationAttemptId appAttId;
     private final SchedulerEventType type;
     IsPreemptionRequestFor(ApplicationAttemptId appAttId) {
-      this(appAttId, PREEMPT_CONTAINER);
+      this(appAttId, MARK_CONTAINER_FOR_PREEMPTION);
     }
     IsPreemptionRequestFor(ApplicationAttemptId appAttId,
         SchedulerEventType type) {

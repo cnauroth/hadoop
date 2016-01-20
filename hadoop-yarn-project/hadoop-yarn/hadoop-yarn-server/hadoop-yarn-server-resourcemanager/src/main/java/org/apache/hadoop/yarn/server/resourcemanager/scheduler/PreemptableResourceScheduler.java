@@ -39,7 +39,7 @@ public interface PreemptableResourceScheduler extends ResourceScheduler {
    * @param aid the application from which we want to get a container back
    * @param container the container we want back
    */
-  void preemptContainer(ApplicationAttemptId aid, RMContainer container);
+  void markContainerForPreemption(ApplicationAttemptId aid, RMContainer container);
 
   /**
    * Ask the scheduler to forcibly interrupt the container given as input

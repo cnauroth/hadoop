@@ -40,7 +40,8 @@ public enum SchedulerEventType {
 
   // Source: SchedulingEditPolicy
   KILL_RESERVED_CONTAINER,
-  PREEMPT_CONTAINER, // Mark a container for preemption in the near future
+  MARK_CONTAINER_FOR_PREEMPTION, // Mark a container for preemption
+                                 // in the near future
   KILL_PREEMPTED_CONTAINER // Kill a container previously marked for
-                           // preemption 
+                           // preemption
 }

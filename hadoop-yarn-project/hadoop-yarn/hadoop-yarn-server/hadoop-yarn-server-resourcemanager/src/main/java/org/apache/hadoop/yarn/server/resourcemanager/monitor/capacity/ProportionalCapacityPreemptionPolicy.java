@@ -268,7 +268,7 @@ public class ProportionalCapacityPreemptionPolicy implements SchedulingEditPolic
           //otherwise just send preemption events
           rmContext.getDispatcher().getEventHandler().handle(
               new ContainerPreemptEvent(appAttemptId, container,
-                  SchedulerEventType.PREEMPT_CONTAINER));
+                  SchedulerEventType.MARK_CONTAINER_FOR_PREEMPTION));
           preempted.put(container, clock.getTime());
         }
       }

@@ -22,7 +22,8 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainer;
 
 /**
- * Simple event class used to communicate containers unreservations, preemption, killing
+ * Simple event class used to communicate kill reserved containers, mark
+ * containers for preemption and kill already preemption-marked containers.
  */
 public class ContainerPreemptEvent extends SchedulerEvent {
 

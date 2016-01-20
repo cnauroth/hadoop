@@ -978,7 +978,8 @@ public class CapacityScheduler extends
                    clusterResource, getMinimumResourceCapability());
     }
 
-    if (updateDemandForQueue != null) {
+    if (updateDemandForQueue != null && !application
+        .isWaitingForAMContainer()) {
       updateDemandForQueue.getOrderingPolicy().demandUpdated(application);
     }
 
@@ -1372,7 +1373,7 @@ public class CapacityScheduler extends
       ContainerExpiredSchedulerEvent containerExpiredEvent = 
           (ContainerExpiredSchedulerEvent) event;
       ContainerId containerId = containerExpiredEvent.getContainerId();
-      super.completedContainer(getRMContainer(containerId), 
+      super.completedContainer(getRMContainer(containerId),
           SchedulerUtils.createAbnormalContainerStatus(
               containerId, 
               SchedulerUtils.EXPIRED_CONTAINER), 
@@ -1387,13 +1388,13 @@ public class CapacityScheduler extends
       killReservedContainer(container);
     }
     break;
-    case PREEMPT_CONTAINER:
+    case MARK_CONTAINER_FOR_PREEMPTION:
     {
       ContainerPreemptEvent preemptContainerEvent =
           (ContainerPreemptEvent)event;
       ApplicationAttemptId aid = preemptContainerEvent.getAppId();
       RMContainer containerToBePreempted = preemptContainerEvent.getContainer();
-      preemptContainer(aid, containerToBePreempted);
+      markContainerForPreemption(aid, containerToBePreempted);
     }
     break;
     case KILL_PREEMPTED_CONTAINER:
@@ -1481,8 +1482,9 @@ public class CapacityScheduler extends
   
   @Lock(CapacityScheduler.class)
   @Override
-  protected synchronized void completedContainerInternal(RMContainer rmContainer,
-      ContainerStatus containerStatus, RMContainerEventType event) {
+  protected synchronized void completedContainerInternal(
+      RMContainer rmContainer, ContainerStatus containerStatus,
+      RMContainerEventType event) {
     
     Container container = rmContainer.getContainer();
     
@@ -1589,8 +1591,8 @@ public class CapacityScheduler extends
       LOG.debug(SchedulerEventType.KILL_RESERVED_CONTAINER + ":"
           + container.toString());
     }
-    // TODO: What happens if this is no longer a reserved container, for e.g if
-    // the reservation became an allocation.
+    // To think: What happens if this is no longer a reserved container, for
+    // e.g if the reservation became an allocation.
     super.completedContainer(container,
         SchedulerUtils.createAbnormalContainerStatus(
             container.getContainerId(),
@@ -1599,14 +1601,16 @@ public class CapacityScheduler extends
   }
 
   @Override
-  public void preemptContainer(ApplicationAttemptId aid, RMContainer cont) {
+  public void markContainerForPreemption(ApplicationAttemptId aid,
+      RMContainer cont) {
     if(LOG.isDebugEnabled()){
-      LOG.debug(SchedulerEventType.PREEMPT_CONTAINER + ": appAttempt:"
-          + aid.toString() + " container: " + cont.toString());
+      LOG.debug(SchedulerEventType.MARK_CONTAINER_FOR_PREEMPTION
+            + ": appAttempt:" + aid.toString() + " container: "
+            + cont.toString());
     }
     FiCaSchedulerApp app = getApplicationAttempt(aid);
     if (app != null) {
-      app.preemptContainer(cont.getContainerId());
+      app.markContainerForPreemption(cont.getContainerId());
     }
   }
 
@@ -1617,7 +1621,7 @@ public class CapacityScheduler extends
           + cont.toString());
     }
     super.completedContainer(cont, SchedulerUtils
-      .createPreemptedContainerStatus(cont.getContainerId(),
+        .createPreemptedContainerStatus(cont.getContainerId(),
         SchedulerUtils.PREEMPTED_CONTAINER), RMContainerEventType.KILL);
   }
 

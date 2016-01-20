@@ -2596,6 +2596,12 @@ Release 2.8.0 - UNRELEASED
     HDFS-9612. DistCp worker threads are not terminated after jobs are done.
     (Wei-Chiu Chuang via Yongjun Zhang)
 
+    HDFS-9623. Update example configuration of block state change log in
+    log4j.properties. (Masatake Iwasaki via aajisaka)
+
+    HDFS-6054. MiniQJMHACluster should not use static port to avoid binding
+    failure in unit test. (Yongjun Zhang)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -2639,6 +2645,9 @@ Release 2.7.3 - UNRELEASED
 
     HDFS-9648. TestStartup.testImageChecksum is broken by HDFS-9569's message
     change. (Wei-Chiu Chuang via Yongjun Zhang)
+
+    HDFS-9661. Deadlock in DN.FsDatasetImpl between moveBlockAcrossStorage and
+    createRbw (ade via vinayakumarb)
 
 Release 2.7.2 - UNRELEASED
 
