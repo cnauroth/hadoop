@@ -41,6 +41,27 @@ public interface HdfsClientConfigKeys {
   String DFS_WEBHDFS_OAUTH_ENABLED_KEY = "dfs.webhdfs.oauth2.enabled";
   boolean DFS_WEBHDFS_OAUTH_ENABLED_DEFAULT = false;
 
+  String DFS_NAMENODE_HTTP_REST_CSRF_ENABLED_KEY =
+      "dfs.namenode.http.rest-csrf.enabled";
+  boolean DFS_NAMENODE_HTTP_REST_CSRF_ENABLED_DEFAULT = false;
+  String DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY =
+      "dfs.namenode.http.rest-csrf.custom-header";
+  String DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT = "X-XSRF-HEADER";
+  String DFS_NAMENODE_HTTP_REST_CSRF_METHODS_TO_IGNORE_KEY =
+      "dfs.namenode.http.rest-csrf.methods-to-ignore";
+  String DFS_NAMENODE_HTTP_REST_CSRF_METHODS_TO_IGNORE_DEFAULT =
+      "GET,OPTIONS,HEAD,TRACE";
+  String DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY =
+      "dfs.datanode.http.rest-csrf.enabled";
+  boolean DFS_DATANODE_HTTP_REST_CSRF_ENABLED_DEFAULT = false;
+  String DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY =
+      "dfs.datanode.http.rest-csrf.custom-header";
+  String DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT = "X-XSRF-HEADER";
+  String DFS_DATANODE_HTTP_REST_CSRF_METHODS_TO_IGNORE_KEY =
+      "dfs.datanode.http.rest-csrf.methods-to-ignore";
+  String DFS_DATANODE_HTTP_REST_CSRF_METHODS_TO_IGNORE_DEFAULT =
+      "GET,OPTIONS,HEAD,TRACE";
+
   String OAUTH_CLIENT_ID_KEY = "dfs.webhdfs.oauth2.client.id";
   String OAUTH_REFRESH_URL_KEY = "dfs.webhdfs.oauth2.refresh.url";
 
