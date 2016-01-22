@@ -101,6 +101,9 @@ Release 2.9.0 - UNRELEASED
     YARN-4559. Make leader elector and zk store share the same curator client.
     (Jian He via xgong)
 
+    YARN-4603. FairScheduler should mention user requested queuename in error 
+    message when failed in queue ACL check. (Tao Jie via kasha)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -130,6 +133,21 @@ Release 2.9.0 - UNRELEASED
 
     YARN-3446. FairScheduler headroom calculation should exclude nodes in the 
     blacklist. (Zhihai Xu via kasha)
+
+    YARN-4611. Fix scheduler load simulator to support multi-layer network
+    location. (Ming Ma via xgong)
+
+    YARN-4584. RM startup failure when AM attempts greater than max-attempts.
+    (Bibin A Chundatt via rohithsharmaks)
+
+    YARN-4578. Directories that are mounted in docker containers need to be more
+    restrictive/container-specific. (Sidharta Seethana via vvasudev)
+
+    YARN-4497. RM might fail to restart when recovering apps whose attempts are missing.
+    (Jun Gong via rohithsharmaks)
+
+    YARN-4574. Fix random failure in TestAMRMClientOnRMRestart.
+    (Takashi Ohnishi via rohithsharmaks)
 
 Release 2.8.0 - UNRELEASED
 
@@ -715,6 +733,9 @@ Release 2.8.0 - UNRELEASED
 
     YARN-4524. Cleanup AppSchedulingInfo. (Karthik Kambatla via wangda)
 
+    YARN-4371. "yarn application -kill" should take multiple application ids
+    (Sunil G via jlowe)
+
   OPTIMIZATIONS
 
     YARN-3339. TestDockerContainerExecutor should pull a single image and not
@@ -1286,6 +1307,15 @@ Release 2.8.0 - UNRELEASED
     YARN-4565. Fix a bug that leads to AM resource limit not hornored when
     sizeBasedWeight enabled for FairOrderingPolicy. (wtan via jianhe)
 
+    YARN-4557. Fix improper Queues sorting in PartitionedQueueComparator
+    when accessible-node-labels=*. (Naganarasimha G R via wangda)
+
+    YARN-4608. Redundant code statement in WritingYarnApplications.
+    (Kai Sasaki via aajisaka)
+
+    YARN-4605. Spelling mistake in the help message of "yarn applicationattempt"
+    command. (Weiwei Yang via aajisaka)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1295,6 +1325,9 @@ Release 2.7.3 - UNRELEASED
   IMPROVEMENTS
 
     YARN-4287. Capacity Scheduler: Rack Locality improvement (Nathan Roberts via wangda)
+
+    YARN-4492. Add documentation for preemption supported in Capacity
+    scheduler (Naganarasimha G R via jlowe)
 
   OPTIMIZATIONS
 
@@ -1352,6 +1385,12 @@ Release 2.7.3 - UNRELEASED
 
     YARN-4581. AHS writer thread leak makes RM crash while RM is recovering.
     (sandflee via junping_du)
+
+    YARN-4610. Reservations continue looking for one app causes other apps to
+    starve (jlowe)
+
+    YARN-4598. Invalid event: RESOURCE_FAILED at
+    CONTAINER_CLEANEDUP_AFTER_KILL (tangshangwen via jlowe)
 
 Release 2.7.2 - UNRELEASED
 
@@ -2241,6 +2280,9 @@ Release 2.6.4 - UNRELEASED
 
     YARN-4581. AHS writer thread leak makes RM crash while RM is recovering.
     (sandflee via junping_du)
+
+    YARN-4598. Invalid event: RESOURCE_FAILED at
+    CONTAINER_CLEANEDUP_AFTER_KILL (tangshangwen via jlowe)
 
 Release 2.6.3 - 2015-12-17
 

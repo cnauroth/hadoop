@@ -55,6 +55,9 @@ Trunk (Unreleased)
     HDFS-9057. allow/disallow snapshots via webhdfs
     (Bramma Reddy Battula via vinayakumarb)
 
+    HDFS-9525. hadoop utilities need to support provided delegation
+    tokens (HeeSoo Kim via aw)
+
   IMPROVEMENTS
 
     HDFS-4665. Move TestNetworkTopologyWithNodeGroup to common.
@@ -405,6 +408,9 @@ Trunk (Unreleased)
 
     HDFS-9615. Fix variable name typo in DFSConfigKeys. (Ray Chiang via
     Arpit Agarwal)
+
+    HDFS-9646. ErasureCodingWorker may fail when recovering data blocks with
+    length less than the first internal block. (jing9)
 
     BREAKDOWN OF HDFS-7285 SUBTASKS AND RELATED JIRAS
 
@@ -939,9 +945,20 @@ Release 2.9.0 - UNRELEASED
     HDFS-9576: HTrace: collect position/length information on read operations
     (zhz via cmccabe)
 
+    HDFS-9542. Move BlockIdManager from FSNamesystem to BlockManager. (jing9)
+
+    HDFS-9674. The HTrace span for OpWriteBlock should record the maxWriteToDisk
+    time. (cmccabe via zhz)
+
   OPTIMIZATIONS
 
   BUG FIXES
+
+    HDFS-9601. NNThroughputBenchmark.BlockReportStats should handle
+    NotReplicatedYetException on adding block (iwasakims)
+
+    HDFS-9618. Fix mismatch between log level and guard in
+    BlockManager#computeRecoveryWorkForBlocks (iwasakims)
 
     HDFS-9621. getListing wrongly associates Erasure Coding policy to pre-existing
     replicated files under an EC directory. (jing9)
@@ -1825,6 +1842,9 @@ Release 2.8.0 - UNRELEASED
     HDFS-9655. NN should start JVM pause monitor before loading fsimage.
     (John Zhuge via Lei (Eddy) Xu)
 
+    HDFS-8898. Create API and command-line argument to get quota and quota
+    usage without detailed content summary. (Ming Ma via kihwal)
+
   OPTIMIZATIONS
 
     HDFS-8026. Trace FSOutputSummer#writeChecksumChunks rather than
@@ -2608,6 +2628,9 @@ Release 2.8.0 - UNRELEASED
     HDFS-6054. MiniQJMHACluster should not use static port to avoid binding
     failure in unit test. (Yongjun Zhang)
 
+    HDFS-9682. Fix a typo "aplication" in HttpFS document.
+    (Weiwei Yang via aajisaka)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -2623,6 +2646,9 @@ Release 2.7.3 - UNRELEASED
 
     HDFS-9569. Log the name of the fsimage being loaded for better
     supportability. (Yongjun Zhang)
+
+    HDFS-9634. webhdfs client side exceptions don't provide enough details
+    (Eric Payne via kihwal)
 
   OPTIMIZATIONS
 
@@ -2654,6 +2680,9 @@ Release 2.7.3 - UNRELEASED
 
     HDFS-9661. Deadlock in DN.FsDatasetImpl between moveBlockAcrossStorage and
     createRbw (ade via vinayakumarb)
+
+    HDFS-9625. set replication for empty file failed when set storage policy
+    (DENG FEI via vinayakumarb)
 
 Release 2.7.2 - UNRELEASED
 

@@ -262,6 +262,9 @@ Trunk (Unreleased)
     HADOOP-11887. Introduce Intel ISA-L erasure coding library for native
     erasure encoding support (Kai Zheng via Colin P. McCabe)
 
+    HADOOP-11828. Implement the Hitchhiker erasure coding algorithm.
+    (Jack Liuquan via zhz)
+
   BUG FIXES
 
     HADOOP-12617. SPNEGO authentication request to non-default realm gets
@@ -675,6 +678,9 @@ Release 2.9.0 - UNRELEASED
     via cmccabe)
 
   BUG FIXES
+
+    HADOOP-12605. Fix intermittent failure of TestIPC.testIpcWithReaderQueuing
+    (iwasakims)
 
     HADOOP-12655. TestHttpServer.testBindAddress bind port range is wider
     than expected. (Wei-Chiu Chuang via stevel)
@@ -1626,6 +1632,18 @@ Release 2.8.0 - UNRELEASED
 
     HADOOP-12356. Fix computing CPU usage statistics on Windows.
     (Inigo Goiri via wangda)
+
+    HADOOP-12423. Handle failure of registering shutdownhook by
+    ShutdownHookManager in static block (Abhishek Agarwal via vinayakumarb)
+
+    HADOOP-7161. Remove unnecessary oro package from dependency management
+    section. (Sean Busbey via aajisaka)
+
+    HADOOP-12659. Incorrect usage of config parameters in token manager of
+    KMS. (Mingliang Liu via xyao)
+
+    HADOOP-12730. Hadoop streaming -mapper and -reducer options are wrongly
+    documented as required. (Kengo Seki via aajisaka)
 
 Release 2.7.3 - UNRELEASED
 
