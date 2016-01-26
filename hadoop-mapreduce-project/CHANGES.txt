@@ -695,6 +695,9 @@ Release 2.8.0 - UNRELEASED
     mapreduce.reduce.skip.proc.count.autoincr in mapred-default.xml.
     (Kai Sasaki via aajisaka)
 
+    MAPREDUCE-6614. Remove unnecessary code in TestMapreduceConfigFields.
+    (Kai Sasaki via aajisaka)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -719,7 +722,7 @@ Release 2.7.3 - UNRELEASED
     MAPREDUCE-6554. MRAppMaster servicestart failing with NPE in
     MRAppMaster#parsePreviousJobHistory (Bibin A Chundatt via jlowe)
 
-Release 2.7.2 - UNRELEASED
+Release 2.7.2 - 2016-01-25
 
   INCOMPATIBLE CHANGES
 

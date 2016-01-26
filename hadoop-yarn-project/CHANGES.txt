@@ -104,6 +104,13 @@ Release 2.9.0 - UNRELEASED
     YARN-4603. FairScheduler should mention user requested queuename in error 
     message when failed in queue ACL check. (Tao Jie via kasha)
 
+    YARN-4496. Improve HA ResourceManager Failover detection on the client.
+    (Jian He via xgong)
+
+    YARN-3542. Refactored existing CPU cgroups support to use the newer and
+    integrated ResourceHandler mechanism, and also deprecated the old
+    LCEResourceHandler inteface hierarchy. (Varun Vasudev via vinodkv)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -147,6 +154,9 @@ Release 2.9.0 - UNRELEASED
     (Jun Gong via rohithsharmaks)
 
     YARN-4574. Fix random failure in TestAMRMClientOnRMRestart.
+    (Takashi Ohnishi via rohithsharmaks)
+
+    YARN-4613. Fix test failure in TestClientRMService#testGetClusterNodes.
     (Takashi Ohnishi via rohithsharmaks)
 
 Release 2.8.0 - UNRELEASED
@@ -1316,6 +1326,14 @@ Release 2.8.0 - UNRELEASED
     YARN-4605. Spelling mistake in the help message of "yarn applicationattempt"
     command. (Weiwei Yang via aajisaka)
 
+    YARN-4614. Fix random failure in TestApplicationPriority#testApplicationPriority
+    AllocationWithChangeInPriority. (Sunil G via rohithsharmaks)
+
+    YARN-4592. Remove unused GetContainerStatus proto. (Chang Li via aajisaka)
+
+    YARN-4520. Finished app info is unnecessarily persisted in NM state-store
+    if container is acquired but not lunched on this node. (sandflee via jianeh)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1392,7 +1410,7 @@ Release 2.7.3 - UNRELEASED
     YARN-4598. Invalid event: RESOURCE_FAILED at
     CONTAINER_CLEANEDUP_AFTER_KILL (tangshangwen via jlowe)
 
-Release 2.7.2 - UNRELEASED
+Release 2.7.2 - 2016-01-25
 
   INCOMPATIBLE CHANGES
 

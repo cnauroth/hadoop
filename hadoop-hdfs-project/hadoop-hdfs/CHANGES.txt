@@ -60,6 +60,9 @@ Trunk (Unreleased)
 
   IMPROVEMENTS
 
+    HDFS-9653.  Added blocks pending deletion report to dfsadmin.  
+    (Weiwei Yang via eyang)
+
     HDFS-4665. Move TestNetworkTopologyWithNodeGroup to common.
     (Junping Du via llu)
 
@@ -949,6 +952,9 @@ Release 2.9.0 - UNRELEASED
 
     HDFS-9674. The HTrace span for OpWriteBlock should record the maxWriteToDisk
     time. (cmccabe via zhz)
+
+    HDFS-9094. Add command line option to ask NameNode reload
+    configuration. (Xiaobing Zhou via Arpit Agarwal)
 
   OPTIMIZATIONS
 
@@ -2684,7 +2690,10 @@ Release 2.7.3 - UNRELEASED
     HDFS-9625. set replication for empty file failed when set storage policy
     (DENG FEI via vinayakumarb)
 
-Release 2.7.2 - UNRELEASED
+    HDFS-9672. o.a.h.hdfs.TestLeaseRecovery2 fails intermittently (Mingliang Liu
+    via jitendra)
+
+Release 2.7.2 - 2016-01-25
 
   INCOMPATIBLE CHANGES
 
