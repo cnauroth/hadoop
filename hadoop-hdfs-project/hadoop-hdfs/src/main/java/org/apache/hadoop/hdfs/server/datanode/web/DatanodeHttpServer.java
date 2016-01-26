@@ -17,6 +17,15 @@
  */
 package org.apache.hadoop.hdfs.server.datanode.web;
 
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_ENABLED_DEFAULT;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY;
+
+import java.util.Enumeration;
+import java.util.Map;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFactory;
 import io.netty.channel.ChannelFuture;
@@ -83,8 +92,7 @@ public class DatanodeHttpServer implements Closeable {
       final DataNode datanode,
       final ServerSocketChannel externalHttpChannel)
     throws IOException {
-    this.restCsrfPreventionFilter =
-        DataNodeRestCsrfPreventionFilterFactory.create(conf);
+    this.restCsrfPreventionFilter = createRestCsrfPreventionFilter(conf);
     this.conf = conf;
 
     Configuration confForInfoServer = new Configuration(conf);
@@ -260,5 +268,88 @@ public class DatanodeHttpServer implements Closeable {
     }
     InetSocketAddress inetSocker = NetUtils.createSocketAddr(addr);
     return inetSocker.getHostString();
+  }
+
+  /**
+   * Creates the {@link RestCsrfPreventionFilter} for the DataNode.  Since the
+   * DataNode HTTP server is not implemented in terms of the servlet API, it
+   * takes some extra effort to obtain an instance of the filter.  This method
+   * takes care of configuration and implementing just enough of the servlet API
+   * and related interfaces so that the DataNode can get a fully initialized
+   * instance of the filter.
+   *
+   * @param conf configuration to read
+   * @return initialized filter, or null if CSRF protection not enabled
+   */
+  private static RestCsrfPreventionFilter createRestCsrfPreventionFilter(
+      Configuration conf) {
+    if (!conf.getBoolean(DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY,
+        DFS_DATANODE_HTTP_REST_CSRF_ENABLED_DEFAULT)) {
+      return null;
+    }
+    String restCsrfClassName = RestCsrfPreventionFilter.class.getName();
+    Map<String, String> restCsrfParams = RestCsrfPreventionFilter
+        .getFilterParams(conf, "dfs.datanode.http.rest-csrf.");
+    RestCsrfPreventionFilter filter = new RestCsrfPreventionFilter();
+    try {
+      filter.init(new MapBasedFilterConfig(restCsrfClassName, restCsrfParams));
+    } catch (ServletException e) {
+      throw new IllegalStateException(
+          "Failed to initialize RestCsrfPreventionFilter.", e);
+    }
+    return filter;
+  }
+
+  /**
+   * A minimal {@link FilterConfig} implementation backed by a {@link Map}.
+   */
+  private static final class MapBasedFilterConfig implements FilterConfig {
+
+    private final String filterName;
+    private final Map<String, String> parameters;
+
+    /**
+     * Creates a new MapBasedFilterConfig.
+     *
+     * @param filterName filter name
+     * @param parameters mapping of filter initialization parameters
+     */
+    public MapBasedFilterConfig(String filterName,
+        Map<String, String> parameters) {
+      this.filterName = filterName;
+      this.parameters = parameters;
+    }
+
+    @Override
+    public String getFilterName() {
+      return this.filterName;
+    }
+
+    @Override
+    public String getInitParameter(String name) {
+      return this.parameters.get(name);
+    }
+
+    @Override
+    public Enumeration<String> getInitParameterNames() {
+      throw this.notImplemented();
+    }
+
+    @Override
+    public ServletContext getServletContext() {
+      throw this.notImplemented();
+    }
+
+    /**
+     * Creates an exception indicating that an interface method is not
+     * implemented.  These should never be seen in practice, because it is only
+     * used for methods that are not called by {@link RestCsrfPreventionFilter}.
+     *
+     * @return exception indicating method not implemented
+     */
+    private UnsupportedOperationException notImplemented() {
+      return new UnsupportedOperationException(this.getClass().getSimpleName()
+          + " does not implement this method.");
+    }
   }
 }

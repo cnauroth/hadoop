@@ -18,7 +18,9 @@
 package org.apache.hadoop.security.http;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.Filter;
@@ -32,7 +34,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This filter provides protection against cross site request forgery (CSRF)
@@ -44,16 +49,17 @@ import org.apache.hadoop.util.StringUtils;
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public class RestCsrfPreventionFilter implements Filter {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(RestCsrfPreventionFilter.class);
+
   public static final String CUSTOM_HEADER_PARAM = "custom-header";
   public static final String CUSTOM_METHODS_TO_IGNORE_PARAM =
       "methods-to-ignore";
-  public static final String URL_PATH_PREFIXES_PARAM = "url-path-prefixes";
-
   static final String HEADER_DEFAULT = "X-XSRF-HEADER";
   static final String  METHODS_TO_IGNORE_DEFAULT = "GET,OPTIONS,HEAD,TRACE";
   private String  headerName = HEADER_DEFAULT;
   private Set<String> methodsToIgnore = null;
-  private Set<String> urlPathPrefixes = null;
 
   @Override
   public void init(FilterConfig filterConfig) throws ServletException {
@@ -63,10 +69,21 @@ public class RestCsrfPreventionFilter implements Filter {
     }
     String customMethodsToIgnore =
         filterConfig.getInitParameter(CUSTOM_METHODS_TO_IGNORE_PARAM);
-    methodsToIgnore = parseStringSet(filterConfig,
-        CUSTOM_METHODS_TO_IGNORE_PARAM, METHODS_TO_IGNORE_DEFAULT);
-    urlPathPrefixes = parseStringSet(filterConfig, URL_PATH_PREFIXES_PARAM,
-        null);
+    if (customMethodsToIgnore != null) {
+      parseMethodsToIgnore(customMethodsToIgnore);
+    } else {
+      parseMethodsToIgnore(METHODS_TO_IGNORE_DEFAULT);
+    }
+    LOG.info("Adding cross-site request forgery (CSRF) protection, "
+        + "headerName = {}, methodsToIgnore = {}", headerName, methodsToIgnore);
+  }
+
+  void parseMethodsToIgnore(String mti) {
+    String[] methods = mti.split(",");
+    methodsToIgnore = new HashSet<String>();
+    for (int i = 0; i < methods.length; i++) {
+      methodsToIgnore.add(methods[i]);
+    }
   }
 
   /**
@@ -82,21 +99,18 @@ public class RestCsrfPreventionFilter implements Filter {
    * Returns whether or not the request is allowed.
    *
    * @param method HTTP Method
-   * @param requestUri HTTP request URI
    * @param header value of HTTP header defined by {@link #getHeaderName()}
    * @return true if the request is allowed, otherwise false
    */
-  public boolean isRequestAllowed(String method, String requestPath,
-      String header) {
-    return !isFilteredPath(requestPath) || methodsToIgnore.contains(method) ||
-        header != null;
+  public boolean isRequestAllowed(String method, String header) {
+    return methodsToIgnore.contains(method) || header != null;
   }
 
   @Override
   public void doFilter(ServletRequest request, ServletResponse response,
       FilterChain chain) throws IOException, ServletException {
     HttpServletRequest httpRequest = (HttpServletRequest)request;
-    if (isRequestAllowed(httpRequest.getMethod(), httpRequest.getRequestURI(),
+    if (isRequestAllowed(httpRequest.getMethod(),
         httpRequest.getHeader(headerName))) {
       chain.doFilter(request, response);
     } else {
@@ -111,40 +125,27 @@ public class RestCsrfPreventionFilter implements Filter {
   }
 
   /**
-   * Returns true if the given URL path must be filtered.  A path must be
-   * filtered either if it matches one of the configured prefixes, or there were
-   * no prefixes configured, which means all paths must be checked.
+   * Constructs a mapping of configuration properties to be used for filter
+   * initialization.  The mapping includes all properties that start with the
+   * specified configuration prefix.  Property names in the mapping are trimmed
+   * to remove the configuration prefix.
    *
-   * @param urlPath path to check
-   * @return true if the path must be filtered, false otherwise
+   * @param conf configuration to read
+   * @param confPrefix configuration prefix
+   * @return mapping of configuration properties to be used for filter
+   *     initialization
    */
-  private boolean isFilteredPath(String urlPath) {
-    if (urlPathPrefixes.isEmpty()) {
-      return true;
-    }
-    for (String urlPathPrefix : urlPathPrefixes) {
-      if (urlPath.startsWith(urlPathPrefix)) {
-        return true;
+  public static Map<String, String> getFilterParams(Configuration conf,
+      String confPrefix) {
+    Map<String, String> filterConfigMap = new HashMap<>();
+    for (Map.Entry<String, String> entry : conf) {
+      String name = entry.getKey();
+      if (name.startsWith(confPrefix)) {
+        String value = conf.get(name);
+        name = name.substring(confPrefix.length());
+        filterConfigMap.put(name, value);
       }
     }
-    return false;
-  }
-
-  /**
-   * Parses a comma-delimited string stored in a configuration parameter into a
-   * set and returns it.
-   *
-   * @param filterConfig filter configuration to check
-   * @param param configuration parameter to read
-   * @param defaultValue default value if not found in configuration
-   * @return parsed set, or empty set if value not configured
-   */
-  private static Set<String> parseStringSet(FilterConfig filterConfig,
-      String param, String defaultValue) {
-    String value = filterConfig.getInitParameter(param);
-    if (value == null) {
-      value = defaultValue;
-    }
-    return new HashSet<String>(StringUtils.getTrimmedStringCollection(value));
+    return filterConfigMap;
   }
 }
