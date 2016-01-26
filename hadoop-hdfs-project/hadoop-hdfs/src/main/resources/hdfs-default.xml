@@ -2782,17 +2782,6 @@
 </property>
 
 <property>
-  <name>dfs.namenode.http.rest-csrf.url-path-prefixes</name>
-  <value>/webhdfs/</value>
-  <description>
-    A comma-separated list of NameNode URL path prefixes to be checked by
-    cross-site request forgery (CSRF) protection.  Paths that do not match any
-    of the prefixes will not be checked by CSRF protection.  If this property is
-    not defined, then every URL is checked by CSRF protection.
-  </description>
-</property>
-
-<property>
   <name>dfs.datanode.http.rest-csrf.enabled</name>
   <value>false</value>
   <description>
@@ -2819,17 +2808,6 @@
     include a custom header when protection against cross-site request forgery
     (CSRF) is enabled for the DataNode by setting
     dfs.datanode.http.rest-csrf.enabled to true.
-  </description>
-</property>
-
-<property>
-  <name>dfs.datanode.http.rest-csrf.url-path-prefixes</name>
-  <value>/webhdfs/</value>
-  <description>
-    A comma-separated list of DataNode URL path prefixes to be checked by
-    cross-site request forgery (CSRF) protection.  Paths that do not match any
-    of the prefixes will not be checked by CSRF protection.  If this property is
-    not defined, then every URL is checked by CSRF protection.
   </description>
 </property>
 </configuration>
