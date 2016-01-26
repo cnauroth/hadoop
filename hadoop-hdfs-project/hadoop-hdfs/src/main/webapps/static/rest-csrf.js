@@ -51,7 +51,7 @@
         var str = $(element).find('value').text().trim();
         var array = [];
         if (str) {
-          var splitStr = str.split(",");
+          var splitStr = str.split(',');
           for (var i = 0; i < splitStr.length; i++) {
             array.push(splitStr[i].trim());
           }
@@ -125,7 +125,7 @@
   // Adds custom headers to request if necessary.  This is done only for WebHDFS
   // URLs, and only if it's not an ignored method.
   function addRestCsrfCustomHeaders(xhr, settings) {
-    if (settings.url == null || !settings.url.startsWith('/webhdfs')) {
+    if (settings.url == null || !settings.url.startsWith('/webhdfs/')) {
       return;
     }
     var method = settings.type;
