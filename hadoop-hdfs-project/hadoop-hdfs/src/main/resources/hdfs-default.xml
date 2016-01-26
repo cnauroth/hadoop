@@ -2762,7 +2762,7 @@
 
 <property>
   <name>dfs.namenode.http.rest-csrf.custom-header</name>
-  <value>${hadoop.http.rest-csrf.custom-header}</value>
+  <value>X-XSRF-HEADER</value>
   <description>
     The name of a custom header that HTTP requests must send when protection
     against cross-site request forgery (CSRF) is enabled for the NameNode by
@@ -2772,12 +2772,23 @@
 
 <property>
   <name>dfs.namenode.http.rest-csrf.methods-to-ignore</name>
-  <value>${hadoop.http.rest-csrf.methods-to-ignore}</value>
+  <value>GET,OPTIONS,HEAD,TRACE</value>
   <description>
     A comma-separated list of HTTP methods that do not require HTTP requests to
     include a custom header when protection against cross-site request forgery
     (CSRF) is enabled for the NameNode by setting
     dfs.namenode.http.rest-csrf.enabled to true.
+  </description>
+</property>
+
+<property>
+  <name>dfs.namenode.http.rest-csrf.url-path-prefixes</name>
+  <value>/webhdfs/</value>
+  <description>
+    A comma-separated list of NameNode URL path prefixes to be checked by
+    cross-site request forgery (CSRF) protection.  Paths that do not match any
+    of the prefixes will not be checked by CSRF protection.  If this property is
+    not defined, then every URL is checked by CSRF protection.
   </description>
 </property>
 
@@ -2792,7 +2803,7 @@
 
 <property>
   <name>dfs.datanode.http.rest-csrf.custom-header</name>
-  <value>${hadoop.http.rest-csrf.custom-header}</value>
+  <value>X-XSRF-HEADER</value>
   <description>
     The name of a custom header that HTTP requests must send when protection
     against cross-site request forgery (CSRF) is enabled for the DataNode by
@@ -2802,12 +2813,23 @@
 
 <property>
   <name>dfs.datanode.http.rest-csrf.methods-to-ignore</name>
-  <value>${hadoop.http.rest-csrf.methods-to-ignore}</value>
+  <value>GET,OPTIONS,HEAD,TRACE</value>
   <description>
     A comma-separated list of HTTP methods that do not require HTTP requests to
     include a custom header when protection against cross-site request forgery
     (CSRF) is enabled for the DataNode by setting
     dfs.datanode.http.rest-csrf.enabled to true.
+  </description>
+</property>
+
+<property>
+  <name>dfs.datanode.http.rest-csrf.url-path-prefixes</name>
+  <value>/webhdfs/</value>
+  <description>
+    A comma-separated list of DataNode URL path prefixes to be checked by
+    cross-site request forgery (CSRF) protection.  Paths that do not match any
+    of the prefixes will not be checked by CSRF protection.  If this property is
+    not defined, then every URL is checked by CSRF protection.
   </description>
 </property>
 </configuration>

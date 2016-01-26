@@ -32,6 +32,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.util.StringUtils;
 
 /**
  * This filter provides protection against cross site request forgery (CSRF)
@@ -46,10 +47,13 @@ public class RestCsrfPreventionFilter implements Filter {
   public static final String CUSTOM_HEADER_PARAM = "custom-header";
   public static final String CUSTOM_METHODS_TO_IGNORE_PARAM =
       "methods-to-ignore";
+  public static final String URL_PATH_PREFIXES_PARAM = "url-path-prefixes";
+
   static final String HEADER_DEFAULT = "X-XSRF-HEADER";
   static final String  METHODS_TO_IGNORE_DEFAULT = "GET,OPTIONS,HEAD,TRACE";
   private String  headerName = HEADER_DEFAULT;
   private Set<String> methodsToIgnore = null;
+  private Set<String> urlPathPrefixes = null;
 
   @Override
   public void init(FilterConfig filterConfig) throws ServletException {
@@ -59,19 +63,10 @@ public class RestCsrfPreventionFilter implements Filter {
     }
     String customMethodsToIgnore =
         filterConfig.getInitParameter(CUSTOM_METHODS_TO_IGNORE_PARAM);
-    if (customMethodsToIgnore != null) {
-      parseMethodsToIgnore(customMethodsToIgnore);
-    } else {
-      parseMethodsToIgnore(METHODS_TO_IGNORE_DEFAULT);
-    }
-  }
-
-  void parseMethodsToIgnore(String mti) {
-    String[] methods = mti.split(",");
-    methodsToIgnore = new HashSet<String>();
-    for (int i = 0; i < methods.length; i++) {
-      methodsToIgnore.add(methods[i]);
-    }
+    methodsToIgnore = parseStringSet(filterConfig,
+        CUSTOM_METHODS_TO_IGNORE_PARAM, METHODS_TO_IGNORE_DEFAULT);
+    urlPathPrefixes = parseStringSet(filterConfig, URL_PATH_PREFIXES_PARAM,
+        null);
   }
 
   /**
@@ -87,18 +82,21 @@ public class RestCsrfPreventionFilter implements Filter {
    * Returns whether or not the request is allowed.
    *
    * @param method HTTP Method
+   * @param requestUri HTTP request URI
    * @param header value of HTTP header defined by {@link #getHeaderName()}
    * @return true if the request is allowed, otherwise false
    */
-  public boolean isRequestAllowed(String method, String header) {
-    return methodsToIgnore.contains(method) || header != null;
+  public boolean isRequestAllowed(String method, String requestPath,
+      String header) {
+    return !isFilteredPath(requestPath) || methodsToIgnore.contains(method) ||
+        header != null;
   }
 
   @Override
   public void doFilter(ServletRequest request, ServletResponse response,
       FilterChain chain) throws IOException, ServletException {
     HttpServletRequest httpRequest = (HttpServletRequest)request;
-    if (isRequestAllowed(httpRequest.getMethod(),
+    if (isRequestAllowed(httpRequest.getMethod(), httpRequest.getRequestURI(),
         httpRequest.getHeader(headerName))) {
       chain.doFilter(request, response);
     } else {
@@ -110,5 +108,43 @@ public class RestCsrfPreventionFilter implements Filter {
 
   @Override
   public void destroy() {
+  }
+
+  /**
+   * Returns true if the given URL path must be filtered.  A path must be
+   * filtered either if it matches one of the configured prefixes, or there were
+   * no prefixes configured, which means all paths must be checked.
+   *
+   * @param urlPath path to check
+   * @return true if the path must be filtered, false otherwise
+   */
+  private boolean isFilteredPath(String urlPath) {
+    if (urlPathPrefixes.isEmpty()) {
+      return true;
+    }
+    for (String urlPathPrefix : urlPathPrefixes) {
+      if (urlPath.startsWith(urlPathPrefix)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Parses a comma-delimited string stored in a configuration parameter into a
+   * set and returns it.
+   *
+   * @param filterConfig filter configuration to check
+   * @param param configuration parameter to read
+   * @param defaultValue default value if not found in configuration
+   * @return parsed set, or empty set if value not configured
+   */
+  private static Set<String> parseStringSet(FilterConfig filterConfig,
+      String param, String defaultValue) {
+    String value = filterConfig.getInitParameter(param);
+    if (value == null) {
+      value = defaultValue;
+    }
+    return new HashSet<String>(StringUtils.getTrimmedStringCollection(value));
   }
 }

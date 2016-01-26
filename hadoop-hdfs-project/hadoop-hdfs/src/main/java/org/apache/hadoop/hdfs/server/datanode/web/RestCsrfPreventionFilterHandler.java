@@ -69,6 +69,7 @@ final class RestCsrfPreventionFilterHandler
   protected void channelRead0(ChannelHandlerContext ctx, HttpRequest req)
       throws Exception {
     if (this.restCsrfPreventionFilter.isRequestAllowed(req.getMethod().name(),
+        req.getUri(),
         req.headers().get(this.restCsrfPreventionFilter.getHeaderName()))) {
       ReferenceCountUtil.retain(req);
       ctx.fireChannelRead(req);
