@@ -97,7 +97,7 @@ public class NameNodeHttpServer {
           .getFilterParams(conf, "dfs.webhdfs.rest-csrf.");
       String restCsrfClassName = RestCsrfPreventionFilter.class.getName();
       HttpServer2.defineFilter(httpServer.getWebAppContext(), restCsrfClassName,
-          restCsrfClassName, restCsrfParams, new String[] { pathSpec });
+          restCsrfClassName, restCsrfParams, new String[] {pathSpec});
     }
 
     // add webhdfs packages

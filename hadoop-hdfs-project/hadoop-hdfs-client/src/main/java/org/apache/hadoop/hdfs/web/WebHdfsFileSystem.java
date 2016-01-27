@@ -255,8 +255,8 @@ public class WebHdfsFileSystem extends FileSystem
           DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_DEFAULT);
       this.restCsrfMethodsToIgnore = new HashSet<>();
       this.restCsrfMethodsToIgnore.addAll(getTrimmedStringList(conf,
-          DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_KEY,
-          DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_DEFAULT));
+          DFS_WEBHDFS_REST_CSRF_METHODS_TO_IGNORE_KEY,
+          DFS_WEBHDFS_REST_CSRF_METHODS_TO_IGNORE_DEFAULT));
     } else {
       this.restCsrfCustomHeader = null;
       this.restCsrfMethodsToIgnore = null;

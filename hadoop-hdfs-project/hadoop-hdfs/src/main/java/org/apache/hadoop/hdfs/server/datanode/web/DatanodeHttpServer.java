@@ -177,16 +177,16 @@ public class DatanodeHttpServer implements Closeable {
           protected void initChannel(SocketChannel ch) throws Exception {
             ChannelPipeline p = ch.pipeline();
             p.addLast(
-              new SslHandler(sslFactory.createSSLEngine()),
-              new HttpRequestDecoder(),
-              new HttpResponseEncoder());
+                new SslHandler(sslFactory.createSSLEngine()),
+                new HttpRequestDecoder(),
+                new HttpResponseEncoder());
             if (restCsrfPreventionFilter != null) {
               p.addLast(new RestCsrfPreventionFilterHandler(
                   restCsrfPreventionFilter));
             }
             p.addLast(
-              new ChunkedWriteHandler(),
-              new URLDispatcher(jettyAddr, conf, confForCreate));
+                new ChunkedWriteHandler(),
+                new URLDispatcher(jettyAddr, conf, confForCreate));
           }
         });
     } else {
