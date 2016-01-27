@@ -40,7 +40,7 @@ import org.apache.hadoop.security.http.RestCsrfPreventionFilter;
  * Netty handler that integrates with the {@link RestCsrfPreventionFilter}.  If
  * the filter determines that the request is allowed, then this handler forwards
  * the request to the next handler in the Netty pipeline.  Otherwise, this
- * handlers drops the request and immediately sends an HTTP 400 response.
+ * handler drops the request and immediately sends an HTTP 400 response.
  */
 @InterfaceAudience.Private
 final class RestCsrfPreventionFilterHandler
@@ -68,8 +68,8 @@ final class RestCsrfPreventionFilterHandler
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, HttpRequest req)
       throws Exception {
-    if (this.restCsrfPreventionFilter.isRequestAllowed(req.getMethod().name(),
-        req.headers().get(this.restCsrfPreventionFilter.getHeaderName()))) {
+    if (restCsrfPreventionFilter.isRequestAllowed(req.getMethod().name(),
+        req.headers().get(restCsrfPreventionFilter.getHeaderName()))) {
       ReferenceCountUtil.retain(req);
       ctx.fireChannelRead(req);
     } else {
