@@ -2752,74 +2752,36 @@
 </property>
 
 <property>
-  <name>dfs.namenode.http.rest-csrf.enabled</name>
+  <name>dfs.webhdfs.rest-csrf.enabled</name>
   <value>false</value>
   <description>
-    If true, then enables NameNode HTTP server protection against cross-site
-    request forgery (CSRF).  The WebHDFS client also uses this property to
-    determine whether or not it needs to send the custom CSRF prevention header
-    in its HTTP requests.
+    If true, then enables WebHDFS protection against cross-site request forgery
+    (CSRF).  The WebHDFS client also uses this property to determine whether or
+    not it needs to send the custom CSRF prevention header in its HTTP requests.
   </description>
 </property>
 
 <property>
-  <name>dfs.namenode.http.rest-csrf.custom-header</name>
+  <name>dfs.webhdfs.rest-csrf.custom-header</name>
   <value>X-XSRF-HEADER</value>
   <description>
     The name of a custom header that HTTP requests must send when protection
-    against cross-site request forgery (CSRF) is enabled for the NameNode by
-    setting dfs.namenode.http.rest-csrf.enabled to true.  The WebHDFS client
-    also uses this property to determine whether or not it needs to send the
-    custom CSRF prevention header in its HTTP requests.
-  </description>
-</property>
-
-<property>
-  <name>dfs.namenode.http.rest-csrf.methods-to-ignore</name>
-  <value>GET,OPTIONS,HEAD,TRACE</value>
-  <description>
-    A comma-separated list of HTTP methods that do not require HTTP requests to
-    include a custom header when protection against cross-site request forgery
-    (CSRF) is enabled for the NameNode by setting
-    dfs.namenode.http.rest-csrf.enabled to true.  The WebHDFS client also uses
-    this property to determine whether or not it needs to send the custom CSRF
+    against cross-site request forgery (CSRF) is enabled for WebHDFS by setting
+    dfs.webhdfs.rest-csrf.enabled to true.  The WebHDFS client also uses this
+    property to determine whether or not it needs to send the custom CSRF
     prevention header in its HTTP requests.
   </description>
 </property>
 
 <property>
-  <name>dfs.datanode.http.rest-csrf.enabled</name>
-  <value>false</value>
-  <description>
-    If true, then enables DataNode HTTP server protection against cross-site
-    request forgery (CSRF).  The WebHDFS client also uses this property to
-    determine whether or not it needs to send the custom CSRF prevention header
-    in its HTTP requests.
-  </description>
-</property>
-
-<property>
-  <name>dfs.datanode.http.rest-csrf.custom-header</name>
-  <value>X-XSRF-HEADER</value>
-  <description>
-    The name of a custom header that HTTP requests must send when protection
-    against cross-site request forgery (CSRF) is enabled for the DataNode by
-    setting dfs.datanode.http.rest-csrf.enabled to true.  The WebHDFS client
-    also uses this property to determine whether or not it needs to send the
-    custom CSRF prevention header in its HTTP requests.
-  </description>
-</property>
-
-<property>
-  <name>dfs.datanode.http.rest-csrf.methods-to-ignore</name>
+  <name>dfs.webhdfs.rest-csrf.methods-to-ignore</name>
   <value>GET,OPTIONS,HEAD,TRACE</value>
   <description>
     A comma-separated list of HTTP methods that do not require HTTP requests to
     include a custom header when protection against cross-site request forgery
-    (CSRF) is enabled for the DataNode by setting
-    dfs.datanode.http.rest-csrf.enabled to true.  The WebHDFS client also uses
-    this property to determine whether or not it needs to send the custom CSRF
-    prevention header in its HTTP requests.
+    (CSRF) is enabled for WebHDFS by setting dfs.webhdfs.rest-csrf.enabled to
+    true.  The WebHDFS client also uses this property to determine whether or
+    not it needs to send the custom CSRF prevention header in its HTTP requests.
   </description>
 </property>
 </configuration>

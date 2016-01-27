@@ -18,18 +18,12 @@
 
 package org.apache.hadoop.hdfs.web;
 
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_ENABLED_DEFAULT;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_METHODS_TO_IGNORE_DEFAULT;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_METHODS_TO_IGNORE_KEY;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_NAMENODE_HTTP_REST_CSRF_ENABLED_DEFAULT;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_NAMENODE_HTTP_REST_CSRF_ENABLED_KEY;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_NAMENODE_HTTP_REST_CSRF_METHODS_TO_IGNORE_DEFAULT;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_NAMENODE_HTTP_REST_CSRF_METHODS_TO_IGNORE_KEY;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_DEFAULT;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_KEY;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_ENABLED_DEFAULT;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_ENABLED_KEY;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_METHODS_TO_IGNORE_DEFAULT;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_METHODS_TO_IGNORE_KEY;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -143,7 +137,7 @@ public class WebHdfsFileSystem extends FileSystem
   private InetSocketAddress nnAddrs[];
   private int currentNNAddrIndex;
   private boolean disallowFallbackToInsecureCluster;
-  private Set<String> restCsrfCustomHeaders;
+  private String restCsrfCustomHeader;
   private Set<String> restCsrfMethodsToIgnore;
 
   /**
@@ -249,66 +243,22 @@ public class WebHdfsFileSystem extends FileSystem
    * Initializes client-side handling of cross-site request forgery (CSRF)
    * protection by figuring out the custom HTTP headers that need to be sent in
    * requests and which HTTP methods are ignored because they do not require
-   * CSRF protection.  Protection can be configured separately and independently
-   * for the NameNode and DataNode.  The common case would be to enable it for
-   * both, using the same settings for the header and the methods to ignore.
-   * However, this method gracefully handles other possibilities too.  If the
-   * NameNode and DataNode are configured to use different headers, then this
-   * method finds both and sends both in relevant requests.  If the NameNode and
-   * DataNode are configured with different methods to ignore, then this method
-   * computes the set intersection.  (Since there may be a redirect involved,
-   * it's important to determine if either of the processes need the headers
-   * sent.)  If only one of either NameNode or DataNode is configured with CSRF
-   * protection, then this method only reads configuration pertaining to the one
-   * daemon.
+   * CSRF protection.
    *
    * @param conf configuration to read
    */
   private void initializeRestCsrf(Configuration conf) {
-    boolean nnCsrfEnabled = conf.getBoolean(
-        DFS_NAMENODE_HTTP_REST_CSRF_ENABLED_KEY,
-        DFS_NAMENODE_HTTP_REST_CSRF_ENABLED_DEFAULT);
-    boolean dnCsrfEnabled = conf.getBoolean(
-        DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY,
-        DFS_DATANODE_HTTP_REST_CSRF_ENABLED_DEFAULT);
-    if (nnCsrfEnabled && dnCsrfEnabled) {
-      this.restCsrfCustomHeaders = new HashSet<>();
-      this.restCsrfCustomHeaders.add(conf.getTrimmed(
-          DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY,
-          DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT));
-      this.restCsrfCustomHeaders.add(conf.getTrimmed(
-          DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY,
-          DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT));
-
+    if (conf.getBoolean(DFS_WEBHDFS_REST_CSRF_ENABLED_KEY,
+        DFS_WEBHDFS_REST_CSRF_ENABLED_DEFAULT)) {
+      this.restCsrfCustomHeader = conf.getTrimmed(
+          DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_KEY,
+          DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_DEFAULT);
       this.restCsrfMethodsToIgnore = new HashSet<>();
       this.restCsrfMethodsToIgnore.addAll(getTrimmedStringList(conf,
-          DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY,
-          DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT));
-      this.restCsrfMethodsToIgnore.retainAll(getTrimmedStringList(conf,
-          DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY,
-          DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT));
-    } else if (nnCsrfEnabled) {
-      this.restCsrfCustomHeaders = new HashSet<>();
-      this.restCsrfCustomHeaders.add(conf.getTrimmed(
-          DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY,
-          DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT));
-
-      this.restCsrfMethodsToIgnore = new HashSet<>();
-      this.restCsrfMethodsToIgnore.addAll(getTrimmedStringList(conf,
-          DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY,
-          DFS_NAMENODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT));
-    } else if (dnCsrfEnabled) {
-      this.restCsrfCustomHeaders = new HashSet<>();
-      this.restCsrfCustomHeaders.add(conf.getTrimmed(
-          DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY,
-          DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT));
-
-      this.restCsrfMethodsToIgnore = new HashSet<>();
-      this.restCsrfMethodsToIgnore.addAll(getTrimmedStringList(conf,
-          DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_KEY,
-          DFS_DATANODE_HTTP_REST_CSRF_CUSTOM_HEADER_DEFAULT));
+          DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_KEY,
+          DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_DEFAULT));
     } else {
-      this.restCsrfCustomHeaders = null;
+      this.restCsrfCustomHeader = null;
       this.restCsrfMethodsToIgnore = null;
     }
   }
@@ -703,12 +653,10 @@ public class WebHdfsFileSystem extends FileSystem
       final boolean doOutput = op.getDoOutput();
       conn.setRequestMethod(op.getType().toString());
       conn.setInstanceFollowRedirects(false);
-      if (restCsrfCustomHeaders != null &&
+      if (restCsrfCustomHeader != null &&
           !restCsrfMethodsToIgnore.contains(op.getType().name())) {
-        for (String customHeader : restCsrfCustomHeaders) {
-          // The value of the header is unimportant.  Only its presence matters.
-          conn.setRequestProperty(customHeader, "\"\"");
-        }
+        // The value of the header is unimportant.  Only its presence matters.
+        conn.setRequestProperty(restCsrfCustomHeader, "\"\"");
       }
       switch (op.getType()) {
       // if not sending a message body for a POST or PUT operation, need

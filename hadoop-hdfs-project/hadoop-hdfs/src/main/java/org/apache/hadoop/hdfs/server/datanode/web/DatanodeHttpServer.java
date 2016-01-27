@@ -17,8 +17,8 @@
  */
 package org.apache.hadoop.hdfs.server.datanode.web;
 
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_ENABLED_DEFAULT;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_ENABLED_DEFAULT;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_ENABLED_KEY;
 
 import java.util.Enumeration;
 import java.util.Map;
@@ -283,13 +283,14 @@ public class DatanodeHttpServer implements Closeable {
    */
   private static RestCsrfPreventionFilter createRestCsrfPreventionFilter(
       Configuration conf) {
-    if (!conf.getBoolean(DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY,
-        DFS_DATANODE_HTTP_REST_CSRF_ENABLED_DEFAULT)) {
+    System.out.println("cn createRestCsrfPreventionFilter, enabled? " + conf.getBoolean(DFS_WEBHDFS_REST_CSRF_ENABLED_KEY, DFS_WEBHDFS_REST_CSRF_ENABLED_DEFAULT));
+    if (!conf.getBoolean(DFS_WEBHDFS_REST_CSRF_ENABLED_KEY,
+        DFS_WEBHDFS_REST_CSRF_ENABLED_DEFAULT)) {
       return null;
     }
     String restCsrfClassName = RestCsrfPreventionFilter.class.getName();
     Map<String, String> restCsrfParams = RestCsrfPreventionFilter
-        .getFilterParams(conf, "dfs.datanode.http.rest-csrf.");
+        .getFilterParams(conf, "dfs.webhdfs.rest-csrf.");
     RestCsrfPreventionFilter filter = new RestCsrfPreventionFilter();
     try {
       filter.init(new MapBasedFilterConfig(restCsrfClassName, restCsrfParams));

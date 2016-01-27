@@ -20,21 +20,10 @@
 
 // Initializes client-side handling of cross-site request forgery (CSRF)
 // protection by figuring out the custom HTTP headers that need to be sent in
-// requests and which HTTP methods are ignored because they do not require
-// CSRF protection.  Protection can be configured separately and independently
-// for the NameNode and DataNode.  The common case would be to enable it for
-// both, using the same settings for the header and the methods to ignore.
-// However, this method gracefully handles other possibilities too.  If the
-// NameNode and DataNode are configured to use different headers, then this
-// method finds both and sends both in relevant requests.  If the NameNode and
-// DataNode are configured with different methods to ignore, then this method
-// computes the set intersection.  (Since there may be a redirect involved,
-// it's important to determine if either of the processes need the headers
-// sent.)  If only one of either NameNode or DataNode is configured with CSRF
-// protection, then this method only reads configuration pertaining to the one
-// daemon.
+// requests and which HTTP methods are ignored because they do not require CSRF
+// protection.
 (function() {
-  var restCsrfCustomHeaders = null;
+  var restCsrfCustomHeader = null;
   var restCsrfMethodsToIgnore = null;
 
   $.ajax({'url': '/conf', 'dataType': 'xml', 'async': false}).done(
@@ -61,80 +50,42 @@
 
       // Get all relevant configuration properties.
       var $xml = $(data);
-      var nnCsrfEnabled = false, dnCsrfEnabled = false;
-      var nnHeader = null, dnHeader = null;
-      var nnMethods = [], dnMethods = [];
+      var csrfEnabled = false;
+      var header = null;
+      var methods = [];
       $xml.find('property').each(function(idx, element) {
         var name = $(element).find('name').text();
-        if (name === 'dfs.namenode.http.rest-csrf.enabled') {
-          nnCsrfEnabled = getBooleanValue(element);
-        } else if (name === 'dfs.namenode.http.rest-csrf.custom-header') {
-          nnHeader = getTrimmedStringValue(element);
-        } else if (name === 'dfs.namenode.http.rest-csrf.methods-to-ignore') {
-          nnMethods = getTrimmedStringArrayValue(element);
-        } else if (name === 'dfs.datanode.http.rest-csrf.enabled') {
-          dnCsrfEnabled = getBooleanValue(element);
-        } else if (name === 'dfs.datanode.http.rest-csrf.custom-header') {
-          dnHeader = getTrimmedStringValue(element);
-        } else if (name === 'dfs.datanode.http.rest-csrf.methods-to-ignore') {
-          dnMethods = getTrimmedStringArrayValue(element);
+        if (name === 'dfs.webhdfs.rest-csrf.enabled') {
+          csrfEnabled = getBooleanValue(element);
+        } else if (name === 'dfs.webhdfs.rest-csrf.custom-header') {
+          header = getTrimmedStringValue(element);
+        } else if (name === 'dfs.webhdfs.rest-csrf.methods-to-ignore') {
+          methods = getTrimmedStringArrayValue(element);
         }
       });
 
-      // Finalize values of custom headers and ignored methods.
-      if (nnCsrfEnabled && dnCsrfEnabled) {
-        restCsrfCustomHeaders = {};
-        if (nnHeader != null) {
-          restCsrfCustomHeaders[nnHeader] = true;
-        }
-        if (dnHeader != null) {
-          restCsrfCustomHeaders[dnHeader] = true;
-        }
-        restCsrfMethodsToIgnore = {};
-        nnMethods
-            .filter(function(method) { return $.inArray(method, dnMethods) > -1; })
-            .map(function(method) { restCsrfMethodsToIgnore[method] = true; });
-      } else if (nnCsrfEnabled) {
-        restCsrfCustomHeaders = {};
-        if (nnHeader != null) {
-          restCsrfCustomHeaders[nnHeader] = true;
-        }
-        restCsrfMethodsToIgnore = {};
-        nnMethods.map(function(method) { restCsrfMethodsToIgnore[method] = true; });
-      } else if (dnCsrfEnabled) {
-        restCsrfCustomHeaders = {};
-        if (dnHeader != null) {
-          restCsrfCustomHeaders[dnHeader] = true;
-        }
-        restCsrfMethodsToIgnore = {};
-        dnMethods.map(function(method) { restCsrfMethodsToIgnore[method] = true; });
-      } else {
-        restCsrfCustomHeaders = null;
-        restCsrfMethodsToIgnore = null;
-      }
-
       // If enabled, set up all subsequent AJAX calls with a pre-send callback
       // that adds the custom headers if necessary.
-      if (nnCsrfEnabled || dnCsrfEnabled) {
+      if (csrfEnabled) {
+        restCsrfCustomHeader = header;
+        restCsrfMethodsToIgnore = {};
+        methods.map(function(method) { restCsrfMethodsToIgnore[method] = true; });
         $.ajaxSetup({
-          beforeSend: addRestCsrfCustomHeaders
+          beforeSend: addRestCsrfCustomHeader
         });
       }
     });
 
   // Adds custom headers to request if necessary.  This is done only for WebHDFS
   // URLs, and only if it's not an ignored method.
-  function addRestCsrfCustomHeaders(xhr, settings) {
+  function addRestCsrfCustomHeader(xhr, settings) {
     if (settings.url == null || !settings.url.startsWith('/webhdfs/')) {
       return;
     }
     var method = settings.type;
-    if (restCsrfCustomHeaders != null &&
-        !restCsrfMethodsToIgnore[method]) {
-      for (var header in restCsrfCustomHeaders) {
-        // The value of the header is unimportant.  Only its presence matters.
-        xhr.setRequestHeader(header, '""');
-      }
+    if (restCsrfCustomHeader != null && !restCsrfMethodsToIgnore[method]) {
+      // The value of the header is unimportant.  Only its presence matters.
+      xhr.setRequestHeader(restCsrfCustomHeader, '""');
     }
   }
 })();

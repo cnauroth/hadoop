@@ -17,8 +17,8 @@
  */
 package org.apache.hadoop.hdfs.web;
 
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_NAMENODE_HTTP_REST_CSRF_ENABLED_KEY;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_ENABLED_KEY;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_ENABLED_KEY;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -61,7 +61,6 @@ public class TestWebHdfsWithRestCsrfPreventionFilter {
   private final boolean clientRestCsrf;
 
   private MiniDFSCluster cluster;
-  private Configuration serverConf, clientConf;
   private FileSystem fs, webhdfs;
 
   @Rule
@@ -89,20 +88,19 @@ public class TestWebHdfsWithRestCsrfPreventionFilter {
 
   @Before
   public void before() throws Exception {
-    serverConf = new Configuration();
-    serverConf.setBoolean(DFS_NAMENODE_HTTP_REST_CSRF_ENABLED_KEY, nnRestCsrf);
-    serverConf.setBoolean(DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY, dnRestCsrf);
-    cluster = new MiniDFSCluster.Builder(serverConf).numDataNodes(1)
-        .build();
+    Configuration nnConf = new Configuration();
+    nnConf.setBoolean(DFS_WEBHDFS_REST_CSRF_ENABLED_KEY, nnRestCsrf);
+    cluster = new MiniDFSCluster.Builder(nnConf).numDataNodes(0).build();
+
+    Configuration dnConf = new Configuration(nnConf);
+    dnConf.setBoolean(DFS_WEBHDFS_REST_CSRF_ENABLED_KEY, dnRestCsrf);
+    cluster.startDataNodes(dnConf, 1, true, null, null, null, null, false);
+
     cluster.waitActive();
     fs = cluster.getFileSystem();
 
-    clientConf = new Configuration(serverConf);
-    clientConf.setBoolean(DFS_NAMENODE_HTTP_REST_CSRF_ENABLED_KEY,
-        clientRestCsrf);
-    clientConf.setBoolean(DFS_DATANODE_HTTP_REST_CSRF_ENABLED_KEY,
-        clientRestCsrf);
-
+    Configuration clientConf = new Configuration();
+    clientConf.setBoolean(DFS_WEBHDFS_REST_CSRF_ENABLED_KEY, clientRestCsrf);
     InetSocketAddress addr = cluster.getNameNode().getHttpAddress();
     webhdfs = FileSystem.get(URI.create("webhdfs://" +
         NetUtils.getHostPortString(addr)), clientConf);
