@@ -23,6 +23,7 @@ WebHDFS REST API
         * [HDFS Configuration Options](#HDFS_Configuration_Options)
     * [Authentication](#Authentication)
     * [Proxy Users](#Proxy_Users)
+    * [Cross-Site Request Forgery Prevention](#Cross-Site_Request_Forgery_Prevention)
     * [File and Directory Operations](#File_and_Directory_Operations)
         * [Create and Write to a File](#Create_and_Write_to_a_File)
         * [Append to a File](#Append_to_a_File)
@@ -262,6 +263,35 @@ When the proxy user feature is enabled, a proxy user *P* may submit a request on
 3.  A proxy request using Hadoop delegation token when security is on:
 
         curl -i "http://<HOST>:<PORT>/webhdfs/v1/<PATH>?delegation=<TOKEN>&op=..."
+
+Cross-Site Request Forgery Prevention
+-------------------------------------
+
+WebHDFS supports an optional, configurable mechanism for cross-site request
+forgery (CSRF) prevention.  When enabled, WebHDFS HTTP requests to the NameNode
+or DataNode must include a custom HTTP header.  Configuration properties allow
+adjusting which specific HTTP methods are protected and the name of the HTTP
+header.  The value sent in the header is not relevant.  Only the presence of a
+header by that name is required.
+
+Enabling CSRF prevention also sets up the `WebHdfsFileSystem` class to send the
+required header.  This ensures that CLI commands like
+[`hdfs dfs`](./HDFSCommands.html#dfs) and
+[`hadoop distcp`](../../hadoop-distcp/DistCp.html) continue to work correctly
+when used with `webhdfs:` URIs.
+
+Enabling CSRF prevention also sets up the NameNode web UI to send the required
+header.  After enabling CSRF prevention and restarting the NameNode, existing
+users of the NameNode web UI need to refresh the browser to reload the page and
+find the new configuration.
+
+The following properties control CSRF prevention.
+
+| Property | Description | Default Value |
+|:---- |:---- |:----
+| `dfs.webhdfs.rest-csrf.enabled` | If true, then enables WebHDFS protection against cross-site request forgery (CSRF).  The WebHDFS client also uses this property to determine whether or not it needs to send the custom CSRF prevention header in its HTTP requests. | `false` |
+| `dfs.webhdfs.rest-csrf.custom-header` | The name of a custom header that HTTP requests must send when protection against cross-site request forgery (CSRF) is enabled for WebHDFS by setting dfs.webhdfs.rest-csrf.enabled to true.  The WebHDFS client also uses this property to determine whether or not it needs to send the custom CSRF prevention header in its HTTP requests. | `X-XSRF-HEADER` |
+| `dfs.webhdfs.rest-csrf.methods-to-ignore` | A comma-separated list of HTTP methods that do not require HTTP requests to include a custom header when protection against cross-site request forgery (CSRF) is enabled for WebHDFS by setting dfs.webhdfs.rest-csrf.enabled to true.  The WebHDFS client also uses this property to determine whether or not it needs to send the custom CSRF prevention header in its HTTP requests. | `GET,OPTIONS,HEAD,TRACE` |
 
 File and Directory Operations
 -----------------------------
