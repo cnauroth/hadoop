@@ -47,7 +47,7 @@ public interface HdfsClientConfigKeys {
       "dfs.webhdfs.rest-csrf.custom-header";
   String DFS_WEBHDFS_REST_CSRF_CUSTOM_HEADER_DEFAULT = "X-XSRF-HEADER";
   String DFS_WEBHDFS_REST_CSRF_METHODS_TO_IGNORE_KEY =
-      "dfs.namenode.http.rest-csrf.methods-to-ignore";
+      "dfs.webhdfs.rest-csrf.methods-to-ignore";
   String DFS_WEBHDFS_REST_CSRF_METHODS_TO_IGNORE_DEFAULT =
       "GET,OPTIONS,HEAD,TRACE";
 
