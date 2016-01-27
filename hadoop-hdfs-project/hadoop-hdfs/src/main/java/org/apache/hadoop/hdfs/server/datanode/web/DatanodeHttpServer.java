@@ -283,7 +283,6 @@ public class DatanodeHttpServer implements Closeable {
    */
   private static RestCsrfPreventionFilter createRestCsrfPreventionFilter(
       Configuration conf) {
-    System.out.println("cn createRestCsrfPreventionFilter, enabled? " + conf.getBoolean(DFS_WEBHDFS_REST_CSRF_ENABLED_KEY, DFS_WEBHDFS_REST_CSRF_ENABLED_DEFAULT));
     if (!conf.getBoolean(DFS_WEBHDFS_REST_CSRF_ENABLED_KEY,
         DFS_WEBHDFS_REST_CSRF_ENABLED_DEFAULT)) {
       return null;
