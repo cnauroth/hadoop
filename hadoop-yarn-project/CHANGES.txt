@@ -167,6 +167,9 @@ Release 2.9.0 - UNRELEASED
     YARN-4573. Fix test failure in TestRMAppTransitions#testAppRunningKill and
     testAppKilledKilled. (Takashi Ohnishi via rohithsharmaks)
 
+    YARN-4633. Fix random test failure in TestRMRestart#testRMRestartAfterPreemption
+    (Bibin A Chundatt via rohithsharmaks)
+
 Release 2.8.0 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1341,6 +1344,9 @@ Release 2.8.0 - UNRELEASED
 
     YARN-4520. Finished app info is unnecessarily persisted in NM state-store
     if container is acquired but not lunched on this node. (sandflee via jianeh)
+
+    YARN-4643. Container recovery is broken with delegating container runtime
+    (Sidharta Seethana via jlowe)
 
 Release 2.7.3 - UNRELEASED
 

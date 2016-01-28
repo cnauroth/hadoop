@@ -959,6 +959,9 @@ Release 2.9.0 - UNRELEASED
     HDFS-9541. Add hdfsStreamBuilder API to libhdfs to support defaultBlockSizes
     greater than 2 GB. (cmccabe via zhz)
 
+    HDFS-9677. Rename generationStampV1/generationStampV2 to
+    legacyGenerationStamp/generationStamp. (Mingliang Liu via jing9)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -2661,6 +2664,8 @@ Release 2.7.3 - UNRELEASED
 
     HDFS-9634. webhdfs client side exceptions don't provide enough details
     (Eric Payne via kihwal)
+
+    HDFS-9654. Code refactoring for HDFS-8578.  (szetszwo)
 
   OPTIMIZATIONS
 
