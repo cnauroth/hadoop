@@ -293,6 +293,11 @@ The following properties control CSRF prevention.
 | `dfs.webhdfs.rest-csrf.custom-header` | The name of a custom header that HTTP requests must send when protection against cross-site request forgery (CSRF) is enabled for WebHDFS by setting dfs.webhdfs.rest-csrf.enabled to true.  The WebHDFS client also uses this property to determine whether or not it needs to send the custom CSRF prevention header in its HTTP requests. | `X-XSRF-HEADER` |
 | `dfs.webhdfs.rest-csrf.methods-to-ignore` | A comma-separated list of HTTP methods that do not require HTTP requests to include a custom header when protection against cross-site request forgery (CSRF) is enabled for WebHDFS by setting dfs.webhdfs.rest-csrf.enabled to true.  The WebHDFS client also uses this property to determine whether or not it needs to send the custom CSRF prevention header in its HTTP requests. | `GET,OPTIONS,HEAD,TRACE` |
 
+The following is an example `curl` call that uses the `-H` option to include the
+custom header in the request.
+
+        curl -i -L -X PUT -H 'X-XSRF-HEADER: ""' 'http://<HOST>:<PORT>/webhdfs/v1/<PATH>?op=CREATE'
+
 File and Directory Operations
 -----------------------------
 
