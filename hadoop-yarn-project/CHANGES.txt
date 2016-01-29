@@ -113,6 +113,8 @@ Release 2.9.0 - UNRELEASED
     integrated ResourceHandler mechanism, and also deprecated the old
     LCEResourceHandler inteface hierarchy. (Varun Vasudev via vinodkv)
 
+    YARN-4647. Make RegisterNodeManagerRequestPBImpl thread-safe. (kasha)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -169,6 +171,12 @@ Release 2.9.0 - UNRELEASED
 
     YARN-4633. Fix random test failure in TestRMRestart#testRMRestartAfterPreemption
     (Bibin A Chundatt via rohithsharmaks)
+
+    YARN-4519. Potential deadlock of CapacityScheduler between decrease container
+    and assign containers. (Meng Ding via jianhe)
+
+    YARN-4543. Fix random test failure in TestNodeStatusUpdater.testStopReentrant
+    (Akihiro Suda via rohithsharmaks)
 
 Release 2.8.0 - UNRELEASED
 
@@ -383,6 +391,11 @@ Release 2.8.0 - UNRELEASED
 
     YARN-4265. Provide new timeline plugin storage to support fine-grained entity
     caching. (Li Lu and Jason Lowe via junping_du)
+
+    YARN-4219. New levelDB cache storage for timeline v1.5. (Li Lu via xgong)
+
+    YARN-4411. RMAppAttemptImpl#createApplicationAttemptReport throws
+    IllegalArgumentException. (Bibin A Chundatt, yarntime via devaraj)
 
   IMPROVEMENTS
 
