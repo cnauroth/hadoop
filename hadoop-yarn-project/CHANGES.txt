@@ -115,6 +115,13 @@ Release 2.9.0 - UNRELEASED
 
     YARN-4647. Make RegisterNodeManagerRequestPBImpl thread-safe. (kasha)
 
+    YARN-4649. Add additional logging to some NM state store operations.
+    (Sidharta Seethana via vvasudev)
+
+    YARN-4625. Make ApplicationSubmissionContext and
+    ApplicationSubmissionContextInfo more consistent.
+    (Xuan Gong via vvasudev)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -177,6 +184,12 @@ Release 2.9.0 - UNRELEASED
 
     YARN-4543. Fix random test failure in TestNodeStatusUpdater.testStopReentrant
     (Akihiro Suda via rohithsharmaks)
+
+    YARN-4615. Fix random test failure in TestAbstractYarnScheduler#testResource
+    RequestRecoveryToTheRightAppAttempt. (Sunil G via rohithsharmaks)
+
+    YARN-4594. container-executor fails to remove directory tree when chmod
+    required (Colin Patrick McCabe via jlowe)
 
 Release 2.8.0 - UNRELEASED
 
@@ -770,6 +783,11 @@ Release 2.8.0 - UNRELEASED
     YARN-4371. "yarn application -kill" should take multiple application ids
     (Sunil G via jlowe)
 
+    YARN-4340. Add "list" API to reservation system. (Sean Po via wangda)
+
+    YARN-4100. Add Documentation for Distributed and Delegated-Centralized
+    Node Labels feature. (Naganarasimha G R via devaraj)
+
   OPTIMIZATIONS
 
     YARN-3339. TestDockerContainerExecutor should pull a single image and not
@@ -1361,6 +1379,10 @@ Release 2.8.0 - UNRELEASED
     YARN-4643. Container recovery is broken with delegating container runtime
     (Sidharta Seethana via jlowe)
 
+    YARN-4617. LeafQueue#pendingOrderingPolicy should always use fixed ordering
+    policy instead of using same as active applications ordering policy.
+    (Rohith Sharma K S via jianhe)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1436,6 +1458,12 @@ Release 2.7.3 - UNRELEASED
 
     YARN-4598. Invalid event: RESOURCE_FAILED at
     CONTAINER_CLEANEDUP_AFTER_KILL (tangshangwen via jlowe)
+
+    YARN-4428. Redirect RM page to AHS page when AHS turned on and RM page is
+    not available (Chang Li via jlowe)
+
+    YARN-3102. Decommisioned Nodes not listed in Web UI (Kuhu Shukla via
+    jlowe)
 
 Release 2.7.2 - 2016-01-25
 
@@ -2272,6 +2300,18 @@ Release 2.7.0 - 2015-04-20
 
     YARN-3466. Fix RM nodes web page to sort by node HTTP-address, #containers 
     and node-label column (Jason Lowe via wangda)
+
+Release 2.6.5 - UNRELEASED
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+  OPTIMIZATIONS
+
+  BUG FIXES
 
 Release 2.6.4 - UNRELEASED
 

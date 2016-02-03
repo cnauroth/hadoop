@@ -217,6 +217,12 @@ Trunk (Unreleased)
     HDFS-9582. TestLeaseRecoveryStriped file missing Apache License header 
     and not well formatted. (umamahesh)
 
+    HDFS-9494. Parallel optimization of DFSStripedOutputStream#flushAllInternals.
+    (Gao Rui via jing9)
+
+    HDFS-9260. Improve the performance and GC friendliness of NameNode startup
+    and full block reports (Staffan Friberg via cmccabe)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -902,6 +908,15 @@ Trunk (Unreleased)
 
       HDFS-9575. Use byte array for internal block indices in a striped block.
       (jing9 via szetszwo)
+
+      HDFS-9659. EditLogTailerThread to Active Namenode RPC should timeout
+      (surendra singh lilhore via vinayakumarb)
+
+      HDFS-9731. Erasure Coding: Rename BlockECRecoveryCommand to
+      BlockECReconstructionCommand. (Rakesh R via zhz)
+
+      HDFS-9403. Erasure coding: some EC tests are missing timeout.
+      (Gao Rui via zhz)
 
 Release 2.9.0 - UNRELEASED
 
@@ -1863,6 +1878,12 @@ Release 2.8.0 - UNRELEASED
     HDFS-9706. Log more details in debug logs in BlockReceiver's constructor.
     (Xiao Chen via Yongjun Zhang)
 
+    HDFS-9638. Improve DistCp Help and documentation.
+    (Wei-Chiu Chuang via Yongjun Zhang)
+
+    HDFS-9721. Allow Delimited PB OIV tool to run upon fsimage that contains
+    INodeReference. (Xiao Chen via lei)
+
   OPTIMIZATIONS
 
     HDFS-8026. Trace FSOutputSummer#writeChecksumChunks rather than
@@ -1924,6 +1945,9 @@ Release 2.8.0 - UNRELEASED
 
     HDFS-8999. Allow a file to be closed with COMMITTED but not yet COMPLETE
     blocks.  (szetszwo)
+
+    HDFS-9715. Check storage ID uniqueness on datanode startup
+    (Lei (Eddy) Xu via vinayakumarb)
 
   BUG FIXES
 
@@ -2652,6 +2676,26 @@ Release 2.8.0 - UNRELEASED
     HDFS-9682. Fix a typo "aplication" in HttpFS document.
     (Weiwei Yang via aajisaka)
 
+    HDFS-9566. Remove expensive 'BlocksMap#getStorages(Block b, final
+    DatanodeStorage.State state)' method (Daryn Sharp via vinayakumarb)
+
+    HDFS-9708. FSNamesystem.initAuditLoggers() doesn't trim classnames
+    (Mingliang Liu via stevel)
+
+    HDFS-9210. Fix some misuse of %n in VolumeScanner#printStats.
+    (Xiaoyu Yao)
+
+    HDFS-9701. DN may deadlock when hot-swapping under load. (Xiao Chen via lei)
+
+    HDFS-9718. HAUtil#getConfForOtherNodes should unset independent generic keys
+    before initialize (DENG FEI via vinayakumarb)
+
+    HDFS-9739. DatanodeStorage.isValidStorageId() is broken
+    (Mingliang Liu via vinayakumarb)
+
+    HDFS-9748. Avoid duplication in pendingReplications when
+    addExpectedReplicasToPending is called twice. (Walter Su via jing9)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -2672,6 +2716,9 @@ Release 2.7.3 - UNRELEASED
     (Eric Payne via kihwal)
 
     HDFS-9654. Code refactoring for HDFS-8578.  (szetszwo)
+
+    HDFS-9669. TcpPeerServer should respect ipc.server.listen.queue.size
+    (Elliot Clark via cmccabe)
 
   OPTIMIZATIONS
 
@@ -2712,6 +2759,12 @@ Release 2.7.3 - UNRELEASED
 
     HDFS-9690. ClientProtocol.addBlock is not idempotent after HDFS-8071.
     (szetszwo)
+
+    HDFS-9406. FSImage may get corrupted after deleting snapshot.
+    (Contributed by Jing Zhao, Stanislav Antic, Vinayakumar B, Yongjun Zhang)
+
+    HDFS-9740. Use a reasonable limit in DFSTestUtil.waitForMetric()
+    (Chang Li via vinayakumarb)
 
 Release 2.7.2 - 2016-01-25
 
@@ -3818,6 +3871,19 @@ Release 2.7.0 - 2015-04-20
 
       HDFS-7700. Document quota support for storage types. (Xiaoyu Yao via
       Arpit Agarwal)
+
+Release 2.6.5 - UNRELEASED
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+  OPTIMIZATIONS
+
+  BUG FIXES
+
 
 Release 2.6.4 - UNRELEASED
 

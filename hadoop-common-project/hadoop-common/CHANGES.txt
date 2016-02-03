@@ -644,6 +644,9 @@ Trunk (Unreleased)
       HADOOP-12685. Input buffer position after encode/decode not consistent
       between different kinds of buffers. (Rui Li via zhz)
 
+      HADOOP-12757. Findbug compilation fails for 'Kafka Library support'.
+      (aajisaka)
+
 Release 2.9.0 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1087,6 +1090,8 @@ Release 2.8.0 - UNRELEASED
     (Yongjun Zhang)
 
     HADOOP-12696. Add tests for S3Filesystem Contract (Matt Paduano via raviprak)
+
+    HADOOP-12755. Fix typo in defaultFS warning message. (wang)
 
   OPTIMIZATIONS
 
@@ -1700,6 +1705,8 @@ Release 2.7.3 - UNRELEASED
 
     HADOOP-12706. TestLocalFsFCStatistics#testStatisticsThreadLocalDataCleanUp
     times out occasionally (Sangjin Lee and Colin Patrick McCabe via jlowe)
+
+    HADOOP-12761. incremental maven build is not really incremental (sjlee)
 
 Release 2.7.2 - 2016-01-25
 
@@ -2479,6 +2486,18 @@ Release 2.7.0 - 2015-04-20
 
     HADOOP-11837. AuthenticationFilter should destroy SignerSecretProvider in
     Tomcat deployments. (Bowen Zhang via wheat9)
+
+Release 2.6.5 - UNRELEASED
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+  OPTIMIZATIONS
+
+  BUG FIXES
 
 Release 2.6.4 - UNRELEASED
 
