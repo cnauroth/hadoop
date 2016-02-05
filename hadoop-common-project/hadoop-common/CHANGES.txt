@@ -647,6 +647,9 @@ Trunk (Unreleased)
       HADOOP-12757. Findbug compilation fails for 'Kafka Library support'.
       (aajisaka)
 
+      HADOOP-12041. Implement another Reed-Solomon coder in pure Java.
+      (Kai Zheng via zhz)
+
 Release 2.9.0 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1661,6 +1664,13 @@ Release 2.8.0 - UNRELEASED
     HADOOP-12735. core-default.xml misspells
     hadoop.workaround.non.threadsafe.getpwuid (Ray Chiang via cmccabe)
 
+    HADOOP-12771. Fix typo in JvmPauseMonitor#getNumGcWarnThreadholdExceeded.
+    (Xiaobing Zhou via xyao)
+
+    HADOOP-12766. The default value of
+    "hadoop.workaround.non.threadsafe.getpwuid" is different between
+    core-default.xml and NativeIO.java (Akira AJISAKA via cmccabe)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1707,6 +1717,9 @@ Release 2.7.3 - UNRELEASED
     times out occasionally (Sangjin Lee and Colin Patrick McCabe via jlowe)
 
     HADOOP-12761. incremental maven build is not really incremental (sjlee)
+
+    HADOOP-12772. NetworkTopologyWithNodeGroup.getNodeGroup() can loop
+    infinitely for invalid 'loc' values (Kuhu Shukla via kihwal)
 
 Release 2.7.2 - 2016-01-25
 

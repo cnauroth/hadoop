@@ -122,6 +122,9 @@ Release 2.9.0 - UNRELEASED
     ApplicationSubmissionContextInfo more consistent.
     (Xuan Gong via vvasudev)
 
+    YARN-4307. Display blacklisted nodes for AM container in the RM web UI.
+    (Naganarasimha G R via vvasudev)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -190,6 +193,9 @@ Release 2.9.0 - UNRELEASED
 
     YARN-4594. container-executor fails to remove directory tree when chmod
     required (Colin Patrick McCabe via jlowe)
+
+    YARN-4669. Fix logging statements in resource manager's Application class.
+    (Seethana Sidharta via vvasudev)
 
 Release 2.8.0 - UNRELEASED
 
@@ -787,6 +793,8 @@ Release 2.8.0 - UNRELEASED
 
     YARN-4100. Add Documentation for Distributed and Delegated-Centralized
     Node Labels feature. (Naganarasimha G R via devaraj)
+
+    YARN-4662. Document some newly added metrics. (Jian He via xgong)
 
   OPTIMIZATIONS
 
