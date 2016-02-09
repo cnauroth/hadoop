@@ -479,6 +479,9 @@ Release 2.8.0 - UNRELEASED
     MAPREDUCE-6473. Job submission can take a long time during Cluster
     initialization (Kuhu Shukla via jlowe)
 
+    MAPREDUCE-6626. Reuse ObjectMapper instance in MapReduce.
+    (Lin Yiqun via aajisaka)
+
   BUG FIXES
 
     MAPREDUCE-6314. TestPipeApplication fails on trunk.
@@ -744,6 +747,9 @@ Release 2.7.3 - UNRELEASED
 
     MAPREDUCE-6621. Memory Leak in JobClient#submitJobInternal() (Xuan Gong
     via jlowe)
+
+    MAPREDUCE-6413. TestLocalJobSubmission is failing with unknown host
+    (zhihai xu via jlowe)
 
 Release 2.7.2 - 2016-01-25
 
@@ -1031,6 +1037,9 @@ Release 2.6.5 - UNRELEASED
   OPTIMIZATIONS
 
   BUG FIXES
+
+    MAPREDUCE-6413. TestLocalJobSubmission is failing with unknown host
+    (zhihai xu via jlowe)
 
 Release 2.6.4 - UNRELEASED
 
