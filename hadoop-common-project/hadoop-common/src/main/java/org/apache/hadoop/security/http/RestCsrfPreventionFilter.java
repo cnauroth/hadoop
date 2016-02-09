@@ -21,9 +21,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Set;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -81,6 +81,7 @@ public class RestCsrfPreventionFilter implements Filter {
     } else {
       parseMethodsToIgnore(METHODS_TO_IGNORE_DEFAULT);
     }
+
     String agents = filterConfig.getInitParameter(BROWSER_USER_AGENT_PARAM);
     if (agents == null) {
       agents = BROWSER_USER_AGENTS_DEFAULT;
