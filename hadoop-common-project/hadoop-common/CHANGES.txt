@@ -685,6 +685,9 @@ Release 2.9.0 - UNRELEASED
     HADOOP-12662. The build should fail if a -Dbundle option fails (Kai Zheng
     via cmccabe)
 
+    HADOOP-12749. Create a threadpoolexecutor that overrides afterExecute to
+    log uncaught exceptions/errors. (Sidharta Seethana via vvasudev)
+
   BUG FIXES
 
     HADOOP-12605. Fix intermittent failure of TestIPC.testIpcWithReaderQueuing
@@ -756,6 +759,9 @@ Release 2.8.0 - UNRELEASED
     (Larry McCay via cnauroth)
 
     HADOOP-12635. Adding Append API support for WASB. (Dushyanth via cnauroth)
+
+    HADOOP-12426. Add Entry point for Kerberos health check
+    (Steve Loughran via cnauroth)
 
   IMPROVEMENTS
 
@@ -1096,6 +1102,15 @@ Release 2.8.0 - UNRELEASED
 
     HADOOP-12755. Fix typo in defaultFS warning message. (wang)
 
+    HADOOP-12292. Make use of DeleteObjects optional.
+    (Thomas Demoor via stevel)
+
+    HADOOP-12759. RollingFileSystemSink should eagerly rotate directories.
+    (Daniel Templeton via wang)
+
+    HADOOP-12752. Improve diagnostics/use of envvar/sysprop credential
+    propagation (Steve Loughran via cnauroth)
+
   OPTIMIZATIONS
 
     HADOOP-11785. Reduce the number of listStatus operation in distcp
@@ -1136,6 +1151,9 @@ Release 2.8.0 - UNRELEASED
 
     HADOOP-12450. UserGroupInformation should not log at WARN level if no groups
     are found. (Elliott Clark via stevel)
+
+    HADOOP-12758. Extend CSRF Filter with UserAgent Checks
+    (Larry McCay via cnauroth)
 
   BUG FIXES
 
@@ -2511,6 +2529,9 @@ Release 2.6.5 - UNRELEASED
   OPTIMIZATIONS
 
   BUG FIXES
+
+    HADOOP-12773. HBase classes fail to load with client/job classloader
+    enabled (sjlee)
 
 Release 2.6.4 - UNRELEASED
 

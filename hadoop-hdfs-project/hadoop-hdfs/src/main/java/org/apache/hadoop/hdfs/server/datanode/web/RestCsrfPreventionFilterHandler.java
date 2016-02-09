@@ -18,6 +18,7 @@
 package org.apache.hadoop.hdfs.server.datanode.web;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONNECTION;
+import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static io.netty.handler.codec.http.HttpHeaderValues.CLOSE;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
@@ -69,7 +70,8 @@ final class RestCsrfPreventionFilterHandler
   protected void channelRead0(ChannelHandlerContext ctx, HttpRequest req)
       throws Exception {
     if (restCsrfPreventionFilter.isRequestAllowed(req.method().name(),
-        req.headers().get(restCsrfPreventionFilter.getHeaderName()))) {
+        req.headers().get(restCsrfPreventionFilter.getHeaderName()),
+        req.headers().get(USER_AGENT))) {
       ReferenceCountUtil.retain(req);
       ctx.fireChannelRead(req);
     } else {
