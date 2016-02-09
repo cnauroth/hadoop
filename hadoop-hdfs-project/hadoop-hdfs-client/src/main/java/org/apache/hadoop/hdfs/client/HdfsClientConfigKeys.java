@@ -50,6 +50,8 @@ public interface HdfsClientConfigKeys {
       "dfs.webhdfs.rest-csrf.methods-to-ignore";
   String DFS_WEBHDFS_REST_CSRF_METHODS_TO_IGNORE_DEFAULT =
       "GET,OPTIONS,HEAD,TRACE";
+  String DFS_WEBHDFS_REST_CSRF_BROWSER_USERAGENTS_REGEX_KEY =
+      "dfs.webhdfs.rest-csrf.browser-useragents-regex";
 
   String OAUTH_CLIENT_ID_KEY = "dfs.webhdfs.oauth2.client.id";
   String OAUTH_REFRESH_URL_KEY = "dfs.webhdfs.oauth2.refresh.url";

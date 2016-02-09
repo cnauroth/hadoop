@@ -17,7 +17,7 @@
  */
 package org.apache.hadoop.hdfs.web;
 
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_ENABLED_KEY;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_BROWSER_USERAGENTS_REGEX_KEY;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_WEBHDFS_REST_CSRF_ENABLED_KEY;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -90,6 +90,9 @@ public class TestWebHdfsWithRestCsrfPreventionFilter {
   public void before() throws Exception {
     Configuration nnConf = new Configuration();
     nnConf.setBoolean(DFS_WEBHDFS_REST_CSRF_ENABLED_KEY, nnRestCsrf);
+    // Set configuration to treat anything as a browser, so that CSRF prevention
+    // checks actually get enforced.
+    nnConf.set(DFS_WEBHDFS_REST_CSRF_BROWSER_USERAGENTS_REGEX_KEY, ".*");
     cluster = new MiniDFSCluster.Builder(nnConf).numDataNodes(0).build();
 
     Configuration dnConf = new Configuration(nnConf);
