@@ -109,29 +109,6 @@ public class RestCsrfPreventionFilter implements Filter {
   }
 
   /**
-   * Returns the configured custom header name.
-   *
-   * @return custom header name
-   */
-  public String getHeaderName() {
-    return headerName;
-  }
-
-  /**
-   * Returns whether or not the request is allowed.
-   *
-   * @param method HTTP Method
-   * @param header value of HTTP header defined by {@link #getHeaderName()}
-   * @param userAgent HTTP User-Agent header value
-   * @return true if the request is allowed, otherwise false
-   */
-  public boolean isRequestAllowed(String method, String header,
-      String userAgent) {
-    return !isBrowser(userAgent) || methodsToIgnore.contains(method) ||
-        header != null;
-  }
-
-  /**
    * This method interrogates the User-Agent String and returns whether it
    * refers to a browser.  If its not a browser, then the requirement for the
    * CSRF header will not be enforced; if it is a browser, the requirement will
@@ -159,19 +136,97 @@ public class RestCsrfPreventionFilter implements Filter {
     return false;
   }
 
-  @Override
-  public void doFilter(ServletRequest request, ServletResponse response,
-      FilterChain chain) throws IOException, ServletException {
-    HttpServletRequest httpRequest = (HttpServletRequest)request;
-    if (isRequestAllowed(httpRequest.getMethod(),
-        httpRequest.getHeader(headerName),
-        httpRequest.getHeader(HEADER_USER_AGENT))) {
-      chain.doFilter(request, response);
+  /**
+   * Defines the minimal API requirements for the filter to execute its
+   * filtering logic.  This interface exists to facilitate integration in
+   * components that do not run within a servlet container and therefore cannot
+   * rely on a servlet container to dispatch to the {@link #doFilter} method.
+   * Typical usage of the filter inside a servlet container will not need to use
+   * this interface.
+   */
+  public interface HttpInteraction {
+
+    /**
+     * Returns the value of a header.
+     *
+     * @param header name of header
+     * @return value of header
+     */
+    String getHeader(String header);
+
+    /**
+     * Returns the method.
+     *
+     * @return method
+     */
+    String getMethod();
+
+    /**
+     * Called by the filter after it decides that the request may proceed.
+     *
+     * @throws IOException if there is an I/O error
+     * @throws ServletException if the implementation relies on the servlet API
+     *     and a servlet API call has failed
+     */
+    void proceed() throws IOException, ServletException;
+
+    /**
+     * Called by the filter after it decides that the request is a potential
+     * CSRF attack and therefore must be rejected.
+     *
+     * @param code status code to send
+     * @param message response message
+     * @throws IOException if there is an I/O error
+     */
+    void sendError(int code, String message) throws IOException;
+  }
+
+  /**
+   * Handles an {@link HttpInteraction} by applying the filtering logic.
+   *
+   * @param httpInteraction caller's HTTP interaction
+   * @throws IOException if there is an I/O error
+   * @throws ServletException if the implementation relies on the servlet API
+   *     and a servlet API call has failed
+   */
+  public void handleHttpInteraction(HttpInteraction httpInteraction)
+      throws IOException, ServletException {
+    if (!isBrowser(httpInteraction.getHeader(HEADER_USER_AGENT)) ||
+        methodsToIgnore.contains(httpInteraction.getMethod()) ||
+        httpInteraction.getHeader(headerName) != null) {
+      httpInteraction.proceed();
     } else {
-      ((HttpServletResponse)response).sendError(
-          HttpServletResponse.SC_BAD_REQUEST,
+      httpInteraction.sendError(HttpServletResponse.SC_BAD_REQUEST,
           "Missing Required Header for CSRF Vulnerability Protection");
     }
+  }
+
+  @Override
+  public void doFilter(ServletRequest request, ServletResponse response,
+      final FilterChain chain) throws IOException, ServletException {
+    final HttpServletRequest httpRequest = (HttpServletRequest)request;
+    final HttpServletResponse httpResponse = (HttpServletResponse)response;
+    handleHttpInteraction(new HttpInteraction() {
+        @Override
+        public String getHeader(String header) {
+          return httpRequest.getHeader(header);
+        }
+
+        @Override
+        public String getMethod() {
+          return httpRequest.getMethod();
+        }
+
+        @Override
+        public void proceed() throws IOException, ServletException {
+          chain.doFilter(httpRequest, httpResponse);
+        }
+
+        @Override
+        public void sendError(int code, String message) throws IOException {
+          httpResponse.sendError(code, message);
+        }
+    });
   }
 
   @Override

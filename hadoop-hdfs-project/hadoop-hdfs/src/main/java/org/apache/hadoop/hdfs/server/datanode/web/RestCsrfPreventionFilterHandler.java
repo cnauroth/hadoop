@@ -18,9 +18,7 @@
 package org.apache.hadoop.hdfs.server.datanode.web;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONNECTION;
-import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static io.netty.handler.codec.http.HttpHeaderValues.CLOSE;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
@@ -36,6 +34,7 @@ import org.apache.commons.logging.Log;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.http.RestCsrfPreventionFilter;
+import org.apache.hadoop.security.http.RestCsrfPreventionFilter.HttpInteraction;
 
 /**
  * Netty handler that integrates with the {@link RestCsrfPreventionFilter}.  If
@@ -67,18 +66,31 @@ final class RestCsrfPreventionFilterHandler
   }
 
   @Override
-  protected void channelRead0(ChannelHandlerContext ctx, HttpRequest req)
-      throws Exception {
-    if (restCsrfPreventionFilter.isRequestAllowed(req.method().name(),
-        req.headers().get(restCsrfPreventionFilter.getHeaderName()),
-        req.headers().get(USER_AGENT))) {
-      ReferenceCountUtil.retain(req);
-      ctx.fireChannelRead(req);
-    } else {
-      HttpResponseStatus status = new HttpResponseStatus(BAD_REQUEST.code(),
-          "Missing Required Header for Vulnerability Protection");
-      sendResponseAndClose(ctx, new DefaultHttpResponse(HTTP_1_1, status));
-    }
+  protected void channelRead0(final ChannelHandlerContext ctx,
+      final HttpRequest req) throws Exception {
+    restCsrfPreventionFilter.handleHttpInteraction(new HttpInteraction() {
+        @Override
+        public String getHeader(String header) {
+          return req.headers().get(header);
+        }
+
+        @Override
+        public String getMethod() {
+          return req.method().name();
+        }
+
+        @Override
+        public void proceed() {
+          ReferenceCountUtil.retain(req);
+          ctx.fireChannelRead(req);
+        }
+
+        @Override
+        public void sendError(int code, String message) {
+          HttpResponseStatus status = new HttpResponseStatus(code, message);
+          sendResponseAndClose(ctx, new DefaultHttpResponse(HTTP_1_1, status));
+        }
+    });
   }
 
   @Override
