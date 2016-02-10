@@ -197,6 +197,9 @@ Release 2.9.0 - UNRELEASED
     YARN-4669. Fix logging statements in resource manager's Application class.
     (Seethana Sidharta via vvasudev)
 
+    YARN-4629. Distributed shell breaks under strong security.
+    (Daniel Templeton via stevel)
+
 Release 2.8.0 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -795,6 +798,9 @@ Release 2.8.0 - UNRELEASED
     Node Labels feature. (Naganarasimha G R via devaraj)
 
     YARN-4662. Document some newly added metrics. (Jian He via xgong)
+
+    YARN-4360. Improve GreedyReservationAgent to support "early" allocations,
+    and performance improvements (curino via asuresh)
 
   OPTIMIZATIONS
 
