@@ -223,6 +223,8 @@ Trunk (Unreleased)
     HDFS-9260. Improve the performance and GC friendliness of NameNode startup
     and full block reports (Staffan Friberg via cmccabe)
 
+    HDFS-9795. OIV Delimited should show which files are ACL-enabled (lei)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -420,6 +422,9 @@ Trunk (Unreleased)
 
     HDFS-9646. ErasureCodingWorker may fail when recovering data blocks with
     length less than the first internal block. (jing9)
+
+    HDFS-9789. Correctly update DataNode's scheduled block size when writing
+    small EC file. (jing9)
 
     BREAKDOWN OF HDFS-7285 SUBTASKS AND RELATED JIRAS
 
@@ -924,6 +929,9 @@ Trunk (Unreleased)
       HDFS-9775. Erasure Coding : Rename BlockRecoveryWork to
       BlockReconstructionWork. (Rakesh R via zhz)
 
+      HDFS-9755. Erasure Coding: allow to use multiple EC policies in striping
+      related tests [Part 2]. (Rui Li via zhz)
+
 Release 2.9.0 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -987,6 +995,9 @@ Release 2.9.0 - UNRELEASED
     an error (Rakesh R via cmccabe)
 
     HDFS-9637. Tests for RollingFileSystemSink. (Daniel Templeton via kasha)
+
+    HDFS-9780. RollingFileSystemSink doesn't work on secure clusters. 
+    (Daniel Templeton via kasha)
 
   OPTIMIZATIONS
 
@@ -1967,6 +1978,9 @@ Release 2.8.0 - UNRELEASED
     HDFS-9686. Remove useless boxing/unboxing code.
     (Kousuke Saruta via aajisaka)
 
+    HDFS-9768. Reuse ObjectMapper instance in HDFS to improve the performance.
+    (Lin Yiqun via aajisaka)
+
   BUG FIXES
 
     HDFS-7501. TransactionsSinceLastCheckpoint can be negative on SBNs.
@@ -2725,6 +2739,11 @@ Release 2.8.0 - UNRELEASED
 
     HDFS-9779 . TestReplicationPolicyWithNodeGroup NODE variable picks wrong rack value
     (Kuhu Shukla via umamahesh)
+
+    HDFS-9788. Incompatible tag renumbering in HeartbeatResponseProto. (wang)
+
+    HDFS-9790. HDFS Balancer should exit with a proper message if upgrade is
+    not finalized. (Xiaobing Zhou via Arpit Agarwal)
 
 Release 2.7.3 - UNRELEASED
 
