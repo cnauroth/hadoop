@@ -141,8 +141,9 @@ public class RestCsrfPreventionFilter implements Filter {
    * filtering logic.  This interface exists to facilitate integration in
    * components that do not run within a servlet container and therefore cannot
    * rely on a servlet container to dispatch to the {@link #doFilter} method.
-   * Typical usage of the filter inside a servlet container will not need to use
-   * this interface.
+   * Applications that do run inside a servlet container will not need to write
+   * code that uses this interface.  Instead, they can use typical servlet
+   * container configuration mechanisms to insert the filter.
    */
   public interface HttpInteraction {
 
@@ -206,27 +207,8 @@ public class RestCsrfPreventionFilter implements Filter {
       final FilterChain chain) throws IOException, ServletException {
     final HttpServletRequest httpRequest = (HttpServletRequest)request;
     final HttpServletResponse httpResponse = (HttpServletResponse)response;
-    handleHttpInteraction(new HttpInteraction() {
-        @Override
-        public String getHeader(String header) {
-          return httpRequest.getHeader(header);
-        }
-
-        @Override
-        public String getMethod() {
-          return httpRequest.getMethod();
-        }
-
-        @Override
-        public void proceed() throws IOException, ServletException {
-          chain.doFilter(httpRequest, httpResponse);
-        }
-
-        @Override
-        public void sendError(int code, String message) throws IOException {
-          httpResponse.sendError(code, message);
-        }
-    });
+    handleHttpInteraction(new ServletFilterHttpInteraction(httpRequest,
+        httpResponse, chain));
   }
 
   @Override
@@ -256,5 +238,50 @@ public class RestCsrfPreventionFilter implements Filter {
       }
     }
     return filterConfigMap;
+  }
+
+  /**
+   * {@link HttpInteraction} implementation for use in the servlet filter.
+   */
+  private static final class ServletFilterHttpInteraction
+      implements HttpInteraction {
+
+    private final FilterChain chain;
+    private final HttpServletRequest httpRequest;
+    private final HttpServletResponse httpResponse;
+
+    /**
+     * Creates a new ServletFilterHttpInteraction.
+     *
+     * @param httpRequest request to process
+     * @param httpResponse response to process
+     * @param chain filter chain to forward to if HTTP interaction is allowed
+     */
+    public ServletFilterHttpInteraction(HttpServletRequest httpRequest,
+        HttpServletResponse httpResponse, FilterChain chain) {
+      this.httpRequest = httpRequest;
+      this.httpResponse = httpResponse;
+      this.chain = chain;
+    }
+
+    @Override
+    public String getHeader(String header) {
+      return httpRequest.getHeader(header);
+    }
+
+    @Override
+    public String getMethod() {
+      return httpRequest.getMethod();
+    }
+
+    @Override
+    public void proceed() throws IOException, ServletException {
+      chain.doFilter(httpRequest, httpResponse);
+    }
+
+    @Override
+    public void sendError(int code, String message) throws IOException {
+      httpResponse.sendError(code, message);
+    }
   }
 }

@@ -68,29 +68,8 @@ final class RestCsrfPreventionFilterHandler
   @Override
   protected void channelRead0(final ChannelHandlerContext ctx,
       final HttpRequest req) throws Exception {
-    restCsrfPreventionFilter.handleHttpInteraction(new HttpInteraction() {
-        @Override
-        public String getHeader(String header) {
-          return req.headers().get(header);
-        }
-
-        @Override
-        public String getMethod() {
-          return req.method().name();
-        }
-
-        @Override
-        public void proceed() {
-          ReferenceCountUtil.retain(req);
-          ctx.fireChannelRead(req);
-        }
-
-        @Override
-        public void sendError(int code, String message) {
-          HttpResponseStatus status = new HttpResponseStatus(code, message);
-          sendResponseAndClose(ctx, new DefaultHttpResponse(HTTP_1_1, status));
-        }
-    });
+    restCsrfPreventionFilter.handleHttpInteraction(new NettyHttpInteraction(
+        ctx, req));
   }
 
   @Override
@@ -112,5 +91,47 @@ final class RestCsrfPreventionFilterHandler
       DefaultHttpResponse resp) {
     resp.headers().set(CONNECTION, CLOSE);
     ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
+  }
+
+  /**
+   * {@link HttpInteraction} implementation for use in a Netty pipeline.
+   */
+  private static final class NettyHttpInteraction implements HttpInteraction {
+
+    private final ChannelHandlerContext ctx;
+    private final HttpRequest req;
+
+    /**
+     * Creates a new NettyHttpInteraction.
+     *
+     * @param ctx context to receive the response
+     * @param req request to process
+     */
+    public NettyHttpInteraction(ChannelHandlerContext ctx, HttpRequest req) {
+      this.ctx = ctx;
+      this.req = req;
+    }
+
+    @Override
+    public String getHeader(String header) {
+      return req.headers().get(header);
+    }
+
+    @Override
+    public String getMethod() {
+      return req.method().name();
+    }
+
+    @Override
+    public void proceed() {
+      ReferenceCountUtil.retain(req);
+      ctx.fireChannelRead(req);
+    }
+
+    @Override
+    public void sendError(int code, String message) {
+      HttpResponseStatus status = new HttpResponseStatus(code, message);
+      sendResponseAndClose(ctx, new DefaultHttpResponse(HTTP_1_1, status));
+    }
   }
 }
