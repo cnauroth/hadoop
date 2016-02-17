@@ -688,6 +688,9 @@ Release 2.9.0 - UNRELEASED
     HADOOP-12749. Create a threadpoolexecutor that overrides afterExecute to
     log uncaught exceptions/errors. (Sidharta Seethana via vvasudev)
 
+    HADOOP-12710. Remove dependency on commons-httpclient for TestHttpServerLogs
+    (Wei-Chiu Chuang via iwasakims)
+
   BUG FIXES
 
     HADOOP-12605. Fix intermittent failure of TestIPC.testIpcWithReaderQueuing
@@ -762,6 +765,9 @@ Release 2.8.0 - UNRELEASED
 
     HADOOP-12426. Add Entry point for Kerberos health check
     (Steve Loughran via cnauroth)
+
+    HADOOP-12548. Read s3a creds from a Credential Provider.
+    (Larry McCay via cnauroth)
 
   IMPROVEMENTS
 
@@ -1704,6 +1710,11 @@ Release 2.8.0 - UNRELEASED
     HADOOP-12795. KMS does not log detailed stack trace for unexpected errors.
     (cnauroth)
 
+    HADOOP-12780. During atomic rename handle crash when one directory has been
+    renamed but not file under it. (Madhumita Chakraborty via cnauroth)
+
+    HADOOP-12878. KMS SPNEGO sequence does not work with WEBHDFS. (xyao)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1716,6 +1727,9 @@ Release 2.7.3 - UNRELEASED
     isUserInList with empty groups. (Zhihai Xu via cnauroth)
 
   OPTIMIZATIONS
+
+    HADOOP-12810. FileSystem#listLocatedStatus causes unnecessary RPC calls
+    (Ryan Blue via vinayakumarb)
 
   BUG FIXES
 
@@ -1805,6 +1819,9 @@ Release 2.7.2 - 2016-01-25
 
     HADOOP-12415. Fixed pom files to correctly include compile-time dependency on
     netty. (Tom Zeng via cos)
+
+    HADOOP-12786. "hadoop key" command usage is not documented.
+    (Xiao Chen via aajisaka)
 
 Release 2.7.1 - 2015-07-06 
 
@@ -2544,6 +2561,9 @@ Release 2.6.5 - UNRELEASED
 
   IMPROVEMENTS
 
+    HADOOP-12805. Annotate CanUnbuffer with @InterfaceAudience.Public
+    (Ted Yu via vinayakumarb)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -2551,7 +2571,10 @@ Release 2.6.5 - UNRELEASED
     HADOOP-12773. HBase classes fail to load with client/job classloader
     enabled (sjlee)
 
-Release 2.6.4 - UNRELEASED
+    HADOOP-12589. Fix intermittent test failure of TestCopyPreserveFlag
+    (iwasakims)
+
+Release 2.6.4 - 2016-02-11
 
   INCOMPATIBLE CHANGES
 
