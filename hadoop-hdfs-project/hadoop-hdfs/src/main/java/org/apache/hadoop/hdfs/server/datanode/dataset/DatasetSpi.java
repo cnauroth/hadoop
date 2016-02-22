@@ -57,17 +57,12 @@ public interface DatasetSpi<V extends VolumeSpi> {
      * @return the configured factory.
      */
     public static Factory getFactory(Configuration conf, NodeType nodeType) {
-      switch(nodeType) {
-      case NAME_NODE:
-        @SuppressWarnings("rawtypes")
-        final Class<? extends Factory> clazz = conf.getClass(
-            DFSConfigKeys.DFS_DATANODE_FSDATASET_FACTORY_KEY,
-            FsDatasetFactory.class,
-            Factory.class);
-        return ReflectionUtils.newInstance(clazz, conf);
-      default:
-        throw new IllegalArgumentException("Unsupported NODE_TYPE " + nodeType);
-      }
+      @SuppressWarnings("rawtypes")
+      final Class<? extends Factory> clazz = conf.getClass(
+          DFSConfigKeys.DFS_DATANODE_FSDATASET_FACTORY_KEY,
+          FsDatasetFactory.class,
+          Factory.class);
+      return ReflectionUtils.newInstance(clazz, conf);
     }
 
     /**

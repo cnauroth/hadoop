@@ -23,19 +23,19 @@ import java.util.Set;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 
 /**
- * Holds the nodes that currently host the canister for an object key hash.
+ * Holds the nodes that currently host the container for an object key hash.
  */
-public final class LocatedCanister {
+public final class LocatedContainer {
   private final KeyHash keyHash;
   private final Set<DatanodeInfo> locations;
 
   /**
-   * Creates a LocatedCanister.
+   * Creates a LocatedContainer.
    *
    * @param keyHash object key hash
-   * @param locations nodes that currently host the canister
+   * @param locations nodes that currently host the container
    */
-  public LocatedCanister(KeyHash keyHash, Set<DatanodeInfo> locations) {
+  public LocatedContainer(KeyHash keyHash, Set<DatanodeInfo> locations) {
     this.keyHash = keyHash;
     this.locations = locations;
   }
@@ -50,9 +50,9 @@ public final class LocatedCanister {
   }
 
   /**
-   * Returns the nodes that currently host the canister.
+   * Returns the nodes that currently host the container.
    *
-   * @return Set<DatanodeInfo> nodes that currently host the canister
+   * @return Set<DatanodeInfo> nodes that currently host the container
    */
   public Set<DatanodeInfo> getLocations() {
     return this.locations;
@@ -63,10 +63,10 @@ public final class LocatedCanister {
     if (otherObj == null) {
       return false;
     }
-    if (!(otherObj instanceof LocatedCanister)) {
+    if (!(otherObj instanceof LocatedContainer)) {
       return false;
     }
-    LocatedCanister other = (LocatedCanister)otherObj;
+    LocatedContainer other = (LocatedContainer)otherObj;
     return this.keyHash == null ? other.keyHash == null :
         this.keyHash.equals(other.keyHash);
   }

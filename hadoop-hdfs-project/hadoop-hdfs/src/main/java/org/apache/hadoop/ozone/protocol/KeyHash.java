@@ -110,6 +110,11 @@ public final class KeyHash {
     return (int)(this.hash ^ (this.hash >>> 32));
   }
 
+  @Override
+  public String toString() {
+    return String.format("0x%016x", this.hash);
+  }
+
   /**
    * Bit format describing how we pack the components of the key hash into a
    * 64-bit long.

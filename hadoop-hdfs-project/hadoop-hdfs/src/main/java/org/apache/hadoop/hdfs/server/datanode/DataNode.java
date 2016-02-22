@@ -1943,6 +1943,11 @@ public class DataNode extends ReconfigurableBase
       }
     }
 
+    // Stop the object store handler
+    if (this.objectStoreHandler != null) {
+      this.objectStoreHandler.close();
+    }
+
     if (pauseMonitor != null) {
       pauseMonitor.stop();
     }

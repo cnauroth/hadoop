@@ -20,6 +20,7 @@ package org.apache.hadoop.ozone.web.storage;
 
 import java.io.IOException;
 
+import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClientSideTranslatorPB;
 import org.apache.hadoop.ozone.web.exceptions.OzoneException;
 import org.apache.hadoop.ozone.web.handlers.BucketArgs;
 import org.apache.hadoop.ozone.web.handlers.UserArgs;
@@ -35,6 +36,14 @@ import org.apache.hadoop.ozone.web.response.VolumeInfo;
  * across the nodes of an HDFS cluster.
  */
 public final class DistributedStorageHandler implements StorageHandler {
+
+  private final StorageContainerLocationProtocolClientSideTranslatorPB
+      storageContainerLocation;
+
+  public DistributedStorageHandler(
+      StorageContainerLocationProtocolClientSideTranslatorPB storageContainerLocation) {
+    this.storageContainerLocation = storageContainerLocation;
+  }
 
   @Override
   public void createVolume(VolumeArgs args) throws
