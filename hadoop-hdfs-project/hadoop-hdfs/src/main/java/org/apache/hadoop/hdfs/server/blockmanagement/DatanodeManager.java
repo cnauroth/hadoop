@@ -1500,10 +1500,11 @@ public class DatanodeManager {
    *
    * @param nodeReg registration info for DataNode sending the lifeline
    * @param reports storage reports from DataNode
+   * @param blockPoolId block pool ID
    * @param cacheCapacity cache capacity at DataNode
    * @param cacheUsed cache used at DataNode
    * @param xceiverCount estimated count of transfer threads running at DataNode
-   * @param xmitsInProgress count of transfers running at DataNode
+   * @param maxTransfers count of transfers running at DataNode
    * @param failedVolumes count of failed volumes at DataNode
    * @param volumeFailureSummary info on failed volumes at DataNode
    * @throws IOException if there is an error
