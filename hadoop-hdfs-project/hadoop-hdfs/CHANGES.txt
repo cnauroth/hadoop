@@ -1993,8 +1993,11 @@ Release 2.8.0 - UNRELEASED
     HDFS-9843. Document distcp options required for copying between encrypted
     locations. (Xiaoyu Yao via cnauroth)
 
-    HDFS-9831.Document webhdfs retry configuration keys introduced by
+    HDFS-9831. Document webhdfs retry configuration keys introduced by
     HDFS-5219/HDFS-5122. (Xiaobing Zhou via xyao)
+
+    HDFS-9887. WebHdfs socket timeouts should be configurable.
+    (Austin Donnelly and Chris Douglas via xyao)
 
   OPTIMIZATIONS
 
@@ -2870,6 +2873,9 @@ Release 2.8.0 - UNRELEASED
     HDFS-9881. DistributedFileSystem#getTrashRoot returns incorrect path for
     encryption zones. (wang)
 
+    HDFS-9886. Configuration properties for hedged read is broken. 
+    (Akira AJISAKA via zhz)
+
 Release 2.7.3 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -2973,6 +2979,9 @@ Release 2.7.3 - UNRELEASED
 
     HDFS-9766. TestDataNodeMetrics#testDataNodeTimeSpend fails intermittently.
     (Xiao Chen via aajisaka)
+
+    HDFS-9851. NameNode throws NPE when setPermission is called on a path that
+    does not exist. (Brahma Reddy Battula via aajisaka)
 
 Release 2.7.2 - 2016-01-25
 
