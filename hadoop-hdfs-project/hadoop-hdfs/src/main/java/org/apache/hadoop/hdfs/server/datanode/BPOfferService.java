@@ -124,6 +124,8 @@ class BPOfferService {
       List<InetSocketAddress> lifelineNnAddrs, DataNode dn) {
     Preconditions.checkArgument(!nnAddrs.isEmpty(),
         "Must pass at least one NN.");
+    Preconditions.checkArgument(nnAddrs.size() == lifelineNnAddrs.size(),
+        "Must pass same number of NN addresses and lifeline addresses.");
     this.dn = dn;
 
     for (int i = 0; i < nnAddrs.size(); ++i) {
