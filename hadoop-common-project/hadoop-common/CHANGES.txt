@@ -1173,6 +1173,9 @@ Release 2.8.0 - UNRELEASED
     HADOOP-12622. Improve the loggings in RetryPolicies and RetryInvocationHandler.
     (Junping Du via jianhe)
 
+    HADOOP-12793. Write a new group mapping service guide
+    (Wei-Chiu Chuang via iwasakims)
+
   OPTIMIZATIONS
 
     HADOOP-11785. Reduce the number of listStatus operation in distcp
@@ -1847,6 +1850,15 @@ Release 2.7.3 - UNRELEASED
 
     HADOOP-9121. InodeTree.java has redundant check for vName while
     throwing exception. (Arup Malakar via suresh)
+
+    HADOOP-12870. Fix typo admininistration in CommandsManual.md.
+    (John Zhuge via aajisaka)
+
+    HADOOP-12871. Fix dead link to NativeLibraries.html in CommandsManual.md.
+    (Brahma Reddy Battula via aajisaka)
+
+    HADOOP-12872. Fix formatting in ServiceLevelAuth.md.
+    (Brahma Reddy Battula via aajisaka)
 
 Release 2.7.2 - 2016-01-25
 
