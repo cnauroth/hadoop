@@ -28,7 +28,7 @@ import org.apache.hadoop.security.KerberosInfo;
  * Protocol used by a DataNode to send lifeline messages to a NameNode.
  */
 @KerberosInfo(
-    serverPrincipal = DFSConfigKeys.DFS_NAMENODE_KERBEROS_PRINCIPAL_KEY, 
+    serverPrincipal = DFSConfigKeys.DFS_NAMENODE_KERBEROS_PRINCIPAL_KEY,
     clientPrincipal = DFSConfigKeys.DFS_DATANODE_KERBEROS_PRINCIPAL_KEY)
 @ProtocolInfo(
     protocolName =

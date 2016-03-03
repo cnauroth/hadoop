@@ -48,7 +48,7 @@ import com.google.protobuf.ServiceException;
 @InterfaceAudience.Private
 public class DatanodeLifelineProtocolClientSideTranslatorPB implements
     ProtocolMetaInterface, DatanodeLifelineProtocol, Closeable {
-  
+
   /** RpcController is not used and hence is set to null. */
   private static final RpcController NULL_CONTROLLER = null;
 
