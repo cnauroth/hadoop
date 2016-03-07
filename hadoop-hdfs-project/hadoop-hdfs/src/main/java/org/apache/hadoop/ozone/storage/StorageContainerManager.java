@@ -226,7 +226,7 @@ public class StorageContainerManager
       int maxTransfer = blockManager.getMaxReplicationStreams()
           - xmitsInProgress;
       DatanodeCommand[] cmds = blockManager.getDatanodeManager()
-          .handleHeartbeat(registration, reports, ns.getBlockPoolId(),
+          .handleHeartbeat(registration, reports, blockManager.getBlockPoolId(),
               cacheCapacity, cacheUsed, xceiverCount, maxTransfer,
               failedVolumes, volumeFailureSummary);
       long txnId = 234;

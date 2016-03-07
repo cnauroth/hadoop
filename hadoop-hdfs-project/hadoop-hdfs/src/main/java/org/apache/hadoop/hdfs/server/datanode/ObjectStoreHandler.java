@@ -22,17 +22,22 @@ import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_METADATA_RPC_ADDRESS_K
 import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_METADATA_RPC_BIND_HOST_DEFAULT;
 import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_METADATA_RPC_BIND_HOST_KEY;
 import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_METADATA_RPC_DEFAULT_PORT;
+import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_OBJECTSTORE_TRACE_ENABLED_KEY;
+import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_OBJECTSTORE_TRACE_ENABLED_DEFAULT;
 import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_STORAGE_HANDLER_TYPE_DEFAULT;
 import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_STORAGE_HANDLER_TYPE_KEY;
 import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_STORAGE_RPC_ADDRESS_DEFAULT;
 import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_STORAGE_RPC_ADDRESS_KEY;
 import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_STORAGE_RPC_BIND_HOST_KEY;
 import static org.apache.hadoop.ozone.OzoneConfigKeys.DFS_STORAGE_RPC_DEFAULT_PORT;
+import static com.sun.jersey.api.core.ResourceConfig.PROPERTY_CONTAINER_REQUEST_FILTERS;
+import static com.sun.jersey.api.core.ResourceConfig.FEATURE_TRACE;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.google.protobuf.BlockingService;
 
@@ -55,6 +60,7 @@ import org.apache.hadoop.ozone.protocolPB.MetadataProtocolPB;
 import org.apache.hadoop.ozone.protocolPB.MetadataProtocolServerSideTranslatorPB;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClientSideTranslatorPB;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolPB;
+import org.apache.hadoop.ozone.web.handlers.ServiceFilter;
 import org.apache.hadoop.ozone.web.interfaces.StorageHandler;
 import org.apache.hadoop.ozone.web.ObjectStoreApplication;
 import org.apache.hadoop.ozone.web.netty.ObjectStoreJerseyContainer;
@@ -86,14 +92,11 @@ public final class ObjectStoreHandler implements MetadataProtocol, Closeable {
   public ObjectStoreHandler(Configuration conf) throws IOException {
     String shType = conf.getTrimmed(DFS_STORAGE_HANDLER_TYPE_KEY,
         DFS_STORAGE_HANDLER_TYPE_DEFAULT);
-    if (!"distributed".equalsIgnoreCase(shType) &&
-        !"local".equalsIgnoreCase(shType)) {
-      throw new IllegalArgumentException(
-          String.format("Unrecognized value for %s: %s",
-          DFS_STORAGE_HANDLER_TYPE_KEY, shType));
-    }
     LOG.info("ObjectStoreHandler initializing with {}: {}",
         DFS_STORAGE_HANDLER_TYPE_KEY, shType);
+    boolean ozoneTrace = conf.getBoolean(DFS_OBJECTSTORE_TRACE_ENABLED_KEY,
+        DFS_OBJECTSTORE_TRACE_ENABLED_DEFAULT);
+    final StorageHandler storageHandler;
 
     // Initialize metadata RPC server.
     if ("distributed".equalsIgnoreCase(shType)) {
@@ -130,7 +133,6 @@ public final class ObjectStoreHandler implements MetadataProtocol, Closeable {
     }
 
     // Initialize Jersey container for object store web application.
-    final StorageHandler storageHandler;
     if ("distributed".equalsIgnoreCase(shType)) {
       long version = RPC.getProtocolVersion(StorageContainerLocationProtocolPB.class);
       InetSocketAddress address = conf.getSocketAddr(
@@ -144,12 +146,24 @@ public final class ObjectStoreHandler implements MetadataProtocol, Closeable {
       storageHandler = new DistributedStorageHandler(
           this.storageContainerLocationClient);
     } else {
-      storageHandler = new LocalStorageHandler();
-      this.storageContainerLocationClient = null;
+      if ("local".equalsIgnoreCase(shType)) {
+        storageHandler = new LocalStorageHandler(conf);
+        this.storageContainerLocationClient = null;
+      } else {
+        throw new IllegalArgumentException(
+            String.format("Unrecognized value for %s: %s",
+                DFS_STORAGE_HANDLER_TYPE_KEY, shType));
+      }
     }
+    ApplicationAdapter aa =
+        new ApplicationAdapter(new ObjectStoreApplication());
+    Map<String, Object> settingsMap = new HashMap<>();
+    settingsMap.put(PROPERTY_CONTAINER_REQUEST_FILTERS,
+        ServiceFilter.class.getCanonicalName());
+    settingsMap.put(FEATURE_TRACE, ozoneTrace);
+    aa.setPropertiesAndFeatures(settingsMap);
     this.objectStoreJerseyContainer = ContainerFactory.createContainer(
-        ObjectStoreJerseyContainer.class, new ApplicationAdapter(
-            new ObjectStoreApplication()));
+        ObjectStoreJerseyContainer.class, aa);
     this.objectStoreJerseyContainer.setStorageHandler(storageHandler);
   }
 

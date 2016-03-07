@@ -59,9 +59,10 @@ public final class OzoneConfigKeys {
       "dfs.ozone.user.provider";
   public static final String DFS_OZONE_USER_AUTH_DEFAULT =
       "org.apache.hadoop.ozone.web.userauth.Simple";
-  public static final String DFS_OZONE_VALIDATE_TIME_SKEW =
-      "dfs.ozone.time.skew";
-  public static final boolean DFS_OZONE_VALIDATE_TIME_SKEW_DEFAULT = true;
+  public static final String DFS_OBJECTSTORE_TRACE_ENABLED_KEY =
+      "dfs.objectstore.trace.enabled";
+  public static final boolean DFS_OBJECTSTORE_TRACE_ENABLED_DEFAULT = false;
+
 
   /**
    * There is no need to instantiate this class.

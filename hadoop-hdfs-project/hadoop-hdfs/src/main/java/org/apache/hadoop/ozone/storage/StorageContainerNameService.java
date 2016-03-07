@@ -44,16 +44,6 @@ public class StorageContainerNameService implements Namesystem {
   }
 
   @Override
-  public void checkSuperuserPrivilege() throws AccessControlException {
-    // TBD
-  }
-
-  @Override
-  public String getBlockPoolId() {
-    return blockPoolId;
-  }
-
-  @Override
   public BlockCollection getBlockCollection(long id) {
     // TBD
     return null;
@@ -62,13 +52,6 @@ public class StorageContainerNameService implements Namesystem {
   @Override
   public void startSecretManagerIfNecessary() {
     // Secret manager is not supported
-  }
-
-  @Override
-  public ErasureCodingPolicy getErasureCodingPolicyForPath(String src)
-      throws IOException {
-    // Erasure coding is not supported
-    return null;
   }
 
   @Override

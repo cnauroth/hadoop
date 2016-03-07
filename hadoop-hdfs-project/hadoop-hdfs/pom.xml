@@ -278,6 +278,10 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
                     <exclude name="**/proto-web.xml"/>
                   </fileset>
                 </copy>
+                <replace dir="${project.build.directory}/webapps" value="${release-year}">
+                  <include name="**/*.html"/>
+                  <replacetoken>{release-year-token}</replacetoken>
+                </replace>
               </target>
             </configuration>
           </execution>
@@ -347,6 +351,7 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
                   <include>QJournalProtocol.proto</include>
                   <include>editlog.proto</include>
                   <include>fsimage.proto</include>
+                  <include>DatanodeContainerProtocol.proto</include>
                   <include>MetadataProtocol.proto</include>
                   <include>StorageContainerLocationProtocol.proto</include>
                 </includes>
