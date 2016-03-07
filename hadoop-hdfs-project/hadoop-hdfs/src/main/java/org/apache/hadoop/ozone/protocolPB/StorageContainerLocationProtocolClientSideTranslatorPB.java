@@ -32,7 +32,6 @@ import org.apache.hadoop.hdfs.protocolPB.PBHelperClient;
 import org.apache.hadoop.ipc.ProtobufHelper;
 import org.apache.hadoop.ipc.ProtocolTranslator;
 import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.ozone.protocol.KeyHash;
 import org.apache.hadoop.ozone.protocol.LocatedContainer;
 import org.apache.hadoop.ozone.protocol.StorageContainerLocationProtocol;
 import org.apache.hadoop.ozone.protocol.proto.StorageContainerLocationProtocolProtos.GetStorageContainerLocationsRequestProto;
@@ -64,12 +63,12 @@ public final class StorageContainerLocationProtocolClientSideTranslatorPB
   }
 
   @Override
-  public Set<LocatedContainer> getStorageContainerLocations(Set<KeyHash> hashes)
+  public Set<LocatedContainer> getStorageContainerLocations(Set<String> keys)
       throws IOException {
     GetStorageContainerLocationsRequestProto.Builder req =
         GetStorageContainerLocationsRequestProto.newBuilder();
-    for (KeyHash hash: hashes) {
-      req.addHashes(hash.toLong());
+    for (String key: keys) {
+      req.addKeys(key);
     }
     final GetStorageContainerLocationsResponseProto resp;
     try {
@@ -78,8 +77,8 @@ public final class StorageContainerLocationProtocolClientSideTranslatorPB
     } catch (ServiceException e) {
       throw ProtobufHelper.getRemoteException(e);
     }
-    Set<LocatedContainer> locatedContainers = Sets.newLinkedHashSetWithExpectedSize(
-        resp.getLocatedContainersCount());
+    Set<LocatedContainer> locatedContainers =
+        Sets.newLinkedHashSetWithExpectedSize(resp.getLocatedContainersCount());
     for (LocatedContainerProto locatedContainer:
         resp.getLocatedContainersList()) {
       Set<DatanodeInfo> locations = Sets.newLinkedHashSetWithExpectedSize(
@@ -87,8 +86,9 @@ public final class StorageContainerLocationProtocolClientSideTranslatorPB
       for (DatanodeInfoProto location: locatedContainer.getLocationsList()) {
         locations.add(PBHelperClient.convert(location));
       }
-      locatedContainers.add(new LocatedContainer(
-          new KeyHash(locatedContainer.getHash()), locations));
+      locatedContainers.add(new LocatedContainer(locatedContainer.getKey(),
+          locatedContainer.getContainerName(), locations,
+          PBHelperClient.convert(locatedContainer.getLeader())));
     }
     return locatedContainers;
   }

@@ -26,27 +26,52 @@ import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
  * Holds the nodes that currently host the container for an object key hash.
  */
 public final class LocatedContainer {
-  private final KeyHash keyHash;
+  private final String key;
+  private final String containerName;
   private final Set<DatanodeInfo> locations;
+  private final DatanodeInfo leader;
 
   /**
    * Creates a LocatedContainer.
    *
-   * @param keyHash object key hash
+   * @param key object key
+   * @param containerName container name
    * @param locations nodes that currently host the container
+   * @param leader node that currently acts as pipeline leader
    */
-  public LocatedContainer(KeyHash keyHash, Set<DatanodeInfo> locations) {
-    this.keyHash = keyHash;
+  public LocatedContainer(String key, String containerName,
+      Set<DatanodeInfo> locations, DatanodeInfo leader) {
+    this.key = key;
+    this.containerName = containerName;
     this.locations = locations;
+    this.leader = leader;
   }
 
   /**
-   * Returns the object key hash.
+   * Returns the container name.
    *
-   * @return object key hash
+   * @return container name
    */
-  public KeyHash getKeyHash() {
-    return this.keyHash;
+  public String getContainerName() {
+    return this.containerName;
+  }
+
+  /**
+   * Returns the object key.
+   *
+   * @return object key
+   */
+  public String getKey() {
+    return this.key;
+  }
+
+  /**
+   * Returns the node that currently acts as pipeline leader.
+   *
+   * @return node that currently acts as pipeline leader
+   */
+  public DatanodeInfo getLeader() {
+    return this.leader;
   }
 
   /**
@@ -67,12 +92,11 @@ public final class LocatedContainer {
       return false;
     }
     LocatedContainer other = (LocatedContainer)otherObj;
-    return this.keyHash == null ? other.keyHash == null :
-        this.keyHash.equals(other.keyHash);
+    return this.key == null ? other.key == null : this.key.equals(other.key);
   }
 
   @Override
   public int hashCode() {
-    return keyHash.hashCode();
+    return key.hashCode();
   }
 }

@@ -27,7 +27,6 @@ import com.google.protobuf.ServiceException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocolPB.PBHelperClient;
-import org.apache.hadoop.ozone.protocol.KeyHash;
 import org.apache.hadoop.ozone.protocol.LocatedContainer;
 import org.apache.hadoop.ozone.protocol.StorageContainerLocationProtocol;
 import org.apache.hadoop.ozone.protocol.proto.StorageContainerLocationProtocolProtos.GetStorageContainerLocationsRequestProto;
@@ -59,14 +58,14 @@ public final class StorageContainerLocationProtocolServerSideTranslatorPB
   public GetStorageContainerLocationsResponseProto getStorageContainerLocations(
       RpcController unused, GetStorageContainerLocationsRequestProto req)
       throws ServiceException {
-    Set<KeyHash> hashes = Sets.newLinkedHashSetWithExpectedSize(
-        req.getHashesCount());
-    for (long hash: req.getHashesList()) {
-      hashes.add(new KeyHash(hash));
+    Set<String> keys = Sets.newLinkedHashSetWithExpectedSize(
+        req.getKeysCount());
+    for (String key: req.getKeysList()) {
+      keys.add(key);
     }
     final Set<LocatedContainer> locatedContainers;
     try {
-      locatedContainers = impl.getStorageContainerLocations(hashes);
+      locatedContainers = impl.getStorageContainerLocations(keys);
     } catch (IOException e) {
       throw new ServiceException(e);
     }
@@ -75,10 +74,13 @@ public final class StorageContainerLocationProtocolServerSideTranslatorPB
     for (LocatedContainer locatedContainer: locatedContainers) {
       LocatedContainerProto.Builder locatedContainerProto =
           LocatedContainerProto.newBuilder()
-          .setHash(locatedContainer.getKeyHash().toLong());
+          .setKey(locatedContainer.getKey())
+          .setContainerName(locatedContainer.getContainerName());
       for (DatanodeInfo location: locatedContainer.getLocations()) {
         locatedContainerProto.addLocations(PBHelperClient.convert(location));
       }
+      locatedContainerProto.setLeader(
+          PBHelperClient.convert(locatedContainer.getLeader()));
       resp.addLocatedContainers(locatedContainerProto.build());
     }
     return resp.build();

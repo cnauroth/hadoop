@@ -31,10 +31,10 @@ package hadoop.hdfs;
 import "hdfs.proto";
 
 /**
- * hashes - batch of object key hashes to find
+ * keys - batch of object keys to find
  */
 message GetStorageContainerLocationsRequestProto {
-  repeated sfixed64 hashes = 1 [ packed = true ];
+  repeated string keys = 1;
 }
 
 /**
@@ -46,11 +46,13 @@ message GetStorageContainerLocationsResponseProto {
 }
 
 /**
- * Holds the nodes that currently host the container for an object key hash.
+ * Holds the nodes that currently host the container for an object key.
  */
 message LocatedContainerProto {
-  required sfixed64 hash = 1;
-  repeated DatanodeInfoProto locations = 2;
+  required string key = 1;
+  required string containerName = 2;
+  repeated DatanodeInfoProto locations = 3;
+  required DatanodeInfoProto leader = 4;
 }
 
 /**

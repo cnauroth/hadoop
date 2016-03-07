@@ -35,10 +35,10 @@ public interface StorageContainerLocationProtocol {
    * identified by the object key hash.  This method supports batch lookup by
    * passing multiple key hashes.
    *
-   * @param hashes batch of object key hashes to find
-   * @return located containers for each object key hash
+   * @param keys batch of object keys to find
+   * @return located containers for each object key
    * @throws IOException if there is any failure
    */
-  Set<LocatedContainer> getStorageContainerLocations(Set<KeyHash> hashes)
+  Set<LocatedContainer> getStorageContainerLocations(Set<String> keys)
       throws IOException;
 }

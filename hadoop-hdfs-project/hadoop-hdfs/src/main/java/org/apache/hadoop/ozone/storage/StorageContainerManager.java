@@ -38,7 +38,6 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.ozone.StorageContainerConfiguration;
 import org.apache.hadoop.ozone.protocol.LocatedContainer;
 import org.apache.hadoop.ozone.protocol.StorageContainerLocationProtocol;
-import org.apache.hadoop.ozone.protocol.KeyHash;
 import org.apache.hadoop.ozone.protocol.proto.StorageContainerLocationProtocolProtos;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolPB;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolServerSideTranslatorPB;
@@ -195,9 +194,9 @@ public class StorageContainerManager
   }
 
   @Override
-  public Set<LocatedContainer> getStorageContainerLocations(Set<KeyHash> hashes)
+  public Set<LocatedContainer> getStorageContainerLocations(Set<String> keys)
       throws IOException {
-    LOG.trace("getStorageContainerLocations hashes = {}", hashes);
+    LOG.trace("getStorageContainerLocations keys = {}", keys);
     return Collections.<LocatedContainer>emptySet();
   }
 
