@@ -18,7 +18,18 @@
 
 package org.apache.hadoop.ozone.storage;
 
+import static org.apache.hadoop.hdfs.DFSConfigKeys.*;
+import static org.apache.hadoop.ozone.OzoneConfigKeys.*;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import com.google.common.collect.Sets;
 import com.google.protobuf.BlockingService;
+
 import org.apache.hadoop.ha.HAServiceProtocol;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.DFSUtilClient;
@@ -27,6 +38,7 @@ import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos;
 import org.apache.hadoop.hdfs.protocolPB.DatanodeProtocolPB;
 import org.apache.hadoop.hdfs.protocolPB.DatanodeProtocolServerSideTranslatorPB;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockManager;
+import org.apache.hadoop.hdfs.server.blockmanagement.DatanodeDescriptor;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.NodeType;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.namenode.Namesystem;
@@ -41,17 +53,9 @@ import org.apache.hadoop.ozone.protocol.StorageContainerLocationProtocol;
 import org.apache.hadoop.ozone.protocol.proto.StorageContainerLocationProtocolProtos;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolPB;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolServerSideTranslatorPB;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import static org.apache.hadoop.hdfs.DFSConfigKeys.*;
-import static org.apache.hadoop.ozone.OzoneConfigKeys.*;
 
 public class StorageContainerManager
     implements DatanodeProtocol, StorageContainerLocationProtocol {
@@ -197,7 +201,22 @@ public class StorageContainerManager
   public Set<LocatedContainer> getStorageContainerLocations(Set<String> keys)
       throws IOException {
     LOG.trace("getStorageContainerLocations keys = {}", keys);
-    return Collections.<LocatedContainer>emptySet();
+    List<DatanodeDescriptor> liveNodes = new ArrayList<DatanodeDescriptor>();
+    blockManager.getDatanodeManager().fetchDatanodes(liveNodes, null, false);
+    if (liveNodes.isEmpty()) {
+      throw new IOException("Storage container locations not found.");
+    }
+    String containerName = "containerName";
+    Set<DatanodeInfo> locations =
+        Sets.<DatanodeInfo>newLinkedHashSet(liveNodes);
+    DatanodeInfo leader = liveNodes.get(0);
+    Set<LocatedContainer> locatedContainers =
+        Sets.newLinkedHashSetWithExpectedSize(keys.size());
+    for (String key: keys) {
+      locatedContainers.add(new LocatedContainer(key, containerName, locations,
+          leader));
+    }
+    return locatedContainers;
   }
 
   @Override

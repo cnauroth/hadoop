@@ -99,4 +99,14 @@ public final class LocatedContainer {
   public int hashCode() {
     return key.hashCode();
   }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName()
+        + "{key=" + key
+        + "; containerName=" + containerName
+        + "; locations=" + locations
+        + "; leader=" + leader
+        + "}";
+  }
 }
