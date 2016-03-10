@@ -34,12 +34,13 @@ import org.apache.hadoop.ozone.container.helpers.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 /**
  * A Client for the storageContainer protocol.
  */
-public class XceiverClient {
+public class XceiverClient implements Closeable {
   static final Logger LOG = LoggerFactory.getLogger(XceiverClient.class);
   private final Pipeline pipeline;
   private final OzoneConfiguration config;
@@ -92,6 +93,7 @@ public class XceiverClient {
   /**
    * Close the client.
    */
+  @Override
   public void close() {
     if(group != null) {
       group.shutdownGracefully();

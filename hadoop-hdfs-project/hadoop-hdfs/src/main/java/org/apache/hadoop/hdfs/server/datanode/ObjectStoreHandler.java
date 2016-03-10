@@ -52,6 +52,7 @@ import org.apache.hadoop.ipc.Client;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.ozone.OzoneConfiguration;
 import org.apache.hadoop.ozone.metadata.Bucket;
 import org.apache.hadoop.ozone.metadata.Key;
 import org.apache.hadoop.ozone.protocol.MetadataProtocol;
@@ -143,7 +144,7 @@ public final class ObjectStoreHandler implements MetadataProtocol, Closeable {
               RPC.getProxy(StorageContainerLocationProtocolPB.class, version,
               address, UserGroupInformation.getCurrentUser(), conf,
               NetUtils.getDefaultSocketFactory(conf), Client.getTimeout(conf)));
-      storageHandler = new DistributedStorageHandler(
+      storageHandler = new DistributedStorageHandler(new OzoneConfiguration(),
           this.storageContainerLocationClient);
     } else {
       if ("local".equalsIgnoreCase(shType)) {
