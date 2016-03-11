@@ -105,6 +105,16 @@ public class XceiverClient implements Closeable {
   }
 
   /**
+   * Returns the pipeline of machines that host the container used by this
+   * client.
+   *
+   * @return pipeline of machines that host the container
+   */
+  public Pipeline getPipeline() {
+    return pipeline;
+  }
+
+  /**
    * Sends a given command to server and gets the reply back.
    * @param request Request
    * @return Response to the command
