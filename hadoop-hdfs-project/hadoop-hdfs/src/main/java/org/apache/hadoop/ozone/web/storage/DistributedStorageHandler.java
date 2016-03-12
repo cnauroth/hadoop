@@ -21,9 +21,13 @@ package org.apache.hadoop.ozone.web.storage;
 import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.CreateKeyRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandResponseProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerKeyData;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyValue;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadKeyRequestProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadKeyResponeProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.chunkInfo;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.LengthInputStream;
 import org.apache.hadoop.ozone.OzoneConfiguration;
 import org.apache.hadoop.ozone.container.transport.client.XceiverClient;
@@ -49,6 +53,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -253,7 +258,40 @@ public final class DistributedStorageHandler implements StorageHandler {
   @Override
   public LengthInputStream newKeyReader(KeyArgs args) throws IOException,
       OzoneException {
-    return null;
+    String key = buildContainerKey(args.getVolumeName(), args.getBucketName());
+    XceiverClient xceiverClient = xceiverClientManager.acquireClient(key);
+    boolean success = false;
+    try {
+      ContainerKeyData.Builder containerKeyData = ContainerKeyData
+          .newBuilder()
+          .setContainerName(xceiverClient.getPipeline().getContainerName())
+          .setName(key);
+      ReadKeyRequestProto readKeyRequest = ReadKeyRequestProto
+          .newBuilder()
+          .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
+          .setContainerKeyData(containerKeyData)
+          .build();
+      ContainerCommandRequestProto request = ContainerCommandRequestProto
+          .newBuilder()
+          .setCmdType(Type.Readkey)
+          .setReadKey(readKeyRequest)
+          .build();
+      ContainerCommandResponseProto response =
+          xceiverClient.sendCommand(request);
+      ReadKeyResponeProto readKeyResponse = response.getReadKey();
+      long length = 0;
+      List<chunkInfo> chunks = readKeyResponse.getChunkDataList();
+      for (chunkInfo chunk : chunks) {
+        length += chunk.getLen();
+      }
+      success = true;
+      return new LengthInputStream(new ChunkInputStream(
+          key, xceiverClientManager, xceiverClient, chunks), length);
+    } finally {
+      if (!success) {
+        xceiverClientManager.releaseClient(xceiverClient);
+      }
+    }
   }
 
   /**
