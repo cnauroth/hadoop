@@ -35,7 +35,7 @@ import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.chunkInfo;
 import org.apache.hadoop.ozone.container.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.transport.client.XceiverClientManager;
 
-public class ChunkInputStream extends InputStream {
+class ChunkInputStream extends InputStream {
 
   private static final int EOF = -1;
 
@@ -67,12 +67,8 @@ public class ChunkInputStream extends InputStream {
       throws IOException {
     checkOpen();
 
-    if (chunks.isEmpty()) {
-      return EOF;
-    }
-
     // The first read triggers fetching the first chunk.
-    if (byteStrings == null) {
+    if (byteStrings == null && !chunks.isEmpty()) {
       readChunk(0);
     }
 
@@ -94,7 +90,8 @@ public class ChunkInputStream extends InputStream {
         ++byteStringOffset;
         buffers = byteStrings.get(byteStringOffset).asReadOnlyByteBufferList();
         bufferOffset = 0;
-      } else if (chunkOffset < chunks.size() - 1) {
+      } else if (!chunks.isEmpty() &&
+          chunkOffset < chunks.size() - 1) {
         // There are additional chunks available.
         readChunk(chunkOffset + 1);
       } else {
