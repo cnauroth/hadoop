@@ -232,7 +232,48 @@ public final class DistributedStorageHandler implements StorageHandler {
   @Override
   public OutputStream newKeyWriter(KeyArgs args) throws IOException,
       OzoneException {
-    return null;
+    String key = buildContainerKey(args.getVolumeName(), args.getBucketName(),
+        args.getKeyName());
+    XceiverClient xceiverClient = xceiverClientManager.acquireClient(key);
+    boolean success = false;
+    try {
+      ContainerKeyData.Builder containerKeyData = ContainerKeyData
+          .newBuilder()
+          .setContainerName(xceiverClient.getPipeline().getContainerName())
+          .setName(key)
+          .addMetadata(newKeyValue("Key", "KEY"))
+          .addMetadata(newKeyValue("KEY_VOLUME_NAME", args.getVolumeName()))
+          .addMetadata(newKeyValue("KEY_BUCKET_NAME", args.getBucketName()));
+
+      if (args.getAddAcls() != null) {
+        containerKeyData.addMetadata(newKeyValue("ADD_ACLS",
+            StringUtils.join(',', args.getAddAcls())));
+      }
+
+      if (args.getRemoveAcls() != null) {
+        containerKeyData.addMetadata(newKeyValue("REMOVE_ACLS",
+            StringUtils.join(',', args.getRemoveAcls())));
+      }
+
+      if (args.getVersioning() != null &&
+          args.getVersioning() != Versioning.NOT_DEFINED) {
+        containerKeyData.addMetadata(newKeyValue("BUCKET_VERSIONING",
+            args.getVersioning().name()));
+      }
+
+      if (args.getStorageType() != StorageType.RAM_DISK) {
+        containerKeyData.addMetadata(newKeyValue("STORAGE_TYPE",
+            args.getStorageType().name()));
+      }
+
+      createKey(xceiverClient, containerKeyData);
+      success = true;
+      return new ChunkOutputStream(key, xceiverClientManager, xceiverClient);
+    } finally {
+      if (!success) {
+        xceiverClientManager.releaseClient(xceiverClient);
+      }
+    }
   }
 
   /**
