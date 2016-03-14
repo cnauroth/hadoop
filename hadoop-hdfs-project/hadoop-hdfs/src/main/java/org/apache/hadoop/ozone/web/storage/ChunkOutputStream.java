@@ -57,40 +57,17 @@ class ChunkOutputStream extends OutputStream {
     int rollbackLimit = buffer.limit();
     buffer.put((byte)b);
     if (buffer.position() == BUFFER_SIZE) {
-      buffer.flip();
-      boolean success = false;
-      try {
-        writeChunk();
-        success = true;
-      } finally {
-        if (success) {
-          buffer.clear();
-        } else {
-          buffer.position(rollbackPosition);
-          buffer.limit(rollbackLimit);
-        }
-      }
+      flushBufferToChunk(rollbackPosition, rollbackLimit);
     }
   }
 
   @Override
   public synchronized void flush() throws IOException {
+    checkOpen();
     if (buffer.position() > 0) {
       int rollbackPosition = buffer.position();
       int rollbackLimit = buffer.limit();
-      buffer.flip();
-      boolean success = false;
-      try {
-        writeChunk();
-        success = true;
-      } finally {
-        if (success) {
-          buffer.clear();
-        } else {
-          buffer.position(rollbackPosition);
-          buffer.limit(rollbackLimit);
-        }
-      }
+      flushBufferToChunk(rollbackPosition, rollbackLimit);
     }
   }
 
@@ -99,7 +76,9 @@ class ChunkOutputStream extends OutputStream {
     if (xceiverClientManager != null && xceiverClient != null &&
         buffer != null) {
       try {
-        flush();
+        if (buffer.position() > 0) {
+          writeChunk();
+        }
       } finally {
         xceiverClientManager.releaseClient(xceiverClient);
         xceiverClientManager = null;
@@ -115,7 +94,24 @@ class ChunkOutputStream extends OutputStream {
     }
   }
 
+  private synchronized void flushBufferToChunk(int rollbackPosition,
+      int rollbackLimit) throws IOException {
+    boolean success = false;
+    try {
+      writeChunk();
+      success = true;
+    } finally {
+      if (success) {
+        buffer.clear();
+      } else {
+        buffer.position(rollbackPosition);
+        buffer.limit(rollbackLimit);
+      }
+    }
+  }
+
   private synchronized void writeChunk() throws IOException {
+    buffer.flip();
     ByteString byteString = ByteString.copyFrom(buffer);
     chunkInfo.Builder chunk = chunkInfo
         .newBuilder()
