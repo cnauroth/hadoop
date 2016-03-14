@@ -299,7 +299,8 @@ public final class DistributedStorageHandler implements StorageHandler {
   @Override
   public LengthInputStream newKeyReader(KeyArgs args) throws IOException,
       OzoneException {
-    String key = buildContainerKey(args.getVolumeName(), args.getBucketName());
+    String key = buildContainerKey(args.getVolumeName(), args.getBucketName(),
+        args.getKeyName());
     XceiverClient xceiverClient = xceiverClientManager.acquireClient(key);
     boolean success = false;
     try {
@@ -307,11 +308,10 @@ public final class DistributedStorageHandler implements StorageHandler {
           .newBuilder()
           .setContainerName(xceiverClient.getPipeline().getContainerName())
           .setName(key);
-      ReadKeyRequestProto readKeyRequest = ReadKeyRequestProto
+      ReadKeyRequestProto.Builder readKeyRequest = ReadKeyRequestProto
           .newBuilder()
           .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-          .setContainerKeyData(containerKeyData)
-          .build();
+          .setContainerKeyData(containerKeyData);
       ContainerCommandRequestProto request = ContainerCommandRequestProto
           .newBuilder()
           .setCmdType(Type.Readkey)
@@ -364,11 +364,10 @@ public final class DistributedStorageHandler implements StorageHandler {
 
   private static void createKey(XceiverClient xceiverClient,
       ContainerKeyData.Builder containerKeyData) throws IOException {
-    CreateKeyRequestProto createKeyRequest = CreateKeyRequestProto
+    CreateKeyRequestProto.Builder createKeyRequest = CreateKeyRequestProto
         .newBuilder()
         .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-        .setContainerKeyData(containerKeyData)
-        .build();
+        .setContainerKeyData(containerKeyData);
     ContainerCommandRequestProto request = ContainerCommandRequestProto
         .newBuilder()
         .setCmdType(Type.CreateKey)

@@ -117,13 +117,12 @@ class ChunkInputStream extends InputStream {
   }
 
   private synchronized void readChunk(int readChunkOffset) throws IOException {
-    ReadChunkRequestProto readChunkRequest = ReadChunkRequestProto
+    ReadChunkRequestProto.Builder readChunkRequest = ReadChunkRequestProto
         .newBuilder()
         .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
         .setContainerName(xceiverClient.getPipeline().getContainerName())
         .setKeyName(key)
-        .setChunkData(chunks.get(readChunkOffset))
-        .build();
+        .setChunkData(chunks.get(readChunkOffset));
     ContainerCommandRequestProto request = ContainerCommandRequestProto
         .newBuilder()
         .setCmdType(Type.ReadChunk)
