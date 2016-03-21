@@ -32,8 +32,8 @@ import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkRepo
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.chunkInfo;
-import org.apache.hadoop.ozone.container.transport.client.XceiverClient;
-import org.apache.hadoop.ozone.container.transport.client.XceiverClientManager;
+import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
+import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
 
 class ChunkInputStream extends InputStream {
 

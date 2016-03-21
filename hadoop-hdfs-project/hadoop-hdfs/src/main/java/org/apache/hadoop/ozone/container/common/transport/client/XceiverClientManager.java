@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.ozone.container.transport.client;
+package org.apache.hadoop.ozone.container.common.transport.client;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -27,7 +27,7 @@ import com.google.common.base.Preconditions;
 
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.ozone.OzoneConfiguration;
-import org.apache.hadoop.ozone.container.helpers.Pipeline;
+import org.apache.hadoop.ozone.container.common.helpers.Pipeline;
 import org.apache.hadoop.ozone.protocol.LocatedContainer;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClientSideTranslatorPB;
 
@@ -83,6 +83,7 @@ public class XceiverClientManager {
     try {
       xceiverClient.connect();
     } catch (Exception e) {
+      // TODO
       throw new IOException("Exception connecting XceiverClient.", e);
     }
     return xceiverClient;
