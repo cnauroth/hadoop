@@ -89,6 +89,8 @@ public final class ObjectStoreHandler implements Closeable {
 
     // Initialize Jersey container for object store web application.
     if ("distributed".equalsIgnoreCase(shType)) {
+      RPC.setProtocolEngine(conf, StorageContainerLocationProtocolPB.class,
+          ProtobufRpcEngine.class);
       long version = RPC.getProtocolVersion(StorageContainerLocationProtocolPB.class);
       InetSocketAddress address = conf.getSocketAddr(
           DFS_STORAGE_RPC_BIND_HOST_KEY, DFS_STORAGE_RPC_ADDRESS_KEY,
