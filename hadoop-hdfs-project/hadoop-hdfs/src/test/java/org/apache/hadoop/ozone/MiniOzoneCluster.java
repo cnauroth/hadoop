@@ -27,6 +27,7 @@ import java.net.InetSocketAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.MiniDFSNNTopology;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.DatanodeReportType;
@@ -39,6 +40,7 @@ import org.apache.hadoop.ozone.storage.StorageContainerManager;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Time;
 
+@InterfaceAudience.Private
 public class MiniOzoneCluster extends MiniDFSCluster implements Closeable {
 
   private static final Logger LOG =

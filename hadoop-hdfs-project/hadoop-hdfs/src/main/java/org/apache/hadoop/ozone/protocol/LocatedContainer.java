@@ -20,11 +20,13 @@ package org.apache.hadoop.ozone.protocol;
 
 import java.util.Set;
 
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 
 /**
  * Holds the nodes that currently host the container for an object key hash.
  */
+@InterfaceAudience.Private
 public final class LocatedContainer {
   private final String key;
   private final String containerName;

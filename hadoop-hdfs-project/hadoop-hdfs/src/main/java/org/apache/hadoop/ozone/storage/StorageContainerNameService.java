@@ -20,6 +20,7 @@ package org.apache.hadoop.ozone.storage;
 
 import java.io.IOException;
 
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockCollection;
@@ -32,6 +33,7 @@ import org.apache.hadoop.security.AccessControlException;
 
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+@InterfaceAudience.Private
 public class StorageContainerNameService implements Namesystem {
 
   ReentrantReadWriteLock coarseLock = new ReentrantReadWriteLock();

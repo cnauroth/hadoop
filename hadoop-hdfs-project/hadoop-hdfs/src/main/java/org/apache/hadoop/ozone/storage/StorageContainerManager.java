@@ -32,6 +32,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.google.protobuf.BlockingService;
 
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ha.HAServiceProtocol;
 import org.apache.hadoop.hdfs.DFSUtil;
@@ -60,6 +61,7 @@ import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolServer
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@InterfaceAudience.Private
 public class StorageContainerManager
     implements DatanodeProtocol, StorageContainerLocationProtocol {
 
