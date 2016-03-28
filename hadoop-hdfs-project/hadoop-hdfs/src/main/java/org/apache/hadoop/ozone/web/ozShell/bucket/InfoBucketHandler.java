@@ -64,7 +64,7 @@ public class InfoBucketHandler extends Handler {
 
     if (path.getNameCount() < 2) {
       throw new OzoneClientException(
-          "volume and bucket name required in delete Bucket");
+          "volume and bucket name required in info Bucket");
     }
 
     volumeName = path.getName(0).toString();
