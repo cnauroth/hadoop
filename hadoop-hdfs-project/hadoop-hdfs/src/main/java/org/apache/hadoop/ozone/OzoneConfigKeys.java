@@ -31,7 +31,6 @@ public final class OzoneConfigKeys {
   public static final String DFS_STORAGE_LOCAL_ROOT =
       "dfs.ozone.localstorage.root";
   public static final String DFS_STORAGE_LOCAL_ROOT_DEFAULT = "/tmp/ozone";
-
   public static final String DFS_OBJECTSTORE_ENABLED_KEY =
       "dfs.objectstore.enabled";
   public static final boolean DFS_OBJECTSTORE_ENABLED_DEFAULT = false;
