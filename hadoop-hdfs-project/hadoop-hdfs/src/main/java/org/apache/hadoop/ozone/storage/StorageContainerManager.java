@@ -26,14 +26,18 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.google.protobuf.BlockingService;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ha.HAServiceProtocol;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.DFSUtilClient;
 import org.apache.hadoop.hdfs.protocol.*;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants.DatanodeReportType;
 import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos;
 import org.apache.hadoop.hdfs.protocolPB.DatanodeProtocolPB;
 import org.apache.hadoop.hdfs.protocolPB.DatanodeProtocolServerSideTranslatorPB;
@@ -47,7 +51,6 @@ import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.WritableRpcEngine;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.ozone.StorageContainerConfiguration;
 import org.apache.hadoop.ozone.protocol.LocatedContainer;
 import org.apache.hadoop.ozone.protocol.StorageContainerLocationProtocol;
 import org.apache.hadoop.ozone.protocol.proto.StorageContainerLocationProtocolProtos;
@@ -78,7 +81,7 @@ public class StorageContainerManager
   protected final RPC.Server storageRpcServer;
   protected final InetSocketAddress storageRpcAddress;
 
-  public StorageContainerManager(StorageContainerConfiguration conf)
+  public StorageContainerManager(Configuration conf)
       throws IOException {
     boolean haEnabled = false;
     this.blockManager = new BlockManager(ns, haEnabled, conf);
@@ -126,8 +129,9 @@ public class StorageContainerManager
       InetSocketAddress listenAddr = serviceRpcServer.getListenerAddress();
       serviceRPCAddress = new InetSocketAddress(
           serviceRpcAddr.getHostName(), listenAddr.getPort());
-      conf.set(DFS_NAMENODE_SERVICE_RPC_ADDRESS_KEY,
-          NetUtils.getHostPortString(serviceRPCAddress));
+      String serviceHostPort = NetUtils.getHostPortString(serviceRPCAddress);
+      conf.set(DFS_NAMENODE_SERVICE_RPC_ADDRESS_KEY, serviceHostPort);
+      LOG.info("Service RPC server is listening at " + serviceHostPort);
     } else {
       serviceRpcServer = null;
       serviceRPCAddress = null;
@@ -160,6 +164,8 @@ public class StorageContainerManager
         rpcAddr.getHostName(), listenAddr.getPort());
     conf.set(FS_DEFAULT_NAME_KEY, DFSUtilClient.getNNUri(clientRpcAddress)
         .toString());
+    String clientHostPort = NetUtils.getHostPortString(listenAddr);
+    LOG.info("RPC server is listening at " + clientHostPort);
 
     RPC.setProtocolEngine(conf, StorageContainerLocationProtocolPB.class,
         ProtobufRpcEngine.class);
@@ -172,22 +178,22 @@ public class StorageContainerManager
         .StorageContainerLocationProtocolService
         .newReflectiveBlockingService(storageProtoPbTranslator);
 
-    storageRpcAddress = NetUtils.createSocketAddr(
+    InetSocketAddress storageRpcAddr = NetUtils.createSocketAddr(
         conf.getTrimmed(DFS_STORAGE_RPC_ADDRESS_KEY,
             DFS_STORAGE_RPC_ADDRESS_DEFAULT), -1, DFS_STORAGE_RPC_ADDRESS_KEY);
     String storageRpcBindHost = conf.getTrimmed(DFS_STORAGE_RPC_BIND_HOST_KEY,
         DFS_STORAGE_RPC_BIND_HOST_DEFAULT);
     if (storageRpcBindHost == null || storageRpcBindHost.isEmpty()) {
-      storageRpcBindHost = storageRpcAddress.getHostName();
+      storageRpcBindHost = storageRpcAddr.getHostName();
     }
     LOG.info("StorageContainerLocationProtocol RPC server is binding to " +
-        storageRpcBindHost + ":" + storageRpcAddress.getPort());
+        storageRpcBindHost + ":" + storageRpcAddr.getPort());
 
     storageRpcServer = new RPC.Builder(conf)
         .setProtocol(StorageContainerLocationProtocolPB.class)
         .setInstance(storageProtoPbService)
         .setBindAddress(storageRpcBindHost)
-        .setPort(storageRpcAddress.getPort())
+        .setPort(storageRpcAddr.getPort())
         .setNumHandlers(handlerCount)
         .setVerbose(false)
         .setSecretManager(null)
@@ -195,6 +201,15 @@ public class StorageContainerManager
 
     DFSUtil.addPBProtocol(conf, StorageContainerLocationProtocolPB.class,
         storageProtoPbService, storageRpcServer);
+
+    // The rpc-server port can be ephemeral... ensure we have the correct info
+    InetSocketAddress storageListenAddr = storageRpcServer.getListenerAddress();
+    storageRpcAddress = new InetSocketAddress(
+        storageRpcAddr.getHostName(), storageListenAddr.getPort());
+    String storageHostPort = NetUtils.getHostPortString(storageRpcAddress);
+    conf.set(DFS_STORAGE_RPC_ADDRESS_KEY, storageHostPort);
+    LOG.info("StorageContainerLocationProtocol RPC server is listening at " +
+        storageHostPort);
   }
 
   @Override
@@ -206,7 +221,7 @@ public class StorageContainerManager
     if (liveNodes.isEmpty()) {
       throw new IOException("Storage container locations not found.");
     }
-    String containerName = "containerName";
+    String containerName = UUID.randomUUID().toString();
     Set<DatanodeInfo> locations =
         Sets.<DatanodeInfo>newLinkedHashSet(liveNodes);
     DatanodeInfo leader = liveNodes.get(0);
@@ -349,10 +364,26 @@ public class StorageContainerManager
     }
   }
 
+  public DatanodeInfo[] getDatanodeReport(DatanodeReportType type) {
+    ns.readLock();
+    try {
+      List<DatanodeDescriptor> results =
+          blockManager.getDatanodeManager().getDatanodeListForReport(type);
+      return results.toArray(new DatanodeInfo[results.size()]);
+    } finally {
+      ns.readUnlock();
+    }
+  }
+
+  @VisibleForTesting
+  public InetSocketAddress getStorageContainerLocationRpcAddress() {
+    return storageRpcAddress;
+  }
+
   /**
    * Start client and service RPC servers.
    */
-  void start() {
+  public void start() {
     clientRpcServer.start();
     if (serviceRpcServer != null) {
       serviceRpcServer.start();
@@ -360,15 +391,32 @@ public class StorageContainerManager
     storageRpcServer.start();
   }
 
+  public void stop() {
+    if (clientRpcServer != null) {
+      clientRpcServer.stop();
+    }
+    if (serviceRpcServer != null) {
+      serviceRpcServer.stop();
+    }
+    if (storageRpcServer != null) {
+      storageRpcServer.stop();
+    }
+  }
+
   /**
    * Wait until the RPC servers have shutdown.
    */
-  void join() throws InterruptedException {
-    clientRpcServer.join();
-    if (serviceRpcServer != null) {
-      serviceRpcServer.join();
+  public void join() {
+    try {
+      clientRpcServer.join();
+      if (serviceRpcServer != null) {
+        serviceRpcServer.join();
+      }
+      storageRpcServer.join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      LOG.info("Interrupted during StorageContainerManager join.");
     }
-    storageRpcServer.join();
   }
 
   @Override
@@ -381,13 +429,9 @@ public class StorageContainerManager
   }
 
   public static void main(String [] argv) throws IOException {
-    StorageContainerConfiguration conf = new StorageContainerConfiguration();
-    StorageContainerManager scm = new StorageContainerManager(conf);
+    StorageContainerManager scm = new StorageContainerManager(
+        new Configuration());
     scm.start();
-    try {
-      scm.join();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
+    scm.join();
   }
 }
