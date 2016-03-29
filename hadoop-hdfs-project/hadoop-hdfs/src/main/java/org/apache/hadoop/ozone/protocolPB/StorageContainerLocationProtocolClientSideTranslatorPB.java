@@ -39,15 +39,15 @@ import org.apache.hadoop.ozone.protocol.proto.StorageContainerLocationProtocolPr
 import org.apache.hadoop.ozone.protocol.proto.StorageContainerLocationProtocolProtos.LocatedContainerProto;
 
 /**
- * This class is the client-side translator to translate the requests made on the
- * {@link StorageContainerLocationProtocol} interface to the RPC server
+ * This class is the client-side translator to translate the requests made on
+ * the {@link StorageContainerLocationProtocol} interface to the RPC server
  * implementing {@link StorageContainerLocationProtocolPB}.
  */
 @InterfaceAudience.Private
 public final class StorageContainerLocationProtocolClientSideTranslatorPB
     implements StorageContainerLocationProtocol, ProtocolTranslator, Closeable {
 
-  /** RpcController is not used and hence is set to null */
+  /** RpcController is not used and hence is set to null. */
   private static final RpcController NULL_RPC_CONTROLLER = null;
 
   private final StorageContainerLocationProtocolPB rpcProxy;

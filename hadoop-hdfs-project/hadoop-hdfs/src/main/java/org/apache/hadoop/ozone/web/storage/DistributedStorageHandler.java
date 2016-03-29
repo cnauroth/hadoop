@@ -66,7 +66,8 @@ public final class DistributedStorageHandler implements StorageHandler {
   private final XceiverClientManager xceiverClientManager;
 
   public DistributedStorageHandler(OzoneConfiguration conf,
-      StorageContainerLocationProtocolClientSideTranslatorPB storageContainerLocation) {
+      StorageContainerLocationProtocolClientSideTranslatorPB
+      storageContainerLocation) {
     this.xceiverClientManager = new XceiverClientManager(conf,
         storageContainerLocation);
   }

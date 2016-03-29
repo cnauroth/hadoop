@@ -110,17 +110,17 @@ public class StorageContainerManager
   private final StorageContainerNameService ns;
   private final BlockManager blockManager;
 
-  /** The RPC server that listens to requests from DataNodes */
+  /** The RPC server that listens to requests from DataNodes. */
   private final RPC.Server serviceRpcServer;
   private final InetSocketAddress serviceRpcAddress;
 
-  /** The RPC server that listens to requests from clients */
-  protected final RPC.Server clientRpcServer;
-  protected final InetSocketAddress clientRpcAddress;
+  /** The RPC server that listens to requests from clients. */
+  private final RPC.Server clientRpcServer;
+  private final InetSocketAddress clientRpcAddress;
 
-  /** The RPC server that listens to requests from nodes to find containers */
-  protected final RPC.Server storageRpcServer;
-  protected final InetSocketAddress storageRpcAddress;
+  /** The RPC server that listens to requests from nodes to find containers. */
+  private final RPC.Server storageRpcServer;
+  private final InetSocketAddress storageRpcAddress;
 
   /**
    * Creates a new StorageContainerManager.  Configuration will be updated with
@@ -214,8 +214,8 @@ public class StorageContainerManager
   }
 
   @Override
-  public DatanodeRegistration registerDatanode(DatanodeRegistration registration)
-      throws IOException {
+  public DatanodeRegistration registerDatanode(
+      DatanodeRegistration registration) throws IOException {
     ns.writeLock();
     try {
       blockManager.getDatanodeManager().registerDatanode(registration);
@@ -227,10 +227,10 @@ public class StorageContainerManager
 
   @Override
   public HeartbeatResponse sendHeartbeat(DatanodeRegistration registration,
-     StorageReport[] reports, long dnCacheCapacity, long dnCacheUsed,
-     int xmitsInProgress, int xceiverCount, int failedVolumes,
-     VolumeFailureSummary volumeFailureSummary,
-     boolean requestFullBlockReportLease) throws IOException {
+      StorageReport[] reports, long dnCacheCapacity, long dnCacheUsed,
+      int xmitsInProgress, int xceiverCount, int failedVolumes,
+      VolumeFailureSummary volumeFailureSummary,
+      boolean requestFullBlockReportLease) throws IOException {
     ns.readLock();
     try {
       long cacheCapacity = 0;
@@ -256,7 +256,7 @@ public class StorageContainerManager
 
   @Override
   public DatanodeCommand blockReport(DatanodeRegistration registration,
-     String poolId, StorageBlockReport[] reports, BlockReportContext context)
+      String poolId, StorageBlockReport[] reports, BlockReportContext context)
       throws IOException {
     for (int r = 0; r < reports.length; r++) {
       final BlockListAsLongs storageContainerList = reports[r].getBlocks();
@@ -268,14 +268,14 @@ public class StorageContainerManager
 
   @Override
   public DatanodeCommand cacheReport(DatanodeRegistration registration,
-     String poolId, List<Long> blockIds) throws IOException {
+      String poolId, List<Long> blockIds) throws IOException {
     // Centralized Cache Management is not supported
     return null;
   }
 
   @Override
   public void blockReceivedAndDeleted(DatanodeRegistration registration,
-     String poolId, StorageReceivedDeletedBlocks[] rcvdAndDeletedBlocks)
+      String poolId, StorageReceivedDeletedBlocks[] rcvdAndDeletedBlocks)
       throws IOException {
     for(StorageReceivedDeletedBlocks r : rcvdAndDeletedBlocks) {
       ns.writeLock();
@@ -289,7 +289,7 @@ public class StorageContainerManager
 
   @Override
   public void errorReport(DatanodeRegistration registration,
-     int errorCode, String msg) throws IOException {
+      int errorCode, String msg) throws IOException {
     String dnName =
         (registration == null) ? "Unknown DataNode" : registration.toString();
     if (errorCode == DatanodeProtocol.NOTIFY) {
@@ -338,8 +338,8 @@ public class StorageContainerManager
 
   @Override
   public void commitBlockSynchronization(ExtendedBlock block,
-     long newgenerationstamp, long newlength, boolean closeFile,
-     boolean deleteblock, DatanodeID[] newtargets, String[] newtargetstorages)
+      long newgenerationstamp, long newlength, boolean closeFile,
+      boolean deleteblock, DatanodeID[] newtargets, String[] newtargetstorages)
       throws IOException {
     // Not needed for the purpose of object store
     throw new UnsupportedOperationException();
@@ -498,7 +498,7 @@ public class StorageContainerManager
    * @param argv arguments
    * @throws IOException if startup fails due to I/O error
    */
-  public static void main(String [] argv) throws IOException {
+  public static void main(String[] argv) throws IOException {
     StringUtils.startupShutdownMessage(
         StorageContainerManager.class, argv, LOG);
     StorageContainerManager scm = new StorageContainerManager(
