@@ -19,7 +19,6 @@
 package org.apache.hadoop.ozone.storage;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.hadoop.classification.InterfaceAudience;

@@ -44,7 +44,6 @@ public final class OzoneConfigKeys {
       "0.0.0.0:" + DFS_STORAGE_RPC_DEFAULT_PORT;
   public static final String DFS_STORAGE_RPC_BIND_HOST_KEY =
       "dfs.storage.rpc-bind-host";
-  public static final String DFS_STORAGE_RPC_BIND_HOST_DEFAULT = "";
   public static final String DFS_STORAGE_HANDLER_COUNT_KEY =
       "dfs.storage.handler.count";
   public static final int DFS_STORAGE_HANDLER_COUNT_DEFAULT = 10;
