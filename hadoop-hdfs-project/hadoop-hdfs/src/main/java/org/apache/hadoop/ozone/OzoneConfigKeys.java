@@ -45,6 +45,9 @@ public final class OzoneConfigKeys {
   public static final String DFS_STORAGE_RPC_BIND_HOST_KEY =
       "dfs.storage.rpc-bind-host";
   public static final String DFS_STORAGE_RPC_BIND_HOST_DEFAULT = "";
+  public static final String DFS_STORAGE_HANDLER_COUNT_KEY =
+      "dfs.storage.handler.count";
+  public static final int DFS_STORAGE_HANDLER_COUNT_DEFAULT = 10;
   public static final String DFS_OBJECTSTORE_TRACE_ENABLED_KEY =
       "dfs.objectstore.trace.enabled";
   public static final boolean DFS_OBJECTSTORE_TRACE_ENABLED_DEFAULT = false;

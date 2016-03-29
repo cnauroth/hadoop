@@ -40,6 +40,13 @@ import org.apache.hadoop.ozone.storage.StorageContainerManager;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Time;
 
+/**
+ * MiniOzoneCluster creates a complete in-process Ozone cluster suitable for
+ * running tests.  The cluster consists of a StorageContainerManager and
+ * multiple DataNodes.  This class subclasses {@link MiniDFSCluster} for
+ * convenient reuse of logic for starting DataNodes.  Unlike MiniDFSCluster, it
+ * does not start a NameNode, because Ozone does not require a NameNode.
+ */
 @InterfaceAudience.Private
 public class MiniOzoneCluster extends MiniDFSCluster implements Closeable {
 
@@ -49,6 +56,13 @@ public class MiniOzoneCluster extends MiniDFSCluster implements Closeable {
   private final OzoneConfiguration conf;
   private final StorageContainerManager scm;
 
+  /**
+   * Creates a new MiniOzoneCluster.
+   *
+   * @param builder cluster builder
+   * @param scm StorageContainerManager, already running
+   * @throws IOException if there is an I/O error
+   */
   private MiniOzoneCluster(Builder builder, StorageContainerManager scm)
         throws IOException {
     super(builder);
@@ -56,11 +70,19 @@ public class MiniOzoneCluster extends MiniDFSCluster implements Closeable {
     this.scm = scm;
   }
 
+  /**
+   * Builder for configuring the MiniOzoneCluster to run.
+   */
   public static class Builder
       extends org.apache.hadoop.hdfs.MiniDFSCluster.Builder {
 
     private final OzoneConfiguration conf;
 
+    /**
+     * Creates a new Builder.
+     *
+     * @param conf configuration
+     */
     public Builder(OzoneConfiguration conf) {
       super(conf);
       this.conf = conf;
@@ -75,6 +97,9 @@ public class MiniOzoneCluster extends MiniDFSCluster implements Closeable {
 
     @Override
     public MiniOzoneCluster build() throws IOException {
+      // Even though this won't start a NameNode, some of the logic in
+      // MiniDFSCluster expects to find the default file system configured with
+      // an HDFS URI.
       conf.set(FS_DEFAULT_NAME_KEY, "hdfs://127.0.0.1:0");
       conf.set(DFS_STORAGE_RPC_ADDRESS_KEY, "127.0.0.1:0");
       StorageContainerManager scm = new StorageContainerManager(conf);
@@ -100,6 +125,9 @@ public class MiniOzoneCluster extends MiniDFSCluster implements Closeable {
     scm.join();
   }
 
+  /**
+   * Waits for the Ozone cluster to be ready for processing requests.
+   */
   public void waitOzoneReady() {
     long begin = Time.monotonicNow();
     while (scm.getDatanodeReport(DatanodeReportType.LIVE).length <
@@ -119,6 +147,14 @@ public class MiniOzoneCluster extends MiniDFSCluster implements Closeable {
     }
   }
 
+  /**
+   * Creates an RPC proxy connected to this cluster's StorageContainerManager
+   * for accessing container location information.  Callers take ownership of
+   * the proxy and must close it when done.
+   *
+   * @return RPC proxy for accessing container location information
+   * @throws IOException if there is an I/O error
+   */
   protected StorageContainerLocationProtocolClientSideTranslatorPB
       createStorageContainerLocationClient() throws IOException {
     long version = RPC.getProtocolVersion(

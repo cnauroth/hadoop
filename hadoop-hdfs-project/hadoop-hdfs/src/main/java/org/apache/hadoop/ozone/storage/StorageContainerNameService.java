@@ -18,26 +18,24 @@
 
 package org.apache.hadoop.ozone.storage;
 
+import java.io.Closeable;
 import java.io.IOException;
-
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.hdfs.protocol.Block;
-import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
-import org.apache.hadoop.hdfs.server.blockmanagement.BlockCollection;
-import org.apache.hadoop.hdfs.server.namenode.CacheManager;
-import org.apache.hadoop.hdfs.server.namenode.NameNode;
-import org.apache.hadoop.hdfs.server.namenode.Namesystem;
-import org.apache.hadoop.hdfs.server.namenode.ha.HAContext;
-import org.apache.hadoop.ipc.StandbyException;
-import org.apache.hadoop.security.AccessControlException;
-
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-@InterfaceAudience.Private
-public class StorageContainerNameService implements Namesystem {
+import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.hdfs.server.blockmanagement.BlockCollection;
+import org.apache.hadoop.hdfs.server.namenode.CacheManager;
+import org.apache.hadoop.hdfs.server.namenode.Namesystem;
+import org.apache.hadoop.hdfs.server.namenode.ha.HAContext;
 
-  ReentrantReadWriteLock coarseLock = new ReentrantReadWriteLock();
-  private String blockPoolId;
+/**
+ * Namesystem implementation intended for use by StorageContainerManager.
+ */
+@InterfaceAudience.Private
+public class StorageContainerNameService implements Namesystem, Closeable {
+
+  private final ReentrantReadWriteLock coarseLock =
+      new ReentrantReadWriteLock();
   private volatile boolean serviceRunning = true;
 
   @Override
@@ -127,7 +125,8 @@ public class StorageContainerNameService implements Namesystem {
     return false;
   }
 
-  public void setBlockPoolId(String id) {
-    this.blockPoolId = id;
+  @Override
+  public void close() {
+    serviceRunning = false;
   }
 }

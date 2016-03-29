@@ -46,34 +46,46 @@ import org.apache.hadoop.hdfs.server.blockmanagement.BlockManager;
 import org.apache.hadoop.hdfs.server.blockmanagement.DatanodeDescriptor;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.NodeType;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
-import org.apache.hadoop.hdfs.server.namenode.Namesystem;
 import org.apache.hadoop.hdfs.server.protocol.*;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.ipc.WritableRpcEngine;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.ozone.protocol.LocatedContainer;
 import org.apache.hadoop.ozone.protocol.StorageContainerLocationProtocol;
 import org.apache.hadoop.ozone.protocol.proto.StorageContainerLocationProtocolProtos;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolPB;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolServerSideTranslatorPB;
+import org.apache.hadoop.util.StringUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * StorageContainerManager is the main entry point for the service that provides
+ * information about which HDFS nodes host containers.
+ *
+ * The current implementation is a stub suitable to begin end-to-end testing of
+ * Ozone service interactions.  DataNodes report to StorageContainerManager
+ * using the existing heartbeat messages.  StorageContainerManager tells clients
+ * container locations by reporting that all registered nodes are a viable
+ * location.  This will evolve from a stub to a full-fledged implementation
+ * capable of partitioning the keyspace across multiple containers, with
+ * appropriate distribution across nodes.
+ */
 @InterfaceAudience.Private
 public class StorageContainerManager
     implements DatanodeProtocol, StorageContainerLocationProtocol {
 
-  public static final Logger LOG =
+  private static final Logger LOG =
       LoggerFactory.getLogger(StorageContainerManager.class);
 
-  private final Namesystem ns = new StorageContainerNameService();
+  private final StorageContainerNameService ns;
   private final BlockManager blockManager;
 
   /** The RPC server that listens to requests from DataNodes */
   private final RPC.Server serviceRpcServer;
-  private final InetSocketAddress serviceRPCAddress;
+  private final InetSocketAddress serviceRpcAddress;
 
   /** The RPC server that listens to requests from clients */
   protected final RPC.Server clientRpcServer;
@@ -83,135 +95,71 @@ public class StorageContainerManager
   protected final RPC.Server storageRpcServer;
   protected final InetSocketAddress storageRpcAddress;
 
+  /**
+   * Creates a new StorageContainerManager.  Configuration will be updated with
+   * information on the actual listening addresses used for RPC servers.
+   *
+   * @param conf configuration
+   */
   public StorageContainerManager(Configuration conf)
       throws IOException {
+    ns = new StorageContainerNameService();
     boolean haEnabled = false;
-    this.blockManager = new BlockManager(ns, haEnabled, conf);
-
-    int handlerCount =
-        conf.getInt(DFS_NAMENODE_HANDLER_COUNT_KEY,
-            DFS_NAMENODE_HANDLER_COUNT_DEFAULT);
+    blockManager = new BlockManager(ns, haEnabled, conf);
 
     RPC.setProtocolEngine(conf, DatanodeProtocolPB.class,
         ProtobufRpcEngine.class);
-
-    DatanodeProtocolServerSideTranslatorPB dnProtoPbTranslator =
-        new DatanodeProtocolServerSideTranslatorPB(this);
-    BlockingService dnProtoPbService = DatanodeProtocolProtos.DatanodeProtocolService
-        .newReflectiveBlockingService(dnProtoPbTranslator);
-
-    WritableRpcEngine.ensureInitialized();
-
-    InetSocketAddress serviceRpcAddr = NameNode.getServiceAddress(conf, false);
-    if (serviceRpcAddr != null) {
-      String bindHost = conf.getTrimmed(DFS_NAMENODE_SERVICE_RPC_BIND_HOST_KEY);
-      if (bindHost == null || bindHost.isEmpty()) {
-        bindHost = serviceRpcAddr.getHostName();
-      }
-      LOG.info("Service RPC server is binding to " + bindHost + ":" +
-          serviceRpcAddr.getPort());
-
-      int serviceHandlerCount =
-          conf.getInt(DFS_NAMENODE_SERVICE_HANDLER_COUNT_KEY,
-              DFS_NAMENODE_SERVICE_HANDLER_COUNT_DEFAULT);
-      serviceRpcServer = new RPC.Builder(conf)
-          .setProtocol(
-              org.apache.hadoop.hdfs.protocolPB.DatanodeProtocolPB.class)
-          .setInstance(dnProtoPbService)
-          .setBindAddress(bindHost)
-          .setPort(serviceRpcAddr.getPort())
-          .setNumHandlers(serviceHandlerCount)
-          .setVerbose(false)
-          .setSecretManager(null)
-          .build();
-
-      DFSUtil.addPBProtocol(conf, DatanodeProtocolPB.class, dnProtoPbService,
-          serviceRpcServer);
-
-      InetSocketAddress listenAddr = serviceRpcServer.getListenerAddress();
-      serviceRPCAddress = new InetSocketAddress(
-          serviceRpcAddr.getHostName(), listenAddr.getPort());
-      String serviceHostPort = NetUtils.getHostPortString(serviceRPCAddress);
-      conf.set(DFS_NAMENODE_SERVICE_RPC_ADDRESS_KEY, serviceHostPort);
-      LOG.info("Service RPC server is listening at " + serviceHostPort);
-    } else {
-      serviceRpcServer = null;
-      serviceRPCAddress = null;
-    }
-
-    InetSocketAddress rpcAddr = DFSUtilClient.getNNAddress(conf);
-    String bindHost = conf.getTrimmed(DFS_NAMENODE_RPC_BIND_HOST_KEY);
-    if (bindHost == null || bindHost.isEmpty()) {
-      bindHost = rpcAddr.getHostName();
-    }
-    LOG.info("RPC server is binding to " + bindHost + ":" + rpcAddr.getPort());
-
-    clientRpcServer = new RPC.Builder(conf)
-        .setProtocol(
-            org.apache.hadoop.hdfs.protocolPB.DatanodeProtocolPB.class)
-        .setInstance(dnProtoPbService)
-        .setBindAddress(bindHost)
-        .setPort(rpcAddr.getPort())
-        .setNumHandlers(handlerCount)
-        .setVerbose(false)
-        .setSecretManager(null)
-        .build();
-
-    DFSUtil.addPBProtocol(conf, DatanodeProtocolPB.class, dnProtoPbService,
-        clientRpcServer);
-
-    // The rpc-server port can be ephemeral... ensure we have the correct info
-    InetSocketAddress listenAddr = clientRpcServer.getListenerAddress();
-    clientRpcAddress = new InetSocketAddress(
-        rpcAddr.getHostName(), listenAddr.getPort());
-    conf.set(FS_DEFAULT_NAME_KEY, DFSUtilClient.getNNUri(clientRpcAddress)
-        .toString());
-    String clientHostPort = NetUtils.getHostPortString(listenAddr);
-    LOG.info("RPC server is listening at " + clientHostPort);
-
     RPC.setProtocolEngine(conf, StorageContainerLocationProtocolPB.class,
         ProtobufRpcEngine.class);
 
-    StorageContainerLocationProtocolServerSideTranslatorPB
-        storageProtoPbTranslator =
-        new StorageContainerLocationProtocolServerSideTranslatorPB(this);
+    BlockingService dnProtoPbService =
+        DatanodeProtocolProtos
+        .DatanodeProtocolService
+        .newReflectiveBlockingService(
+            new DatanodeProtocolServerSideTranslatorPB(this));
+
+    InetSocketAddress serviceRpcAddr = NameNode.getServiceAddress(conf, false);
+    serviceRpcServer = startRpcServer(conf, serviceRpcAddr,
+        DatanodeProtocolPB.class, dnProtoPbService,
+        DFS_NAMENODE_SERVICE_RPC_BIND_HOST_KEY,
+        DFS_NAMENODE_SERVICE_HANDLER_COUNT_KEY,
+        DFS_NAMENODE_SERVICE_HANDLER_COUNT_DEFAULT);
+    serviceRpcAddress = updateListenAddress(conf,
+        DFS_NAMENODE_SERVICE_RPC_ADDRESS_KEY, serviceRpcAddr, serviceRpcServer);
+    LOG.info(buildRpcServerStartMessage("Service RPC server",
+        serviceRpcAddress));
+
+    InetSocketAddress rpcAddr = DFSUtilClient.getNNAddress(conf);
+    clientRpcServer = startRpcServer(conf, rpcAddr,
+        DatanodeProtocolPB.class, dnProtoPbService,
+        DFS_NAMENODE_RPC_BIND_HOST_KEY,
+        DFS_NAMENODE_HANDLER_COUNT_KEY,
+        DFS_NAMENODE_HANDLER_COUNT_DEFAULT);
+    clientRpcAddress = updateListenAddress(conf,
+        DFS_NAMENODE_RPC_ADDRESS_KEY, rpcAddr, clientRpcServer);
+    conf.set(FS_DEFAULT_NAME_KEY, DFSUtilClient.getNNUri(clientRpcAddress)
+        .toString());
+    LOG.info(buildRpcServerStartMessage("RPC server", clientRpcAddress));
+
     BlockingService storageProtoPbService =
         StorageContainerLocationProtocolProtos
         .StorageContainerLocationProtocolService
-        .newReflectiveBlockingService(storageProtoPbTranslator);
+        .newReflectiveBlockingService(
+            new StorageContainerLocationProtocolServerSideTranslatorPB(this));
 
     InetSocketAddress storageRpcAddr = NetUtils.createSocketAddr(
         conf.getTrimmed(DFS_STORAGE_RPC_ADDRESS_KEY,
             DFS_STORAGE_RPC_ADDRESS_DEFAULT), -1, DFS_STORAGE_RPC_ADDRESS_KEY);
-    String storageRpcBindHost = conf.getTrimmed(DFS_STORAGE_RPC_BIND_HOST_KEY,
-        DFS_STORAGE_RPC_BIND_HOST_DEFAULT);
-    if (storageRpcBindHost == null || storageRpcBindHost.isEmpty()) {
-      storageRpcBindHost = storageRpcAddr.getHostName();
-    }
-    LOG.info("StorageContainerLocationProtocol RPC server is binding to " +
-        storageRpcBindHost + ":" + storageRpcAddr.getPort());
 
-    storageRpcServer = new RPC.Builder(conf)
-        .setProtocol(StorageContainerLocationProtocolPB.class)
-        .setInstance(storageProtoPbService)
-        .setBindAddress(storageRpcBindHost)
-        .setPort(storageRpcAddr.getPort())
-        .setNumHandlers(handlerCount)
-        .setVerbose(false)
-        .setSecretManager(null)
-        .build();
-
-    DFSUtil.addPBProtocol(conf, StorageContainerLocationProtocolPB.class,
-        storageProtoPbService, storageRpcServer);
-
-    // The rpc-server port can be ephemeral... ensure we have the correct info
-    InetSocketAddress storageListenAddr = storageRpcServer.getListenerAddress();
-    storageRpcAddress = new InetSocketAddress(
-        storageRpcAddr.getHostName(), storageListenAddr.getPort());
-    String storageHostPort = NetUtils.getHostPortString(storageRpcAddress);
-    conf.set(DFS_STORAGE_RPC_ADDRESS_KEY, storageHostPort);
-    LOG.info("StorageContainerLocationProtocol RPC server is listening at " +
-        storageHostPort);
+    storageRpcServer = startRpcServer(conf, storageRpcAddr,
+        StorageContainerLocationProtocolPB.class, storageProtoPbService,
+        DFS_STORAGE_RPC_BIND_HOST_KEY,
+        DFS_STORAGE_HANDLER_COUNT_KEY,
+        DFS_STORAGE_HANDLER_COUNT_DEFAULT);
+    storageRpcAddress = updateListenAddress(conf,
+        DFS_STORAGE_RPC_ADDRESS_KEY, storageRpcAddr, storageRpcServer);
+    LOG.info(buildRpcServerStartMessage(
+        "StorageContainerLocationProtocol RPC server", storageRpcAddress));
   }
 
   @Override
@@ -233,6 +181,8 @@ public class StorageContainerManager
       locatedContainers.add(new LocatedContainer(key, containerName, locations,
           leader));
     }
+    LOG.trace("getStorageContainerLocations keys = {}, locatedContainers = {}",
+        keys, locatedContainers);
     return locatedContainers;
   }
 
@@ -315,12 +265,10 @@ public class StorageContainerManager
      int errorCode, String msg) throws IOException {
     String dnName =
         (registration == null) ? "Unknown DataNode" : registration.toString();
-
     if (errorCode == DatanodeProtocol.NOTIFY) {
       LOG.info("Error report from " + dnName + ": " + msg);
       return;
     }
-
     if (errorCode == DatanodeProtocol.DISK_ERROR) {
       LOG.warn("Disk error on " + dnName + ": " + msg);
     } else if (errorCode == DatanodeProtocol.FATAL_DISK_ERROR) {
@@ -335,20 +283,15 @@ public class StorageContainerManager
   public NamespaceInfo versionRequest() throws IOException {
     ns.readLock();
     try {
-      return unprotectedGetNamespaceInfo();
+      return new NamespaceInfo(1, "random", "random", 2,
+          NodeType.STORAGE_CONTAINER_SERVICE);
     } finally {
       ns.readUnlock();
     }
   }
 
-  private NamespaceInfo unprotectedGetNamespaceInfo() {
-    return new NamespaceInfo(1, "random", "random", 2,
-                             NodeType.STORAGE_CONTAINER_SERVICE);
-  }
-
   @Override
   public void reportBadBlocks(LocatedBlock[] blocks) throws IOException {
-    // It doesn't make sense to have LocatedBlock in this API.
     ns.writeLock();
     try {
       for (int i = 0; i < blocks.length; i++) {
@@ -366,6 +309,21 @@ public class StorageContainerManager
     }
   }
 
+  @Override
+  public void commitBlockSynchronization(ExtendedBlock block,
+     long newgenerationstamp, long newlength, boolean closeFile,
+     boolean deleteblock, DatanodeID[] newtargets, String[] newtargetstorages)
+      throws IOException {
+    // Not needed for the purpose of object store
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Returns information on registered DataNodes.
+   *
+   * @param type DataNode type to report
+   * @return registered DataNodes matching requested type
+   */
   public DatanodeInfo[] getDatanodeReport(DatanodeReportType type) {
     ns.readLock();
     try {
@@ -377,13 +335,18 @@ public class StorageContainerManager
     }
   }
 
+  /**
+   * Returns listen address of StorageContainerLocation RPC server.
+   *
+   * @return listen address of StorageContainerLocation RPC server
+   */
   @VisibleForTesting
   public InetSocketAddress getStorageContainerLocationRpcAddress() {
     return storageRpcAddress;
   }
 
   /**
-   * Start client and service RPC servers.
+   * Start service.
    */
   public void start() {
     clientRpcServer.start();
@@ -393,6 +356,9 @@ public class StorageContainerManager
     storageRpcServer.start();
   }
 
+  /**
+   * Stop service.
+   */
   public void stop() {
     if (clientRpcServer != null) {
       clientRpcServer.stop();
@@ -403,10 +369,11 @@ public class StorageContainerManager
     if (storageRpcServer != null) {
       storageRpcServer.stop();
     }
+    IOUtils.closeStream(ns);
   }
 
   /**
-   * Wait until the RPC servers have shutdown.
+   * Wait until service has completed shutdown.
    */
   public void join() {
     try {
@@ -421,16 +388,92 @@ public class StorageContainerManager
     }
   }
 
-  @Override
-  public void commitBlockSynchronization(ExtendedBlock block,
-     long newgenerationstamp, long newlength, boolean closeFile,
-     boolean deleteblock, DatanodeID[] newtargets, String[] newtargetstorages)
-      throws IOException {
-    // Not needed for the purpose of object store
-    throw new UnsupportedOperationException();
+  /**
+   * Builds a message for logging startup information about an RPC server.
+   *
+   * @param description RPC server description
+   * @param addr RPC server listening address
+   * @return server startup message
+   */
+  private static String buildRpcServerStartMessage(String description,
+      InetSocketAddress addr) {
+    return addr != null ? String.format("%s is listening at %s",
+        description, NetUtils.getHostPortString(addr)) :
+        String.format("%s not started", description);
   }
 
+  /**
+   * Starts an RPC server, if configured.
+   *
+   * @param conf configuration
+   * @param addr configured address of RPC server
+   * @param protocol RPC protocol provided by RPC server
+   * @param instance RPC protocol implementation instance
+   * @param bindHostKey configuration key for setting explicit bind host.  If
+   *     the property is not configured, then the bind host is taken from addr.
+   * @param handlerCountKey configuration key for RPC server handler count
+   * @param handlerCountDefault default RPC server handler count if unconfigured
+   * @return RPC server, or null if addr is null
+   * @throws IOException if there is an I/O error while creating RPC server
+   */
+  private static RPC.Server startRpcServer(Configuration conf,
+      InetSocketAddress addr, Class<?> protocol, BlockingService instance,
+      String bindHostKey, String handlerCountKey, int handlerCountDefault)
+      throws IOException {
+    if (addr == null) {
+      return null;
+    }
+    String bindHost = conf.getTrimmed(bindHostKey);
+    if (bindHost == null || bindHost.isEmpty()) {
+      bindHost = addr.getHostName();
+    }
+    int numHandlers = conf.getInt(handlerCountKey, handlerCountDefault);
+    RPC.Server rpcServer = new RPC.Builder(conf)
+        .setProtocol(protocol)
+        .setInstance(instance)
+        .setBindAddress(bindHost)
+        .setPort(addr.getPort())
+        .setNumHandlers(numHandlers)
+        .setVerbose(false)
+        .setSecretManager(null)
+        .build();
+    DFSUtil.addPBProtocol(conf, protocol, instance, rpcServer);
+    return rpcServer;
+  }
+
+  /**
+   * After starting an RPC server, updates configuration with the actual
+   * listening address of that server.  The listening address may be different
+   * from the configured address if, for example, the configured address uses
+   * port 0 to request use of an ephemeral port.
+   *
+   * @param conf configuration to update
+   * @param rpcAddressKey configuration key for RPC server address
+   * @param addr configured address
+   * @param rpcServer started RPC server.  If null, then the server was not
+   *     started, and this method is a no-op.
+   */
+  private static InetSocketAddress updateListenAddress(Configuration conf,
+      String rpcAddressKey, InetSocketAddress addr, RPC.Server rpcServer) {
+    if (rpcServer == null) {
+      return null;
+    }
+    InetSocketAddress listenAddr = rpcServer.getListenerAddress();
+    InetSocketAddress updatedAddr = new InetSocketAddress(
+        addr.getHostName(), listenAddr.getPort());
+    conf.set(rpcAddressKey, NetUtils.getHostPortString(updatedAddr));
+    return updatedAddr;
+  }
+
+  /**
+   * Main entry point for starting StorageContainerManager.
+   *
+   * @param argv arguments
+   * @throws IOException if startup fails due to I/O error
+   */
   public static void main(String [] argv) throws IOException {
+    StringUtils.startupShutdownMessage(
+        StorageContainerManager.class, argv, LOG);
     StorageContainerManager scm = new StorageContainerManager(
         new Configuration());
     scm.start();
