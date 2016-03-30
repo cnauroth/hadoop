@@ -50,9 +50,10 @@ message GetStorageContainerLocationsResponseProto {
  */
 message LocatedContainerProto {
   required string key = 1;
-  required string containerName = 2;
-  repeated DatanodeInfoProto locations = 3;
-  required DatanodeInfoProto leader = 4;
+  required string matchedKeyPrefix = 2;
+  required string containerName = 3;
+  repeated DatanodeInfoProto locations = 4;
+  required DatanodeInfoProto leader = 5;
 }
 
 /**

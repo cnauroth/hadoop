@@ -205,8 +205,8 @@ public class StorageContainerManager
     Set<LocatedContainer> locatedContainers =
         Sets.newLinkedHashSetWithExpectedSize(keys.size());
     for (String key: keys) {
-      locatedContainers.add(new LocatedContainer(key, containerName, locations,
-          leader));
+      locatedContainers.add(new LocatedContainer(key, key, containerName,
+          locations, leader));
     }
     LOG.trace("getStorageContainerLocations keys = {}, locatedContainers = {}",
         keys, locatedContainers);

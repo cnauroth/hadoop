@@ -24,14 +24,13 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.apache.hadoop.io.IOUtils;
-
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.ozone.protocol.LocatedContainer;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClientSideTranslatorPB;
 
@@ -125,6 +124,8 @@ public class TestStorageContainerManager {
     }
     assertNotNull("Container for key " + key + " not found.", container);
     assertEquals(key, container.getKey());
+    assertNotNull(container.getMatchedKeyPrefix());
+    assertFalse(container.getMatchedKeyPrefix().isEmpty());
     assertNotNull(container.getContainerName());
     assertFalse(container.getContainerName().isEmpty());
     assertNotNull(container.getLocations());

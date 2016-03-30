@@ -75,6 +75,7 @@ public final class StorageContainerLocationProtocolServerSideTranslatorPB
       LocatedContainerProto.Builder locatedContainerProto =
           LocatedContainerProto.newBuilder()
           .setKey(locatedContainer.getKey())
+          .setMatchedKeyPrefix(locatedContainer.getMatchedKeyPrefix())
           .setContainerName(locatedContainer.getContainerName());
       for (DatanodeInfo location: locatedContainer.getLocations()) {
         locatedContainerProto.addLocations(PBHelperClient.convert(location));

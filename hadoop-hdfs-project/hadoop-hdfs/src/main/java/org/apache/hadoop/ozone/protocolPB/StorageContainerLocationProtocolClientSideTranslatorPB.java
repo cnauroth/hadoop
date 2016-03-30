@@ -87,6 +87,7 @@ public final class StorageContainerLocationProtocolClientSideTranslatorPB
         locations.add(PBHelperClient.convert(location));
       }
       locatedContainers.add(new LocatedContainer(locatedContainer.getKey(),
+          locatedContainer.getMatchedKeyPrefix(),
           locatedContainer.getContainerName(), locations,
           PBHelperClient.convert(locatedContainer.getLeader())));
     }

@@ -29,6 +29,7 @@ import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 @InterfaceAudience.Private
 public final class LocatedContainer {
   private final String key;
+  private final String matchedKeyPrefix;
   private final String containerName;
   private final Set<DatanodeInfo> locations;
   private final DatanodeInfo leader;
@@ -37,13 +38,15 @@ public final class LocatedContainer {
    * Creates a LocatedContainer.
    *
    * @param key object key
+   * @param matchedKeyPrefix prefix of key that was used to find the location
    * @param containerName container name
    * @param locations nodes that currently host the container
    * @param leader node that currently acts as pipeline leader
    */
-  public LocatedContainer(String key, String containerName,
-      Set<DatanodeInfo> locations, DatanodeInfo leader) {
+  public LocatedContainer(String key, String matchedKeyPrefix,
+      String containerName, Set<DatanodeInfo> locations, DatanodeInfo leader) {
     this.key = key;
+    this.matchedKeyPrefix = matchedKeyPrefix;
     this.containerName = containerName;
     this.locations = locations;
     this.leader = leader;
@@ -85,6 +88,15 @@ public final class LocatedContainer {
     return this.locations;
   }
 
+  /**
+   * Returns the prefix of the key that was used to find the location.
+   *
+   * @return prefix of the key that was used to find the location
+   */
+  public String getMatchedKeyPrefix() {
+    return this.matchedKeyPrefix;
+  }
+
   @Override
   public boolean equals(Object otherObj) {
     if (otherObj == null) {
@@ -106,6 +118,7 @@ public final class LocatedContainer {
   public String toString() {
     return getClass().getSimpleName()
         + "{key=" + key
+        + "; matchedKeyPrefix=" + matchedKeyPrefix
         + "; containerName=" + containerName
         + "; locations=" + locations
         + "; leader=" + leader
