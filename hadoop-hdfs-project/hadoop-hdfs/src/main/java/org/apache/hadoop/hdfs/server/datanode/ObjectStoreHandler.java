@@ -34,8 +34,6 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.protobuf.BlockingService;
-
 import com.sun.jersey.api.container.ContainerFactory;
 import com.sun.jersey.api.core.ApplicationAdapter;
 
@@ -91,7 +89,8 @@ public final class ObjectStoreHandler implements Closeable {
     if ("distributed".equalsIgnoreCase(shType)) {
       RPC.setProtocolEngine(conf, StorageContainerLocationProtocolPB.class,
           ProtobufRpcEngine.class);
-      long version = RPC.getProtocolVersion(StorageContainerLocationProtocolPB.class);
+      long version =
+          RPC.getProtocolVersion(StorageContainerLocationProtocolPB.class);
       InetSocketAddress address = conf.getSocketAddr(
           DFS_STORAGE_RPC_BIND_HOST_KEY, DFS_STORAGE_RPC_ADDRESS_KEY,
           DFS_STORAGE_RPC_ADDRESS_DEFAULT, DFS_STORAGE_RPC_DEFAULT_PORT);

@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.ozone.web.storage;
 
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+
 import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.CreateKeyRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
@@ -26,6 +29,7 @@ import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerKeyD
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyValue;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadKeyRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadKeyResponeProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Result;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.chunkInfo;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.LengthInputStream;
@@ -35,6 +39,7 @@ import org.apache.hadoop.ozone.OzoneConsts.Versioning;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClientSideTranslatorPB;
+import org.apache.hadoop.ozone.web.exceptions.ErrorTable;
 import org.apache.hadoop.ozone.web.exceptions.OzoneException;
 import org.apache.hadoop.ozone.web.handlers.BucketArgs;
 import org.apache.hadoop.ozone.web.handlers.KeyArgs;
@@ -99,7 +104,7 @@ public final class DistributedStorageHandler implements StorageHandler {
             newKeyValue("CreatedBy", args.getAdminName()));
       }
 
-      createKey(xceiverClient, containerKeyData);
+      createKey(xceiverClient, containerKeyData, args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
     }
@@ -175,7 +180,7 @@ public final class DistributedStorageHandler implements StorageHandler {
             args.getStorageType().name()));
       }
 
-      createKey(xceiverClient, containerKeyData);
+      createKey(xceiverClient, containerKeyData, args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
     }
@@ -267,7 +272,7 @@ public final class DistributedStorageHandler implements StorageHandler {
             args.getStorageType().name()));
       }
 
-      createKey(xceiverClient, containerKeyData);
+      createKey(xceiverClient, containerKeyData, args);
       success = true;
       return new ChunkOutputStream(key, xceiverClientManager, xceiverClient);
     } finally {
@@ -364,7 +369,8 @@ public final class DistributedStorageHandler implements StorageHandler {
   }
 
   private static void createKey(XceiverClient xceiverClient,
-      ContainerKeyData.Builder containerKeyData) throws IOException {
+      ContainerKeyData.Builder containerKeyData, UserArgs args)
+      throws IOException, OzoneException {
     CreateKeyRequestProto.Builder createKeyRequest = CreateKeyRequestProto
         .newBuilder()
         .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
@@ -374,7 +380,23 @@ public final class DistributedStorageHandler implements StorageHandler {
         .setCmdType(Type.CreateKey)
         .setCreateKey(createKeyRequest)
         .build();
-    xceiverClient.sendCommand(request);
+    ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
+    switch (response.getResult()) {
+    case SUCCESS:
+      break;
+    case MALFORMED_REQUEST:
+      throw ErrorTable.newError(new OzoneException(HTTP_BAD_REQUEST,
+          "badRequest", "Bad container request."), args);
+    case UNSUPPORTED_REQUEST:
+      throw ErrorTable.newError(new OzoneException(HTTP_INTERNAL_ERROR,
+          "internalServerError", "Unsupported container request."), args);
+    case CONTAINER_INTERNAL_ERROR:
+      throw ErrorTable.newError(new OzoneException(HTTP_INTERNAL_ERROR,
+          "internalServerError", "Container internal error."), args);
+    default:
+      throw ErrorTable.newError(new OzoneException(HTTP_INTERNAL_ERROR,
+          "internalServerError", "Unrecognized container response."), args);
+    }
   }
 
   private static String dateToString(Date date) {
