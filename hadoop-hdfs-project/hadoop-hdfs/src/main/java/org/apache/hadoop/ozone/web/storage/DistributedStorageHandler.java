@@ -18,28 +18,21 @@
 
 package org.apache.hadoop.ozone.web.storage;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static org.apache.hadoop.ozone.web.storage.ContainerProtocolCalls.*;
+import static org.apache.hadoop.ozone.web.storage.OzoneContainerTranslation.*;
 
-import org.apache.hadoop.fs.StorageType;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.CreateKeyRequestProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandResponseProto;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.List;
+
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerKeyData;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyValue;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadKeyRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadKeyResponeProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Result;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.chunkInfo;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.LengthInputStream;
 import org.apache.hadoop.ozone.OzoneConfiguration;
-import org.apache.hadoop.ozone.OzoneConsts;
-import org.apache.hadoop.ozone.OzoneConsts.Versioning;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClientSideTranslatorPB;
-import org.apache.hadoop.ozone.web.exceptions.ErrorTable;
 import org.apache.hadoop.ozone.web.exceptions.OzoneException;
 import org.apache.hadoop.ozone.web.handlers.BucketArgs;
 import org.apache.hadoop.ozone.web.handlers.KeyArgs;
@@ -54,14 +47,6 @@ import org.apache.hadoop.ozone.web.response.ListVolumes;
 import org.apache.hadoop.ozone.web.response.VolumeInfo;
 import org.apache.hadoop.util.StringUtils;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
-
 /**
  * A {@link StorageHandler} implementation that distributes object storage
  * across the nodes of an HDFS cluster.
@@ -70,6 +55,12 @@ public final class DistributedStorageHandler implements StorageHandler {
 
   private final XceiverClientManager xceiverClientManager;
 
+  /**
+   * Creates a new DistributedStorageHandler.
+   *
+   * @param conf configuration
+   * @param storageContainerLocation StorageContainerLocationProtocol proxy
+   */
   public DistributedStorageHandler(OzoneConfiguration conf,
       StorageContainerLocationProtocolClientSideTranslatorPB
       storageContainerLocation) {
@@ -78,32 +69,13 @@ public final class DistributedStorageHandler implements StorageHandler {
   }
 
   @Override
-  public void createVolume(final VolumeArgs args) throws
-      IOException, OzoneException {
-    String key = buildContainerKey(args.getVolumeName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(key);
+  public void createVolume(VolumeArgs args) throws IOException, OzoneException {
+    String containerKey = buildContainerKey(args.getVolumeName());
+    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
+        containerKey);
     try {
-      ContainerKeyData.Builder containerKeyData = ContainerKeyData
-          .newBuilder()
-          .setContainerName(xceiverClient.getPipeline().getContainerName())
-          .setName(key)
-          .addMetadata(newKeyValue("Key", "VOLUME"))
-          .addMetadata(newKeyValue("Created", dateToString(new Date())));
-
-      if (args.getQuota() != null && args.getQuota().sizeInBytes() != -1L) {
-        containerKeyData.addMetadata(
-            newKeyValue("Quota", args.getQuota().sizeInBytes()));
-      }
-
-      if (args.getUserName() != null && !args.getUserName().isEmpty()) {
-        containerKeyData.addMetadata(newKeyValue("Owner", args.getUserName()));
-      }
-
-      if (args.getAdminName() != null && !args.getAdminName().isEmpty()) {
-        containerKeyData.addMetadata(
-            newKeyValue("CreatedBy", args.getAdminName()));
-      }
-
+      ContainerKeyData containerKeyData = fromVolumeToContainerKeyData(
+          xceiverClient.getPipeline().getContainerName(), containerKey, args);
       createKey(xceiverClient, containerKeyData, args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
@@ -113,73 +85,61 @@ public final class DistributedStorageHandler implements StorageHandler {
   @Override
   public void setVolumeOwner(VolumeArgs args) throws
       IOException, OzoneException {
-
+    throw new UnsupportedOperationException("setVolumeOwner not implemented");
   }
 
   @Override
   public void setVolumeQuota(VolumeArgs args, boolean remove)
       throws IOException, OzoneException {
-
+    throw new UnsupportedOperationException("setVolumeQuota not implemented");
   }
 
   @Override
   public boolean checkVolumeAccess(VolumeArgs args)
       throws IOException, OzoneException {
-    return false;
+    throw new UnsupportedOperationException("checkVolumeAccessnot implemented");
   }
 
   @Override
   public ListVolumes listVolumes(UserArgs args)
       throws IOException, OzoneException {
-    return null;
+    throw new UnsupportedOperationException("listVolumes not implemented");
   }
 
   @Override
   public void deleteVolume(VolumeArgs args)
       throws IOException, OzoneException {
-
+    throw new UnsupportedOperationException("deleteVolume not implemented");
   }
 
   @Override
   public VolumeInfo getVolumeInfo(VolumeArgs args)
       throws IOException, OzoneException {
-    return null;
+    String containerKey = buildContainerKey(args.getVolumeName());
+    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
+        containerKey);
+    try {
+      ContainerKeyData containerKeyData = fromVolumeToContainerKeyData(
+          xceiverClient.getPipeline().getContainerName(), containerKey, args);
+      ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
+          args);
+      return fromContainerKeyValueListToVolume(response.getMetadataList(),
+          args);
+    } finally {
+      xceiverClientManager.releaseClient(xceiverClient);
+    }
   }
 
   @Override
   public void createBucket(final BucketArgs args)
       throws IOException, OzoneException {
-    String key = buildContainerKey(args.getVolumeName(), args.getBucketName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(key);
+    String containerKey = buildContainerKey(args.getVolumeName(),
+        args.getBucketName());
+    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
+        containerKey);
     try {
-      ContainerKeyData.Builder containerKeyData = ContainerKeyData
-          .newBuilder()
-          .setContainerName(xceiverClient.getPipeline().getContainerName())
-          .setName(key)
-          .addMetadata(newKeyValue("Key", "BUCKET"))
-          .addMetadata(newKeyValue("KEY_VOLUME_NAME", args.getVolumeName()));
-
-      if (args.getAddAcls() != null) {
-        containerKeyData.addMetadata(newKeyValue("ADD_ACLS",
-            StringUtils.join(',', args.getAddAcls())));
-      }
-
-      if (args.getRemoveAcls() != null) {
-        containerKeyData.addMetadata(newKeyValue("REMOVE_ACLS",
-            StringUtils.join(',', args.getRemoveAcls())));
-      }
-
-      if (args.getVersioning() != null &&
-          args.getVersioning() != Versioning.NOT_DEFINED) {
-        containerKeyData.addMetadata(newKeyValue("BUCKET_VERSIONING",
-            args.getVersioning().name()));
-      }
-
-      if (args.getStorageType() != StorageType.RAM_DISK) {
-        containerKeyData.addMetadata(newKeyValue("STORAGE_TYPE",
-            args.getStorageType().name()));
-      }
-
+      ContainerKeyData containerKeyData = fromBucketToContainerKeyData(
+          xceiverClient.getPipeline().getContainerName(), containerKey, args);
       createKey(xceiverClient, containerKeyData, args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
@@ -189,92 +149,76 @@ public final class DistributedStorageHandler implements StorageHandler {
   @Override
   public void setBucketAcls(BucketArgs args)
       throws IOException, OzoneException {
-
+    throw new UnsupportedOperationException("setBucketAcls not implemented");
   }
 
   @Override
   public void setBucketVersioning(BucketArgs args)
       throws IOException, OzoneException {
-
+    throw new UnsupportedOperationException(
+        "setBucketVersioning not implemented");
   }
 
   @Override
   public void setBucketStorageClass(BucketArgs args)
       throws IOException, OzoneException {
-
+    throw new UnsupportedOperationException(
+        "setBucketStorageClass not implemented");
   }
 
   @Override
   public void deleteBucket(BucketArgs args)
       throws IOException, OzoneException {
-
+    throw new UnsupportedOperationException("deleteBucket not implemented");
   }
 
   @Override
   public void checkBucketAccess(BucketArgs args)
       throws IOException, OzoneException {
-
+    throw new UnsupportedOperationException(
+        "checkBucketAccess not implemented");
   }
 
   @Override
   public ListBuckets listBuckets(VolumeArgs args)
       throws IOException, OzoneException {
-    return null;
+    throw new UnsupportedOperationException("listBuckets not implemented");
   }
 
   @Override
   public BucketInfo getBucketInfo(BucketArgs args)
       throws IOException, OzoneException {
-    return null;
+    String containerKey = buildContainerKey(args.getVolumeName(),
+        args.getBucketName());
+    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
+        containerKey);
+    try {
+      ContainerKeyData containerKeyData = fromBucketToContainerKeyData(
+          xceiverClient.getPipeline().getContainerName(), containerKey, args);
+      ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
+          args);
+      return fromContainerKeyValueListToBucket(response.getMetadataList(),
+          args);
+    } finally {
+      xceiverClientManager.releaseClient(xceiverClient);
+    }
   }
 
-  /**
-   * Writes a key in an existing bucket.
-   *
-   * @param args KeyArgs
-   * @return InputStream
-   * @throws OzoneException
-   */
   @Override
   public OutputStream newKeyWriter(KeyArgs args) throws IOException,
       OzoneException {
-    String key = buildContainerKey(args.getVolumeName(), args.getBucketName(),
-        args.getKeyName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(key);
+    String containerKey = buildContainerKey(args.getVolumeName(),
+        args.getBucketName(), args.getKeyName());
+    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
+        containerKey);
     boolean success = false;
     try {
-      ContainerKeyData.Builder containerKeyData = ContainerKeyData
-          .newBuilder()
-          .setContainerName(xceiverClient.getPipeline().getContainerName())
-          .setName(key)
-          .addMetadata(newKeyValue("Key", "KEY"))
-          .addMetadata(newKeyValue("KEY_VOLUME_NAME", args.getVolumeName()))
-          .addMetadata(newKeyValue("KEY_BUCKET_NAME", args.getBucketName()));
-
-      if (args.getAddAcls() != null) {
-        containerKeyData.addMetadata(newKeyValue("ADD_ACLS",
-            StringUtils.join(',', args.getAddAcls())));
-      }
-
-      if (args.getRemoveAcls() != null) {
-        containerKeyData.addMetadata(newKeyValue("REMOVE_ACLS",
-            StringUtils.join(',', args.getRemoveAcls())));
-      }
-
-      if (args.getVersioning() != null &&
-          args.getVersioning() != Versioning.NOT_DEFINED) {
-        containerKeyData.addMetadata(newKeyValue("BUCKET_VERSIONING",
-            args.getVersioning().name()));
-      }
-
-      if (args.getStorageType() != StorageType.RAM_DISK) {
-        containerKeyData.addMetadata(newKeyValue("STORAGE_TYPE",
-            args.getStorageType().name()));
-      }
-
+      ContainerKeyData containerKeyData = fromKeyToContainerKeyData(
+          xceiverClient.getPipeline().getContainerName(), containerKey, args);
       createKey(xceiverClient, containerKeyData, args);
       success = true;
-      return new ChunkOutputStream(key, xceiverClientManager, xceiverClient);
+      return new ChunkOutputStream(containerKey, xceiverClientManager,
+          xceiverClient);
     } finally {
       if (!success) {
         xceiverClientManager.releaseClient(xceiverClient);
@@ -282,58 +226,33 @@ public final class DistributedStorageHandler implements StorageHandler {
     }
   }
 
-  /**
-   * Tells the file system that the object has been written out completely and
-   * it can do any house keeping operation that needs to be done.
-   *
-   * @param args   Key Args
-   * @param stream
-   * @throws IOException
-   */
   @Override
   public void commitKey(KeyArgs args, OutputStream stream) throws
       IOException, OzoneException {
+    throw new UnsupportedOperationException("commitKey not implemented");
   }
 
-  /**
-   * Reads a key from an existing bucket.
-   *
-   * @param args KeyArgs
-   * @return LengthInputStream
-   * @throws IOException
-   */
   @Override
   public LengthInputStream newKeyReader(KeyArgs args) throws IOException,
       OzoneException {
-    String key = buildContainerKey(args.getVolumeName(), args.getBucketName(),
-        args.getKeyName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(key);
+    String containerKey = buildContainerKey(args.getVolumeName(),
+        args.getBucketName(), args.getKeyName());
+    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
+        containerKey);
     boolean success = false;
     try {
-      ContainerKeyData.Builder containerKeyData = ContainerKeyData
-          .newBuilder()
-          .setContainerName(xceiverClient.getPipeline().getContainerName())
-          .setName(key);
-      ReadKeyRequestProto.Builder readKeyRequest = ReadKeyRequestProto
-          .newBuilder()
-          .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-          .setContainerKeyData(containerKeyData);
-      ContainerCommandRequestProto request = ContainerCommandRequestProto
-          .newBuilder()
-          .setCmdType(Type.Readkey)
-          .setReadKey(readKeyRequest)
-          .build();
-      ContainerCommandResponseProto response =
-          xceiverClient.sendCommand(request);
-      ReadKeyResponeProto readKeyResponse = response.getReadKey();
+      ContainerKeyData containerKeyData = fromKeyToContainerKeyData(
+          xceiverClient.getPipeline().getContainerName(), containerKey, args);
+      ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
+          args);
       long length = 0;
-      List<chunkInfo> chunks = readKeyResponse.getChunkDataList();
+      List<chunkInfo> chunks = response.getChunkDataList();
       for (chunkInfo chunk : chunks) {
         length += chunk.getLen();
       }
       success = true;
       return new LengthInputStream(new ChunkInputStream(
-          key, xceiverClientManager, xceiverClient, chunks), length);
+          containerKey, xceiverClientManager, xceiverClient, chunks), length);
     } finally {
       if (!success) {
         xceiverClientManager.releaseClient(xceiverClient);
@@ -341,72 +260,24 @@ public final class DistributedStorageHandler implements StorageHandler {
     }
   }
 
-  /**
-   * Deletes an existing key.
-   *
-   * @param args KeyArgs
-   * @throws OzoneException
-   */
   @Override
   public void deleteKey(KeyArgs args) throws IOException, OzoneException {
+    throw new UnsupportedOperationException("deleteKey not implemented");
+  }
 
+  @Override
+  public ListKeys listKeys(ListArgs args) throws IOException, OzoneException {
+    throw new UnsupportedOperationException("listKeys not implemented");
   }
 
   /**
-   * Returns a list of Key.
+   * Creates a container key from any number of components by combining all
+   * components with a delimiter.
    *
-   * @param args KeyArgs
-   * @return BucketList
-   * @throws IOException
+   * @param parts container key components
+   * @return container key
    */
-  @Override
-  public ListKeys listKeys(ListArgs args) throws IOException, OzoneException {
-    return null;
-  }
-
   private static String buildContainerKey(String... parts) {
     return '/' + StringUtils.join('/', parts);
-  }
-
-  private static void createKey(XceiverClient xceiverClient,
-      ContainerKeyData.Builder containerKeyData, UserArgs args)
-      throws IOException, OzoneException {
-    CreateKeyRequestProto.Builder createKeyRequest = CreateKeyRequestProto
-        .newBuilder()
-        .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-        .setContainerKeyData(containerKeyData);
-    ContainerCommandRequestProto request = ContainerCommandRequestProto
-        .newBuilder()
-        .setCmdType(Type.CreateKey)
-        .setCreateKey(createKeyRequest)
-        .build();
-    ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
-    switch (response.getResult()) {
-    case SUCCESS:
-      break;
-    case MALFORMED_REQUEST:
-      throw ErrorTable.newError(new OzoneException(HTTP_BAD_REQUEST,
-          "badRequest", "Bad container request."), args);
-    case UNSUPPORTED_REQUEST:
-      throw ErrorTable.newError(new OzoneException(HTTP_INTERNAL_ERROR,
-          "internalServerError", "Unsupported container request."), args);
-    case CONTAINER_INTERNAL_ERROR:
-      throw ErrorTable.newError(new OzoneException(HTTP_INTERNAL_ERROR,
-          "internalServerError", "Container internal error."), args);
-    default:
-      throw ErrorTable.newError(new OzoneException(HTTP_INTERNAL_ERROR,
-          "internalServerError", "Unrecognized container response."), args);
-    }
-  }
-
-  private static String dateToString(Date date) {
-    SimpleDateFormat sdf =
-        new SimpleDateFormat(OzoneConsts.OZONE_DATE_FORMAT, Locale.US);
-    sdf.setTimeZone(TimeZone.getTimeZone(OzoneConsts.OZONE_TIME_ZONE));
-    return sdf.format(date);
-  }
-
-  private static KeyValue newKeyValue(String key, Object value) {
-    return KeyValue.newBuilder().setKey(key).setValue(value.toString()).build();
   }
 }
