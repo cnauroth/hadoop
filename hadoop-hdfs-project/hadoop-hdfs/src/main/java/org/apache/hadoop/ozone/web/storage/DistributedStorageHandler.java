@@ -23,13 +23,18 @@ import static org.apache.hadoop.ozone.web.storage.OzoneContainerTranslation.*;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerKeyData;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadKeyResponeProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.chunkInfo;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.LengthInputStream;
 import org.apache.hadoop.ozone.OzoneConfiguration;
+import org.apache.hadoop.ozone.OzoneConsts;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClientSideTranslatorPB;
@@ -41,10 +46,12 @@ import org.apache.hadoop.ozone.web.handlers.UserArgs;
 import org.apache.hadoop.ozone.web.handlers.VolumeArgs;
 import org.apache.hadoop.ozone.web.interfaces.StorageHandler;
 import org.apache.hadoop.ozone.web.response.BucketInfo;
+import org.apache.hadoop.ozone.web.response.KeyInfo;
 import org.apache.hadoop.ozone.web.response.ListBuckets;
 import org.apache.hadoop.ozone.web.response.ListKeys;
 import org.apache.hadoop.ozone.web.response.ListVolumes;
 import org.apache.hadoop.ozone.web.response.VolumeInfo;
+import org.apache.hadoop.ozone.web.response.VolumeOwner;
 import org.apache.hadoop.util.StringUtils;
 
 /**
@@ -74,8 +81,14 @@ public final class DistributedStorageHandler implements StorageHandler {
     XceiverClient xceiverClient = xceiverClientManager.acquireClient(
         containerKey);
     try {
+      VolumeInfo volume = new VolumeInfo();
+      volume.setVolumeName(args.getVolumeName());
+      volume.setQuota(args.getQuota());
+      volume.setOwner(new VolumeOwner(args.getUserName()));
+      volume.setCreatedOn(dateToString(new Date()));
+      volume.setCreatedBy(args.getAdminName());
       ContainerKeyData containerKeyData = fromVolumeToContainerKeyData(
-          xceiverClient.getPipeline().getContainerName(), containerKey, args);
+          xceiverClient.getPipeline().getContainerName(), containerKey, volume);
       createKey(xceiverClient, containerKeyData, args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
@@ -119,8 +132,8 @@ public final class DistributedStorageHandler implements StorageHandler {
     XceiverClient xceiverClient = xceiverClientManager.acquireClient(
         containerKey);
     try {
-      ContainerKeyData containerKeyData = fromVolumeToContainerKeyData(
-          xceiverClient.getPipeline().getContainerName(), containerKey, args);
+      ContainerKeyData containerKeyData = containerKeyDataForRead(
+          xceiverClient.getPipeline().getContainerName(), containerKey);
       ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
           args);
       return fromContainerKeyValueListToVolume(response.getMetadataList(),
@@ -138,8 +151,14 @@ public final class DistributedStorageHandler implements StorageHandler {
     XceiverClient xceiverClient = xceiverClientManager.acquireClient(
         containerKey);
     try {
+      BucketInfo bucket = new BucketInfo();
+      bucket.setVolumeName(args.getVolumeName());
+      bucket.setBucketName(args.getBucketName());
+      bucket.setAcls(args.getAddAcls());
+      bucket.setVersioning(args.getVersioning());
+      bucket.setStorageType(args.getStorageType());
       ContainerKeyData containerKeyData = fromBucketToContainerKeyData(
-          xceiverClient.getPipeline().getContainerName(), containerKey, args);
+          xceiverClient.getPipeline().getContainerName(), containerKey, bucket);
       createKey(xceiverClient, containerKeyData, args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
@@ -193,8 +212,8 @@ public final class DistributedStorageHandler implements StorageHandler {
     XceiverClient xceiverClient = xceiverClientManager.acquireClient(
         containerKey);
     try {
-      ContainerKeyData containerKeyData = fromBucketToContainerKeyData(
-          xceiverClient.getPipeline().getContainerName(), containerKey, args);
+      ContainerKeyData containerKeyData = containerKeyDataForRead(
+          xceiverClient.getPipeline().getContainerName(), containerKey);
       ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
           args);
       return fromContainerKeyValueListToBucket(response.getMetadataList(),
@@ -213,8 +232,11 @@ public final class DistributedStorageHandler implements StorageHandler {
         containerKey);
     boolean success = false;
     try {
+      KeyInfo key = new KeyInfo();
+      key.setKeyName(args.getKeyName());
+      key.setCreatedOn(dateToString(new Date()));
       ContainerKeyData containerKeyData = fromKeyToContainerKeyData(
-          xceiverClient.getPipeline().getContainerName(), containerKey, args);
+          xceiverClient.getPipeline().getContainerName(), containerKey, key);
       createKey(xceiverClient, containerKeyData, args);
       success = true;
       return new ChunkOutputStream(containerKey, xceiverClientManager,
@@ -241,8 +263,8 @@ public final class DistributedStorageHandler implements StorageHandler {
         containerKey);
     boolean success = false;
     try {
-      ContainerKeyData containerKeyData = fromKeyToContainerKeyData(
-          xceiverClient.getPipeline().getContainerName(), containerKey, args);
+      ContainerKeyData containerKeyData = containerKeyDataForRead(
+          xceiverClient.getPipeline().getContainerName(), containerKey);
       ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
           args);
       long length = 0;
@@ -279,5 +301,12 @@ public final class DistributedStorageHandler implements StorageHandler {
    */
   private static String buildContainerKey(String... parts) {
     return '/' + StringUtils.join('/', parts);
+  }
+
+  private static String dateToString(Date date) {
+    SimpleDateFormat sdf =
+        new SimpleDateFormat(OzoneConsts.OZONE_DATE_FORMAT, Locale.US);
+    sdf.setTimeZone(TimeZone.getTimeZone(OzoneConsts.OZONE_TIME_ZONE));
+    return sdf.format(date);
   }
 }

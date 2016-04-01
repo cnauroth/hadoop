@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.ozone.web.storage;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -27,47 +25,66 @@ import java.util.TimeZone;
 import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerKeyData;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyValue;
+import org.apache.hadoop.ozone.OzoneConsts.Versioning;
 import org.apache.hadoop.ozone.web.handlers.BucketArgs;
 import org.apache.hadoop.ozone.web.handlers.KeyArgs;
 import org.apache.hadoop.ozone.web.handlers.VolumeArgs;
-import org.apache.hadoop.ozone.OzoneConsts;
-import org.apache.hadoop.ozone.OzoneConsts.Versioning;
 import org.apache.hadoop.ozone.web.request.OzoneQuota;
 import org.apache.hadoop.ozone.web.response.BucketInfo;
+import org.apache.hadoop.ozone.web.response.KeyInfo;
 import org.apache.hadoop.ozone.web.response.VolumeInfo;
 import org.apache.hadoop.ozone.web.response.VolumeOwner;
 import org.apache.hadoop.util.StringUtils;
 
 final class OzoneContainerTranslation {
 
+  private static final String ACLS = "ACLS";
+  private static final String BUCKET = "BUCKET";
+  private static final String BUCKET_NAME = "BUCKET_NAME";
+  private static final String CREATED_BY = "CREATED_BY";
+  private static final String CREATED_ON = "CREATED_ON";
+  private static final String KEY = "KEY";
+  private static final String OWNER = "OWNER";
+  private static final String QUOTA = "QUOTA";
+  private static final String STORAGE_TYPE = "STORAGE_TYPE";
+  private static final String TYPE = "TYPE";
+  private static final String VERSIONING = "VERSIONING";
+  private static final String VOLUME = "VOLUME";
+  private static final String VOLUME_NAME = "VOLUME_NAME";
+
+  public static ContainerKeyData containerKeyDataForRead(String containerName,
+      String containerKey) {
+    return ContainerKeyData
+        .newBuilder()
+        .setContainerName(containerName)
+        .setName(containerKey)
+        .build();
+  }
+
   public static ContainerKeyData fromBucketToContainerKeyData(
-      String containerName, String containerKey, BucketArgs args) {
+      String containerName, String containerKey, BucketInfo bucket) {
     ContainerKeyData.Builder containerKeyData = ContainerKeyData
         .newBuilder()
         .setContainerName(containerName)
         .setName(containerKey)
-        .addMetadata(newKeyValue("Key", "BUCKET"))
-        .addMetadata(newKeyValue("KEY_VOLUME_NAME", args.getVolumeName()));
+        .addMetadata(newKeyValue(TYPE, BUCKET))
+        .addMetadata(newKeyValue(VOLUME_NAME, bucket.getVolumeName()))
+        .addMetadata(newKeyValue(BUCKET_NAME, bucket.getBucketName()));
 
-    if (args.getAddAcls() != null) {
-      containerKeyData.addMetadata(newKeyValue("ADD_ACLS",
-          StringUtils.join(',', args.getAddAcls())));
+    if (bucket.getAcls() != null) {
+      containerKeyData.addMetadata(newKeyValue(ACLS,
+          StringUtils.join(',', bucket.getAcls())));
     }
 
-    if (args.getRemoveAcls() != null) {
-      containerKeyData.addMetadata(newKeyValue("REMOVE_ACLS",
-          StringUtils.join(',', args.getRemoveAcls())));
+    if (bucket.getVersioning() != null &&
+        bucket.getVersioning() != Versioning.NOT_DEFINED) {
+      containerKeyData.addMetadata(newKeyValue(VERSIONING,
+          bucket.getVersioning().name()));
     }
 
-    if (args.getVersioning() != null &&
-        args.getVersioning() != Versioning.NOT_DEFINED) {
-      containerKeyData.addMetadata(newKeyValue("BUCKET_VERSIONING",
-          args.getVersioning().name()));
-    }
-
-    if (args.getStorageType() != StorageType.RAM_DISK) {
-      containerKeyData.addMetadata(newKeyValue("STORAGE_TYPE",
-          args.getStorageType().name()));
+    if (bucket.getStorageType() != StorageType.RAM_DISK) {
+      containerKeyData.addMetadata(newKeyValue(STORAGE_TYPE,
+          bucket.getStorageType().name()));
     }
 
     return containerKeyData.build();
@@ -75,113 +92,84 @@ final class OzoneContainerTranslation {
 
   public static BucketInfo fromContainerKeyValueListToBucket(
       List<KeyValue> metadata, BucketArgs args) {
-    BucketInfo bucketInfo = new BucketInfo();
-    bucketInfo.setVolumeName(args.getVolumeName());
-    bucketInfo.setBucketName(args.getBucketName());
+    BucketInfo bucket = new BucketInfo();
+    bucket.setVolumeName(args.getVolumeName());
+    bucket.setBucketName(args.getBucketName());
     for (KeyValue keyValue : metadata) {
       switch (keyValue.getKey()) {
-      case "BUCKET_VERSIONING":
-        bucketInfo.setVersioning(
+      case VERSIONING:
+        bucket.setVersioning(
             Enum.valueOf(Versioning.class, keyValue.getValue()));
         break;
-      case "STORAGE_TYPE":
-        bucketInfo.setStorageType(
+      case STORAGE_TYPE:
+        bucket.setStorageType(
             Enum.valueOf(StorageType.class, keyValue.getValue()));
         break;
       }
     }
-    return bucketInfo;
+    return bucket;
   }
 
   public static VolumeInfo fromContainerKeyValueListToVolume(
       List<KeyValue> metadata, VolumeArgs args) {
-    VolumeInfo volumeInfo = new VolumeInfo();
-    volumeInfo.setVolumeName(args.getVolumeName());
+    VolumeInfo volume = new VolumeInfo();
+    volume.setVolumeName(args.getVolumeName());
     for (KeyValue keyValue : metadata) {
       switch (keyValue.getKey()) {
-      case "CreatedBy":
-        volumeInfo.setCreatedBy(keyValue.getValue());
+      case CREATED_BY:
+        volume.setCreatedBy(keyValue.getValue());
         break;
-      case "Created":
-        volumeInfo.setCreatedOn(keyValue.getValue());
+      case CREATED_ON:
+        volume.setCreatedOn(keyValue.getValue());
         break;
-      case "Owner":
-        volumeInfo.setOwner(new VolumeOwner(keyValue.getValue()));
+      case OWNER:
+        volume.setOwner(new VolumeOwner(keyValue.getValue()));
         break;
-      case "Quota":
-        volumeInfo.setQuota(new OzoneQuota(
+      case QUOTA:
+        volume.setQuota(new OzoneQuota(
             Integer.parseInt(keyValue.getValue()), OzoneQuota.Units.BYTES));
         break;
       }
     }
-    return volumeInfo;
+    return volume;
   }
 
   public static ContainerKeyData fromKeyToContainerKeyData(String containerName,
-      String containerKey, KeyArgs args) {
-    ContainerKeyData.Builder containerKeyData = ContainerKeyData
+      String containerKey, KeyInfo key) {
+    return ContainerKeyData
         .newBuilder()
         .setContainerName(containerName)
         .setName(containerKey)
-        .addMetadata(newKeyValue("Key", "KEY"))
-        .addMetadata(newKeyValue("KEY_VOLUME_NAME", args.getVolumeName()))
-        .addMetadata(newKeyValue("KEY_BUCKET_NAME", args.getBucketName()));
-
-    if (args.getAddAcls() != null) {
-      containerKeyData.addMetadata(newKeyValue("ADD_ACLS",
-          StringUtils.join(',', args.getAddAcls())));
-    }
-
-    if (args.getRemoveAcls() != null) {
-      containerKeyData.addMetadata(newKeyValue("REMOVE_ACLS",
-          StringUtils.join(',', args.getRemoveAcls())));
-    }
-
-    if (args.getVersioning() != null &&
-        args.getVersioning() != Versioning.NOT_DEFINED) {
-      containerKeyData.addMetadata(newKeyValue("BUCKET_VERSIONING",
-          args.getVersioning().name()));
-    }
-
-    if (args.getStorageType() != StorageType.RAM_DISK) {
-      containerKeyData.addMetadata(newKeyValue("STORAGE_TYPE",
-          args.getStorageType().name()));
-    }
-
-    return containerKeyData.build();
+        .addMetadata(newKeyValue(TYPE, KEY))
+        .build();
   }
 
   public static ContainerKeyData fromVolumeToContainerKeyData(
-      String containerName, String containerKey, VolumeArgs args) {
+      String containerName, String containerKey, VolumeInfo volume) {
     ContainerKeyData.Builder containerKeyData = ContainerKeyData
         .newBuilder()
         .setContainerName(containerName)
         .setName(containerKey)
-        .addMetadata(newKeyValue("Key", "VOLUME"))
-        .addMetadata(newKeyValue("Created", dateToString(new Date())));
+        .addMetadata(newKeyValue(TYPE, VOLUME))
+        .addMetadata(newKeyValue(VOLUME_NAME, volume.getVolumeName()))
+        .addMetadata(newKeyValue(CREATED_ON, volume.getCreatedOn()));
 
-    if (args.getQuota() != null && args.getQuota().sizeInBytes() != -1L) {
+    if (volume.getQuota() != null && volume.getQuota().sizeInBytes() != -1L) {
       containerKeyData.addMetadata(
-          newKeyValue("Quota", args.getQuota().sizeInBytes()));
+          newKeyValue(QUOTA, volume.getQuota().sizeInBytes()));
     }
 
-    if (args.getUserName() != null && !args.getUserName().isEmpty()) {
-      containerKeyData.addMetadata(newKeyValue("Owner", args.getUserName()));
+    if (volume.getOwner() != null && volume.getOwner().getName() != null &&
+        !volume.getOwner().getName().isEmpty()) {
+      containerKeyData.addMetadata(newKeyValue(OWNER, volume.getOwner()));
     }
 
-    if (args.getAdminName() != null && !args.getAdminName().isEmpty()) {
+    if (volume.getCreatedBy() != null && !volume.getCreatedBy().isEmpty()) {
       containerKeyData.addMetadata(
-          newKeyValue("CreatedBy", args.getAdminName()));
+          newKeyValue(CREATED_BY, volume.getCreatedBy()));
     }
 
     return containerKeyData.build();
-  }
-
-  private static String dateToString(Date date) {
-    SimpleDateFormat sdf =
-        new SimpleDateFormat(OzoneConsts.OZONE_DATE_FORMAT, Locale.US);
-    sdf.setTimeZone(TimeZone.getTimeZone(OzoneConsts.OZONE_TIME_ZONE));
-    return sdf.format(date);
   }
 
   private static KeyValue newKeyValue(String key, Object value) {
