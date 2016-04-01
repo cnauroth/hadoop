@@ -27,7 +27,7 @@ import com.google.protobuf.ByteString;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.WriteChunkRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.chunkInfo;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ChunkInfo;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
 
@@ -113,17 +113,17 @@ class ChunkOutputStream extends OutputStream {
   private synchronized void writeChunk() throws IOException {
     buffer.flip();
     ByteString byteString = ByteString.copyFrom(buffer);
-    chunkInfo.Builder chunk = chunkInfo
+    ChunkInfo.Builder chunk = ChunkInfo
         .newBuilder()
+        .setChunkName(key)
         .setOffset(chunkOffset)
         .setLen(byteString.size());
     WriteChunkRequestProto.Builder writeChunkRequest = WriteChunkRequestProto
         .newBuilder()
         .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-        .setContainerName(xceiverClient.getPipeline().getContainerName())
         .setKeyName(key)
         .setChunkData(chunk)
-        .addData(byteString);
+        .setData(byteString);
     ContainerCommandRequestProto request = ContainerCommandRequestProto
         .newBuilder()
         .setCmdType(Type.WriteChunk)

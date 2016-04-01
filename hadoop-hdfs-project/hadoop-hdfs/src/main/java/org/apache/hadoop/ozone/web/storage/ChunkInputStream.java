@@ -31,7 +31,7 @@ import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerComm
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkReponseProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.chunkInfo;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ChunkInfo;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
 
@@ -42,22 +42,18 @@ class ChunkInputStream extends InputStream {
   private final String key;
   private XceiverClientManager xceiverClientManager;
   private XceiverClient xceiverClient;
-  private List<chunkInfo> chunks;
+  private List<ChunkInfo> chunks;
   private int chunkOffset;
-  private List<ByteString> byteStrings;
-  private int byteStringOffset;
   private List<ByteBuffer> buffers;
   private int bufferOffset;
 
   public ChunkInputStream(String key, XceiverClientManager xceiverClientManager,
-      XceiverClient xceiverClient, List<chunkInfo> chunks) {
+      XceiverClient xceiverClient, List<ChunkInfo> chunks) {
     this.key = key;
     this.xceiverClientManager = xceiverClientManager;
     this.xceiverClient = xceiverClient;
     this.chunks = chunks;
     this.chunkOffset = 0;
-    this.byteStrings = null;
-    this.byteStringOffset = 0;
     this.buffers = null;
     this.bufferOffset = 0;
   }
@@ -67,15 +63,13 @@ class ChunkInputStream extends InputStream {
       throws IOException {
     checkOpen();
 
-    // The first read triggers fetching the first chunk.
-    if (byteStrings == null && !chunks.isEmpty()) {
-      readChunk(0);
-    }
-
-    // This loop advances through chunks, byteStrings and buffers as needed
-    // until it finds a byte to return or EOF.
+    // This loop advances through chunks and buffers as needed until it finds a
+    // byte to return or EOF.
     for (;;) {
-      if (!buffers.isEmpty() &&
+      if (buffers == null && !chunks.isEmpty()) {
+        // The first read triggers fetching the first chunk.
+        readChunk(0);
+      } else if (!buffers.isEmpty() &&
           buffers.get(bufferOffset).hasRemaining()) {
         // Data is available from the current buffer.
         return buffers.get(bufferOffset).get();
@@ -84,12 +78,6 @@ class ChunkInputStream extends InputStream {
           bufferOffset < buffers.size() - 1) {
         // There are additional buffers available.
         ++bufferOffset;
-      } else if (!byteStrings.isEmpty() &&
-          byteStringOffset < byteStrings.size() - 1) {
-        // There are additional byteStrings available.
-        ++byteStringOffset;
-        buffers = byteStrings.get(byteStringOffset).asReadOnlyByteBufferList();
-        bufferOffset = 0;
       } else if (!chunks.isEmpty() &&
           chunkOffset < chunks.size() - 1) {
         // There are additional chunks available.
@@ -120,7 +108,6 @@ class ChunkInputStream extends InputStream {
     ReadChunkRequestProto.Builder readChunkRequest = ReadChunkRequestProto
         .newBuilder()
         .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-        .setContainerName(xceiverClient.getPipeline().getContainerName())
         .setKeyName(key)
         .setChunkData(chunks.get(readChunkOffset));
     ContainerCommandRequestProto request = ContainerCommandRequestProto
@@ -131,9 +118,7 @@ class ChunkInputStream extends InputStream {
     ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
     ReadChunkReponseProto readChunkResponse = response.getReadChunk();
     chunkOffset = readChunkOffset;
-    byteStrings = readChunkResponse.getDataList();
-    byteStringOffset = 0;
-    buffers = byteStrings.isEmpty() ? Collections.<ByteBuffer>emptyList() :
-        byteStrings.get(byteStringOffset).asReadOnlyByteBufferList();
+    ByteString byteString = readChunkResponse.getData();
+    buffers = byteString.asReadOnlyByteBufferList();
   }
 }

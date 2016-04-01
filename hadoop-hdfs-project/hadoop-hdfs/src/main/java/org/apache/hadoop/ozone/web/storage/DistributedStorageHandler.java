@@ -31,7 +31,7 @@ import java.util.TimeZone;
 
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerKeyData;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadKeyResponeProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.chunkInfo;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ChunkInfo;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.LengthInputStream;
 import org.apache.hadoop.ozone.OzoneConfiguration;
 import org.apache.hadoop.ozone.OzoneConsts;
@@ -268,8 +268,8 @@ public final class DistributedStorageHandler implements StorageHandler {
       ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
           args);
       long length = 0;
-      List<chunkInfo> chunks = response.getChunkDataList();
-      for (chunkInfo chunk : chunks) {
+      List<ChunkInfo> chunks = response.getChunkDataList();
+      for (ChunkInfo chunk : chunks) {
         length += chunk.getLen();
       }
       success = true;
