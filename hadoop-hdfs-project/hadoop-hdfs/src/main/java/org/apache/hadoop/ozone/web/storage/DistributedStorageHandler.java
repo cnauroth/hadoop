@@ -24,19 +24,25 @@ import static org.apache.hadoop.ozone.web.storage.OzoneContainerTranslation.*;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
 
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerKeyData;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadKeyResponeProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ChunkInfo;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.GetKeyResponseProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyData;
+import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.LengthInputStream;
 import org.apache.hadoop.ozone.OzoneConfiguration;
 import org.apache.hadoop.ozone.OzoneConsts;
+import org.apache.hadoop.ozone.container.common.helpers.Pipeline;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
+import org.apache.hadoop.ozone.protocol.LocatedContainer;
 import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClientSideTranslatorPB;
 import org.apache.hadoop.ozone.web.exceptions.OzoneException;
 import org.apache.hadoop.ozone.web.handlers.BucketArgs;
@@ -60,6 +66,8 @@ import org.apache.hadoop.util.StringUtils;
  */
 public final class DistributedStorageHandler implements StorageHandler {
 
+  private final StorageContainerLocationProtocolClientSideTranslatorPB
+      storageContainerLocation;
   private final XceiverClientManager xceiverClientManager;
 
   /**
@@ -71,15 +79,14 @@ public final class DistributedStorageHandler implements StorageHandler {
   public DistributedStorageHandler(OzoneConfiguration conf,
       StorageContainerLocationProtocolClientSideTranslatorPB
       storageContainerLocation) {
-    this.xceiverClientManager = new XceiverClientManager(conf,
-        storageContainerLocation);
+    this.storageContainerLocation = storageContainerLocation;
+    this.xceiverClientManager = new XceiverClientManager(conf);
   }
 
   @Override
   public void createVolume(VolumeArgs args) throws IOException, OzoneException {
     String containerKey = buildContainerKey(args.getVolumeName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
-        containerKey);
+    XceiverClient xceiverClient = acquireXceiverClient(containerKey);
     try {
       VolumeInfo volume = new VolumeInfo();
       volume.setVolumeName(args.getVolumeName());
@@ -87,7 +94,7 @@ public final class DistributedStorageHandler implements StorageHandler {
       volume.setOwner(new VolumeOwner(args.getUserName()));
       volume.setCreatedOn(dateToString(new Date()));
       volume.setCreatedBy(args.getAdminName());
-      ContainerKeyData containerKeyData = fromVolumeToContainerKeyData(
+      KeyData containerKeyData = fromVolumeToContainerKeyData(
           xceiverClient.getPipeline().getContainerName(), containerKey, volume);
       createKey(xceiverClient, containerKeyData, args);
     } finally {
@@ -129,15 +136,14 @@ public final class DistributedStorageHandler implements StorageHandler {
   public VolumeInfo getVolumeInfo(VolumeArgs args)
       throws IOException, OzoneException {
     String containerKey = buildContainerKey(args.getVolumeName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
-        containerKey);
+    XceiverClient xceiverClient = acquireXceiverClient(containerKey);
     try {
-      ContainerKeyData containerKeyData = containerKeyDataForRead(
+      KeyData containerKeyData = containerKeyDataForRead(
           xceiverClient.getPipeline().getContainerName(), containerKey);
-      ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
+      GetKeyResponseProto response = readKey(xceiverClient, containerKeyData,
           args);
-      return fromContainerKeyValueListToVolume(response.getMetadataList(),
-          args);
+      return fromContainerKeyValueListToVolume(
+          response.getKeyData().getMetadataList(), args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
     }
@@ -148,8 +154,7 @@ public final class DistributedStorageHandler implements StorageHandler {
       throws IOException, OzoneException {
     String containerKey = buildContainerKey(args.getVolumeName(),
         args.getBucketName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
-        containerKey);
+    XceiverClient xceiverClient = acquireXceiverClient(containerKey);
     try {
       BucketInfo bucket = new BucketInfo();
       bucket.setVolumeName(args.getVolumeName());
@@ -157,7 +162,7 @@ public final class DistributedStorageHandler implements StorageHandler {
       bucket.setAcls(args.getAddAcls());
       bucket.setVersioning(args.getVersioning());
       bucket.setStorageType(args.getStorageType());
-      ContainerKeyData containerKeyData = fromBucketToContainerKeyData(
+      KeyData containerKeyData = fromBucketToContainerKeyData(
           xceiverClient.getPipeline().getContainerName(), containerKey, bucket);
       createKey(xceiverClient, containerKeyData, args);
     } finally {
@@ -209,15 +214,14 @@ public final class DistributedStorageHandler implements StorageHandler {
       throws IOException, OzoneException {
     String containerKey = buildContainerKey(args.getVolumeName(),
         args.getBucketName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
-        containerKey);
+    XceiverClient xceiverClient = acquireXceiverClient(containerKey);
     try {
-      ContainerKeyData containerKeyData = containerKeyDataForRead(
+      KeyData containerKeyData = containerKeyDataForRead(
           xceiverClient.getPipeline().getContainerName(), containerKey);
-      ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
+      GetKeyResponseProto response = readKey(xceiverClient, containerKeyData,
           args);
-      return fromContainerKeyValueListToBucket(response.getMetadataList(),
-          args);
+      return fromContainerKeyValueListToBucket(
+          response.getKeyData().getMetadataList(), args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
     }
@@ -228,14 +232,13 @@ public final class DistributedStorageHandler implements StorageHandler {
       OzoneException {
     String containerKey = buildContainerKey(args.getVolumeName(),
         args.getBucketName(), args.getKeyName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
-        containerKey);
+    XceiverClient xceiverClient = acquireXceiverClient(containerKey);
     boolean success = false;
     try {
       KeyInfo key = new KeyInfo();
       key.setKeyName(args.getKeyName());
       key.setCreatedOn(dateToString(new Date()));
-      ContainerKeyData containerKeyData = fromKeyToContainerKeyData(
+      KeyData containerKeyData = fromKeyToContainerKeyData(
           xceiverClient.getPipeline().getContainerName(), containerKey, key);
       createKey(xceiverClient, containerKeyData, args);
       success = true;
@@ -259,16 +262,15 @@ public final class DistributedStorageHandler implements StorageHandler {
       OzoneException {
     String containerKey = buildContainerKey(args.getVolumeName(),
         args.getBucketName(), args.getKeyName());
-    XceiverClient xceiverClient = xceiverClientManager.acquireClient(
-        containerKey);
+    XceiverClient xceiverClient = acquireXceiverClient(containerKey);
     boolean success = false;
     try {
-      ContainerKeyData containerKeyData = containerKeyDataForRead(
+      KeyData containerKeyData = containerKeyDataForRead(
           xceiverClient.getPipeline().getContainerName(), containerKey);
-      ReadKeyResponeProto response = readKey(xceiverClient, containerKeyData,
+      GetKeyResponseProto response = readKey(xceiverClient, containerKeyData,
           args);
       long length = 0;
-      List<ChunkInfo> chunks = response.getChunkDataList();
+      List<ChunkInfo> chunks = response.getKeyData().getChunksList();
       for (ChunkInfo chunk : chunks) {
         length += chunk.getLen();
       }
@@ -293,6 +295,25 @@ public final class DistributedStorageHandler implements StorageHandler {
   }
 
   /**
+   * Acquires an {@link XceiverClient} connected to a {@link Pipeline} of nodes
+   * capable of serving container protocol operations.  The container is
+   * selected based on the specified container key.
+   *
+   * @param containerKey container key
+   * @return XceiverClient connected to a container
+   * @throws IOException if an XceiverClient cannot be acquired
+   */
+  private XceiverClient acquireXceiverClient(String containerKey)
+      throws IOException {
+    Set<LocatedContainer> locatedContainers =
+        storageContainerLocation.getStorageContainerLocations(
+            new HashSet<>(Arrays.asList(containerKey)));
+    Pipeline pipeline = newPipelineFromLocatedContainer(
+        locatedContainers.iterator().next());
+    return xceiverClientManager.acquireClient(pipeline);
+  }
+
+  /**
    * Creates a container key from any number of components by combining all
    * components with a delimiter.
    *
@@ -303,10 +324,35 @@ public final class DistributedStorageHandler implements StorageHandler {
     return '/' + StringUtils.join('/', parts);
   }
 
+  /**
+   * Formats a date in the expected string format.
+   *
+   * @param date the date to format
+   * @return formatted string representation of date
+   */
   private static String dateToString(Date date) {
     SimpleDateFormat sdf =
         new SimpleDateFormat(OzoneConsts.OZONE_DATE_FORMAT, Locale.US);
     sdf.setTimeZone(TimeZone.getTimeZone(OzoneConsts.OZONE_TIME_ZONE));
     return sdf.format(date);
+  }
+
+  /**
+   * Translates a set of container locations, ordered such that the first is the
+   * leader, into a corresponding {@link Pipeline} object.
+   *
+   * @param locatedContainer container location
+   * @return pipeline corresponding to container locations
+   */
+  private static Pipeline newPipelineFromLocatedContainer(
+      LocatedContainer locatedContainer) {
+    Set<DatanodeInfo> locations = locatedContainer.getLocations();
+    String leaderId = locations.iterator().next().getDatanodeUuid();
+    Pipeline pipeline = new Pipeline(leaderId);
+    for (DatanodeInfo location : locations) {
+      pipeline.addMember(location);
+    }
+    pipeline.setContainerName(locatedContainer.getContainerName());
+    return pipeline;
   }
 }

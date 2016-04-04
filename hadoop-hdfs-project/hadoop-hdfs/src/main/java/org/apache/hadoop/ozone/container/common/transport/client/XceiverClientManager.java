@@ -19,17 +19,11 @@
 package org.apache.hadoop.ozone.container.common.transport.client;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 import com.google.common.base.Preconditions;
 
-import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.ozone.OzoneConfiguration;
 import org.apache.hadoop.ozone.container.common.helpers.Pipeline;
-import org.apache.hadoop.ozone.protocol.LocatedContainer;
-import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClientSideTranslatorPB;
 
 /**
  * XceiverClientManager is responsible for the lifecycle of XceiverClient
@@ -45,23 +39,15 @@ import org.apache.hadoop.ozone.protocolPB.StorageContainerLocationProtocolClient
 public class XceiverClientManager {
 
   private final OzoneConfiguration conf;
-  private final StorageContainerLocationProtocolClientSideTranslatorPB
-      storageContainerLocation;
 
   /**
    * Creates a new XceiverClientManager.
    *
    * @param conf configuration
-   * @param storageContainerLocation client connected to the
-   *     StorageContainerManager for lookup of container location information
    */
-  public XceiverClientManager(OzoneConfiguration conf,
-      StorageContainerLocationProtocolClientSideTranslatorPB
-      storageContainerLocation) {
+  public XceiverClientManager(OzoneConfiguration conf) {
     Preconditions.checkNotNull(conf);
-    Preconditions.checkNotNull(storageContainerLocation);
     this.conf = conf;
-    this.storageContainerLocation = storageContainerLocation;
   }
 
   /**
@@ -72,18 +58,14 @@ public class XceiverClientManager {
    * @return XceiverClient connected to a container
    * @throws IOException if an XceiverClient cannot be acquired
    */
-  public XceiverClient acquireClient(String key) throws IOException {
-    Preconditions.checkNotNull(key);
-    Preconditions.checkArgument(!key.isEmpty());
-    Set<LocatedContainer> locatedContainers =
-        storageContainerLocation.getStorageContainerLocations(
-            new HashSet<>(Arrays.asList(key)));
-    Pipeline pipeline = newPipelineFromLocatedContainer(locatedContainers);
+  public XceiverClient acquireClient(Pipeline pipeline) throws IOException {
+    Preconditions.checkNotNull(pipeline);
+    Preconditions.checkArgument(pipeline.getMachines() != null);
+    Preconditions.checkArgument(!pipeline.getMachines().isEmpty());
     XceiverClient xceiverClient = new XceiverClient(pipeline, conf);
     try {
       xceiverClient.connect();
     } catch (Exception e) {
-      // TODO
       throw new IOException("Exception connecting XceiverClient.", e);
     }
     return xceiverClient;
@@ -97,24 +79,5 @@ public class XceiverClientManager {
   public void releaseClient(XceiverClient xceiverClient) {
     Preconditions.checkNotNull(xceiverClient);
     xceiverClient.close();
-  }
-
-  /**
-   * Translates a set of container locations, ordered such that the first is the
-   * leader, into a corresponding Pipeline object.
-   *
-   * @param locatedContainers container locations
-   */
-  private static Pipeline newPipelineFromLocatedContainer(
-      Set<LocatedContainer> locatedContainers) {
-    LocatedContainer locatedContainer = locatedContainers.iterator().next();
-    Set<DatanodeInfo> locations = locatedContainer.getLocations();
-    String leaderId = locations.iterator().next().getDatanodeUuid();
-    Pipeline pipeline = new Pipeline(leaderId);
-    for (DatanodeInfo location : locations) {
-      pipeline.addMember(location);
-    }
-    pipeline.setContainerName(locatedContainer.getContainerName());
-    return pipeline;
   }
 }

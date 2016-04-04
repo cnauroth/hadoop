@@ -67,14 +67,27 @@ public class TestOzoneRestWithMiniCluster {
   @Test
   public void testCreateVolume() throws Exception {
     String volumeName = nextId("volume");
-    ozoneClient.createVolume(volumeName, "bilbo", "100TB");
-    OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "100TB");
+    OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "1GB");
     assertNotNull(volume);
     assertEquals(volumeName, volume.getVolumeName());
     assertEquals(ozoneClient.getUserAuth(), volume.getCreatedby());
     assertEquals("bilbo", volume.getOwnerName());
     assertNotNull(volume.getQuota());
-    assertEquals(OzoneQuota.parseQuota("100TB").sizeInBytes(),
+    assertEquals(OzoneQuota.parseQuota("1GB").sizeInBytes(),
+        volume.getQuota().sizeInBytes());
+  }
+
+  @Test
+  public void testGetVolume() throws Exception {
+    String volumeName = nextId("volume");
+    ozoneClient.createVolume(volumeName, "bilbo", "1GB");
+    OzoneVolume volume = ozoneClient.getVolume(volumeName);
+    assertNotNull(volume);
+    assertEquals(volumeName, volume.getVolumeName());
+    assertEquals(ozoneClient.getUserAuth(), volume.getCreatedby());
+    assertEquals("bilbo", volume.getOwnerName());
+    assertNotNull(volume.getQuota());
+    assertEquals(OzoneQuota.parseQuota("1GB").sizeInBytes(),
         volume.getQuota().sizeInBytes());
   }
 
@@ -82,13 +95,13 @@ public class TestOzoneRestWithMiniCluster {
   public void testCreateBucket() throws Exception {
     String volumeName = nextId("volume");
     String bucketName = nextId("bucket");
-    OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "100TB");
+    OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "1GB");
     assertNotNull(volume);
     assertEquals(volumeName, volume.getVolumeName());
     assertEquals(ozoneClient.getUserAuth(), volume.getCreatedby());
     assertEquals("bilbo", volume.getOwnerName());
     assertNotNull(volume.getQuota());
-    assertEquals(OzoneQuota.parseQuota("100TB").sizeInBytes(),
+    assertEquals(OzoneQuota.parseQuota("1GB").sizeInBytes(),
         volume.getQuota().sizeInBytes());
     OzoneBucket bucket = volume.createBucket(bucketName);
     assertNotNull(bucket);
@@ -96,18 +109,30 @@ public class TestOzoneRestWithMiniCluster {
   }
 
   @Test
-  public void testCreateKey() throws Exception {
+  public void testGetBucket() throws Exception {
+    String volumeName = nextId("volume");
+    String bucketName = nextId("bucket");
+    OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "1GB");
+    assertNotNull(volume);
+    volume.createBucket(bucketName);
+    OzoneBucket bucket = volume.getBucket(bucketName);
+    assertNotNull(bucket);
+    assertEquals(bucketName, bucket.getBucketName());
+  }
+
+  @Test
+  public void testPutAndGetKey() throws Exception {
     String volumeName = nextId("volume");
     String bucketName = nextId("bucket");
     String keyName = nextId("key");
     String keyData = nextId("data");
-    OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "100TB");
+    OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "1GB");
     assertNotNull(volume);
     assertEquals(volumeName, volume.getVolumeName());
     assertEquals(ozoneClient.getUserAuth(), volume.getCreatedby());
     assertEquals("bilbo", volume.getOwnerName());
     assertNotNull(volume.getQuota());
-    assertEquals(OzoneQuota.parseQuota("100TB").sizeInBytes(),
+    assertEquals(OzoneQuota.parseQuota("1GB").sizeInBytes(),
         volume.getQuota().sizeInBytes());
     OzoneBucket bucket = volume.createBucket(bucketName);
     assertNotNull(bucket);

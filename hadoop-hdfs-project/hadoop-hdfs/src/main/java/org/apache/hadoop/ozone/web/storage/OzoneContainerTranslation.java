@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 import org.apache.hadoop.fs.StorageType;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerKeyData;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyData;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyValue;
 import org.apache.hadoop.ozone.OzoneConsts.Versioning;
 import org.apache.hadoop.ozone.web.handlers.BucketArgs;
@@ -52,18 +52,18 @@ final class OzoneContainerTranslation {
   private static final String VOLUME = "VOLUME";
   private static final String VOLUME_NAME = "VOLUME_NAME";
 
-  public static ContainerKeyData containerKeyDataForRead(String containerName,
+  public static KeyData containerKeyDataForRead(String containerName,
       String containerKey) {
-    return ContainerKeyData
+    return KeyData
         .newBuilder()
         .setContainerName(containerName)
         .setName(containerKey)
         .build();
   }
 
-  public static ContainerKeyData fromBucketToContainerKeyData(
+  public static KeyData fromBucketToContainerKeyData(
       String containerName, String containerKey, BucketInfo bucket) {
-    ContainerKeyData.Builder containerKeyData = ContainerKeyData
+    KeyData.Builder containerKeyData = KeyData
         .newBuilder()
         .setContainerName(containerName)
         .setName(containerKey)
@@ -134,9 +134,9 @@ final class OzoneContainerTranslation {
     return volume;
   }
 
-  public static ContainerKeyData fromKeyToContainerKeyData(String containerName,
+  public static KeyData fromKeyToContainerKeyData(String containerName,
       String containerKey, KeyInfo key) {
-    return ContainerKeyData
+    return KeyData
         .newBuilder()
         .setContainerName(containerName)
         .setName(containerKey)
@@ -144,9 +144,9 @@ final class OzoneContainerTranslation {
         .build();
   }
 
-  public static ContainerKeyData fromVolumeToContainerKeyData(
+  public static KeyData fromVolumeToContainerKeyData(
       String containerName, String containerKey, VolumeInfo volume) {
-    ContainerKeyData.Builder containerKeyData = ContainerKeyData
+    KeyData.Builder containerKeyData = KeyData
         .newBuilder()
         .setContainerName(containerName)
         .setName(containerKey)
@@ -161,7 +161,8 @@ final class OzoneContainerTranslation {
 
     if (volume.getOwner() != null && volume.getOwner().getName() != null &&
         !volume.getOwner().getName().isEmpty()) {
-      containerKeyData.addMetadata(newKeyValue(OWNER, volume.getOwner()));
+      containerKeyData.addMetadata(newKeyValue(OWNER,
+          volume.getOwner().getName()));
     }
 
     if (volume.getCreatedBy() != null && !volume.getCreatedBy().isEmpty()) {

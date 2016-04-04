@@ -48,10 +48,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ha.HAServiceProtocol;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.DFSUtilClient;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandResponseProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerData;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.CreateContainerRequestProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Result;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
 import org.apache.hadoop.hdfs.protocol.BlockListAsLongs;
 import org.apache.hadoop.hdfs.protocol.DatanodeID;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
@@ -81,6 +86,10 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.ozone.OzoneConfiguration;
+import org.apache.hadoop.ozone.container.common.helpers.Pipeline;
+import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
+import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
 import org.apache.hadoop.ozone.protocol.LocatedContainer;
 import org.apache.hadoop.ozone.protocol.StorageContainerLocationProtocol;
 import org.apache.hadoop.ozone.protocol.proto.StorageContainerLocationProtocolProtos;
@@ -109,6 +118,8 @@ public class StorageContainerManager
 
   private final StorageContainerNameService ns;
   private final BlockManager blockManager;
+  private final XceiverClientManager xceiverClientManager;
+  private Pipeline pipeline;
 
   /** The RPC server that listens to requests from DataNodes. */
   private final RPC.Server serviceRpcServer;
@@ -128,11 +139,12 @@ public class StorageContainerManager
    *
    * @param conf configuration
    */
-  public StorageContainerManager(Configuration conf)
+  public StorageContainerManager(OzoneConfiguration conf)
       throws IOException {
     ns = new StorageContainerNameService();
     boolean haEnabled = false;
     blockManager = new BlockManager(ns, haEnabled, conf);
+    xceiverClientManager = new XceiverClientManager(conf);
 
     RPC.setProtocolEngine(conf, DatanodeProtocolPB.class,
         ProtobufRpcEngine.class);
@@ -193,20 +205,20 @@ public class StorageContainerManager
   public Set<LocatedContainer> getStorageContainerLocations(Set<String> keys)
       throws IOException {
     LOG.trace("getStorageContainerLocations keys = {}", keys);
+    initContainerPipeline();
     List<DatanodeDescriptor> liveNodes = new ArrayList<DatanodeDescriptor>();
     blockManager.getDatanodeManager().fetchDatanodes(liveNodes, null, false);
     if (liveNodes.isEmpty()) {
       throw new IOException("Storage container locations not found.");
     }
-    String containerName = UUID.randomUUID().toString();
     Set<DatanodeInfo> locations =
         Sets.<DatanodeInfo>newLinkedHashSet(liveNodes);
     DatanodeInfo leader = liveNodes.get(0);
     Set<LocatedContainer> locatedContainers =
         Sets.newLinkedHashSetWithExpectedSize(keys.size());
     for (String key: keys) {
-      locatedContainers.add(new LocatedContainer(key, key, containerName,
-          locations, leader));
+      locatedContainers.add(new LocatedContainer(key, key,
+          pipeline.getContainerName(), locations, leader));
     }
     LOG.trace("getStorageContainerLocations keys = {}, locatedContainers = {}",
         keys, locatedContainers);
@@ -415,6 +427,46 @@ public class StorageContainerManager
     }
   }
 
+  private synchronized void initContainerPipeline() throws IOException {
+    if (pipeline == null) {
+      List<DatanodeDescriptor> liveNodes = new ArrayList<DatanodeDescriptor>();
+      blockManager.getDatanodeManager().fetchDatanodes(liveNodes, null, false);
+      if (liveNodes.isEmpty()) {
+        throw new IOException("Storage container locations not found.");
+      }
+      String leaderId = liveNodes.get(0).getDatanodeUuid();
+      Pipeline newPipeline = newPipelineFromNodes(liveNodes);
+      XceiverClient xceiverClient =
+          xceiverClientManager.acquireClient(newPipeline);
+      try {
+        ContainerData containerData = ContainerData
+            .newBuilder()
+            .setName(newPipeline.getContainerName())
+            .build();
+        CreateContainerRequestProto createContainerRequest =
+            CreateContainerRequestProto.newBuilder()
+            .setPipeline(newPipeline.getProtobufMessage())
+            .setContainerData(containerData)
+            .build();
+        ContainerCommandRequestProto request = ContainerCommandRequestProto
+            .newBuilder()
+            .setCmdType(Type.CreateContainer)
+            .setCreateContainer(createContainerRequest)
+            .build();
+        ContainerCommandResponseProto response = xceiverClient.sendCommand(
+            request);
+        Result result = response.getResult();
+        if (result != Result.SUCCESS) {
+          throw new IOException(
+              "Failed to initialize container due to result code: " + result);
+        }
+      } finally {
+        xceiverClientManager.releaseClient(xceiverClient);
+      }
+      pipeline = newPipeline;
+    }
+  }
+
   /**
    * Builds a message for logging startup information about an RPC server.
    *
@@ -427,6 +479,23 @@ public class StorageContainerManager
     return addr != null ? String.format("%s is listening at %s",
         description, NetUtils.getHostPortString(addr)) :
         String.format("%s not started", description);
+  }
+
+  /**
+   * Translates a list of nodes, ordered such that the first is the leader, into
+   * a corresponding {@link Pipeline} object.
+   *
+   * @param nodes list of nodes
+   * @return pipeline corresponding to nodes
+   */
+  private static Pipeline newPipelineFromNodes(List<DatanodeDescriptor> nodes) {
+    String leaderId = nodes.get(0).getDatanodeUuid();
+    Pipeline pipeline = new Pipeline(leaderId);
+    for (DatanodeDescriptor node : nodes) {
+      pipeline.addMember(node);
+    }
+    pipeline.setContainerName(UUID.randomUUID().toString());
+    return pipeline;
   }
 
   /**
@@ -443,7 +512,7 @@ public class StorageContainerManager
    * @return RPC server, or null if addr is null
    * @throws IOException if there is an I/O error while creating RPC server
    */
-  private static RPC.Server startRpcServer(Configuration conf,
+  private static RPC.Server startRpcServer(OzoneConfiguration conf,
       InetSocketAddress addr, Class<?> protocol, BlockingService instance,
       String bindHostKey, String handlerCountKey, int handlerCountDefault)
       throws IOException {
@@ -480,7 +549,7 @@ public class StorageContainerManager
    * @param rpcServer started RPC server.  If null, then the server was not
    *     started, and this method is a no-op.
    */
-  private static InetSocketAddress updateListenAddress(Configuration conf,
+  private static InetSocketAddress updateListenAddress(OzoneConfiguration conf,
       String rpcAddressKey, InetSocketAddress addr, RPC.Server rpcServer) {
     if (rpcServer == null) {
       return null;
@@ -502,7 +571,7 @@ public class StorageContainerManager
     StringUtils.startupShutdownMessage(
         StorageContainerManager.class, argv, LOG);
     StorageContainerManager scm = new StorageContainerManager(
-        new Configuration());
+        new OzoneConfiguration());
     scm.start();
     scm.join();
   }
