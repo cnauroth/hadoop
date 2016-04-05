@@ -190,6 +190,32 @@ public class TestOzoneRestWithMiniCluster {
     assertEquals(keyData, bucket.getKey(keyName));
   }
 
+  @Test
+  public void testPutAndGetMultiChunkKeyLastChunkPartial() throws Exception {
+    String volumeName = nextId("volume");
+    String bucketName = nextId("bucket");
+    String keyName = nextId("key");
+    int keyDataLen = (int)(2.5 * CHUNK_SIZE);
+
+    // The data is a string of printable ASCII characters.  This makes it easy
+    // to debug through visual inspection of the chunk files if the test fails.
+    String keyData = new String(dataset(keyDataLen, 33, 93), "UTF-8");
+
+    OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "1GB");
+    assertNotNull(volume);
+    assertEquals(volumeName, volume.getVolumeName());
+    assertEquals(ozoneClient.getUserAuth(), volume.getCreatedby());
+    assertEquals("bilbo", volume.getOwnerName());
+    assertNotNull(volume.getQuota());
+    assertEquals(OzoneQuota.parseQuota("1GB").sizeInBytes(),
+        volume.getQuota().sizeInBytes());
+    OzoneBucket bucket = volume.createBucket(bucketName);
+    assertNotNull(bucket);
+    assertEquals(bucketName, bucket.getBucketName());
+    bucket.putKey(keyName, keyData);
+    assertEquals(keyData, bucket.getKey(keyName));
+  }
+
   /**
    * Generates identifiers unique enough for use in tests, so that individual
    * tests don't collide on each others' data in the shared mini-cluster.
