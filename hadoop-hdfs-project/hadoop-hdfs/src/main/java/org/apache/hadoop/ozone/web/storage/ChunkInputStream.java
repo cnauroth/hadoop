@@ -28,7 +28,7 @@ import com.google.protobuf.ByteString;
 
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandResponseProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkReponseProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkResponseProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ChunkInfo;
@@ -120,7 +120,7 @@ class ChunkInputStream extends InputStream {
         .setReadChunk(readChunkRequest)
         .build();
     ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
-    ReadChunkReponseProto readChunkResponse = response.getReadChunk();
+    ReadChunkResponseProto readChunkResponse = response.getReadChunk();
     chunkOffset = readChunkOffset;
     ByteString byteString = readChunkResponse.getData();
     buffers = byteString.asReadOnlyByteBufferList();
