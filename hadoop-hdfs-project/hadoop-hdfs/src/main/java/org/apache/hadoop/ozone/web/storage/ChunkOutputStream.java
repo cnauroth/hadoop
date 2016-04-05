@@ -25,6 +25,7 @@ import static org.apache.hadoop.ozone.web.storage.OzoneContainerTranslation.*;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 import com.google.protobuf.ByteString;
 
@@ -45,7 +46,8 @@ class ChunkOutputStream extends OutputStream {
   private XceiverClientManager xceiverClientManager;
   private XceiverClient xceiverClient;
   private ByteBuffer buffer;
-  private int chunkId;
+  private final String streamId;
+  private int chunkIndex;
 
   public ChunkOutputStream(String containerKey, KeyInfo key,
       XceiverClientManager xceiverClientManager, XceiverClient xceiverClient,
@@ -58,7 +60,8 @@ class ChunkOutputStream extends OutputStream {
     this.xceiverClientManager = xceiverClientManager;
     this.xceiverClient = xceiverClient;
     this.buffer = ByteBuffer.allocate(CHUNK_SIZE);
-    this.chunkId = 0;
+    this.streamId = UUID.randomUUID().toString();
+    this.chunkIndex = 0;
   }
 
   @Override
@@ -129,7 +132,8 @@ class ChunkOutputStream extends OutputStream {
     ByteString data = ByteString.copyFrom(buffer);
     ChunkInfo chunk = ChunkInfo
         .newBuilder()
-        .setChunkName(key.getKeyName() + "_chunk_" + ++chunkId)
+        .setChunkName(
+            key.getKeyName() + "_stream_" + streamId + "_chunk_" + ++chunkIndex)
         .setOffset(0)
         .setLen(data.size())
         .build();
