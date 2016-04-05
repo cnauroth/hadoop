@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.ozone.web.storage;
 
+import static org.apache.hadoop.ozone.web.storage.ContainerProtocolCalls.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -26,20 +28,19 @@ import java.util.List;
 
 import com.google.protobuf.ByteString;
 
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandResponseProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkResponseProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkRequestProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ChunkInfo;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
+import org.apache.hadoop.ozone.web.exceptions.OzoneException;
+import org.apache.hadoop.ozone.web.handlers.UserArgs;
 
 class ChunkInputStream extends InputStream {
 
   private static final int EOF = -1;
 
   private final String key;
+  private final UserArgs args;
   private XceiverClientManager xceiverClientManager;
   private XceiverClient xceiverClient;
   private List<ChunkInfo> chunks;
@@ -48,8 +49,9 @@ class ChunkInputStream extends InputStream {
   private int bufferOffset;
 
   public ChunkInputStream(String key, XceiverClientManager xceiverClientManager,
-      XceiverClient xceiverClient, List<ChunkInfo> chunks) {
+      XceiverClient xceiverClient, List<ChunkInfo> chunks, UserArgs args) {
     this.key = key;
+    this.args = args;
     this.xceiverClientManager = xceiverClientManager;
     this.xceiverClient = xceiverClient;
     this.chunks = chunks;
@@ -73,7 +75,7 @@ class ChunkInputStream extends InputStream {
     for (;;) {
       if (buffers == null) {
         // The first read triggers fetching the first chunk.
-        readChunk(0);
+        readChunkFromContainer(0);
       } else if (!buffers.isEmpty() &&
           buffers.get(bufferOffset).hasRemaining()) {
         // Data is available from the current buffer.
@@ -85,7 +87,7 @@ class ChunkInputStream extends InputStream {
         ++bufferOffset;
       } else if (chunkOffset < chunks.size() - 1) {
         // There are additional chunks available.
-        readChunk(chunkOffset + 1);
+        readChunkFromContainer(chunkOffset + 1);
       } else {
         // All available input has been consumed.
         return EOF;
@@ -108,19 +110,15 @@ class ChunkInputStream extends InputStream {
     }
   }
 
-  private synchronized void readChunk(int readChunkOffset) throws IOException {
-    ReadChunkRequestProto.Builder readChunkRequest = ReadChunkRequestProto
-        .newBuilder()
-        .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-        .setKeyName(key)
-        .setChunkData(chunks.get(readChunkOffset));
-    ContainerCommandRequestProto request = ContainerCommandRequestProto
-        .newBuilder()
-        .setCmdType(Type.ReadChunk)
-        .setReadChunk(readChunkRequest)
-        .build();
-    ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
-    ReadChunkResponseProto readChunkResponse = response.getReadChunk();
+  private synchronized void readChunkFromContainer(int readChunkOffset)
+      throws IOException {
+    final ReadChunkResponseProto readChunkResponse;
+    try {
+      readChunkResponse = readChunk(xceiverClient, chunks.get(readChunkOffset),
+          key, args);
+    } catch (OzoneException e) {
+      throw new IOException("Unexpected OzoneException", e);
+    }
     chunkOffset = readChunkOffset;
     ByteString byteString = readChunkResponse.getData();
     buffers = byteString.asReadOnlyByteBufferList();

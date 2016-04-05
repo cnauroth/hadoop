@@ -265,7 +265,8 @@ public final class DistributedStorageHandler implements StorageHandler {
       }
       success = true;
       return new LengthInputStream(new ChunkInputStream(
-          containerKey, xceiverClientManager, xceiverClient, chunks), length);
+          containerKey, xceiverClientManager, xceiverClient, chunks, args),
+          length);
     } finally {
       if (!success) {
         xceiverClientManager.releaseClient(xceiverClient);

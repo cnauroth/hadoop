@@ -29,10 +29,7 @@ import java.nio.ByteBuffer;
 import com.google.protobuf.ByteString;
 
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ChunkInfo;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyData;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.WriteChunkRequestProto;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
 import org.apache.hadoop.ozone.web.exceptions.OzoneException;
@@ -91,7 +88,7 @@ class ChunkOutputStream extends OutputStream {
         buffer != null) {
       try {
         if (buffer.position() > 0) {
-          writeChunk();
+          writeChunkToContainer();
         }
         createKey(xceiverClient, containerKeyData.build(), args);
       } catch (OzoneException e) {
@@ -115,7 +112,7 @@ class ChunkOutputStream extends OutputStream {
       int rollbackLimit) throws IOException {
     boolean success = false;
     try {
-      writeChunk();
+      writeChunkToContainer();
       success = true;
     } finally {
       if (success) {
@@ -127,27 +124,20 @@ class ChunkOutputStream extends OutputStream {
     }
   }
 
-  private synchronized void writeChunk() throws IOException {
+  private synchronized void writeChunkToContainer() throws IOException {
     buffer.flip();
-    ByteString byteString = ByteString.copyFrom(buffer);
+    ByteString data = ByteString.copyFrom(buffer);
     ChunkInfo chunk = ChunkInfo
         .newBuilder()
         .setChunkName(key.getKeyName() + "_chunk_" + ++chunkId)
         .setOffset(0)
-        .setLen(byteString.size())
+        .setLen(data.size())
         .build();
-    WriteChunkRequestProto.Builder writeChunkRequest = WriteChunkRequestProto
-        .newBuilder()
-        .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-        .setKeyName(key.getKeyName())
-        .setChunkData(chunk)
-        .setData(byteString);
-    ContainerCommandRequestProto request = ContainerCommandRequestProto
-        .newBuilder()
-        .setCmdType(Type.WriteChunk)
-        .setWriteChunk(writeChunkRequest)
-        .build();
-    xceiverClient.sendCommand(request);
+    try {
+      writeChunk(xceiverClient, chunk, key.getKeyName(), data, args);
+    } catch (OzoneException e) {
+      throw new IOException("Unexpected OzoneException", e);
+    }
     containerKeyData.addChunks(chunk);
   }
 }

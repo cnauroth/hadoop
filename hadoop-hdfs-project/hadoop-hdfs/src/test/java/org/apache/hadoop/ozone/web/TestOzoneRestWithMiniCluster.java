@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.ozone.web;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.hadoop.fs.contract.ContractTestUtils.dataset;
 import static org.apache.hadoop.ozone.OzoneConsts.CHUNK_SIZE;
 import static org.junit.Assert.*;
@@ -170,11 +171,7 @@ public class TestOzoneRestWithMiniCluster {
     String bucketName = nextId("bucket");
     String keyName = nextId("key");
     int keyDataLen = 3 * CHUNK_SIZE;
-
-    // The data is a string of printable ASCII characters.  This makes it easy
-    // to debug through visual inspection of the chunk files if the test fails.
-    String keyData = new String(dataset(keyDataLen, 33, 93), "UTF-8");
-
+    String keyData = buildKeyData(keyDataLen);
     OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "1GB");
     assertNotNull(volume);
     assertEquals(volumeName, volume.getVolumeName());
@@ -196,11 +193,7 @@ public class TestOzoneRestWithMiniCluster {
     String bucketName = nextId("bucket");
     String keyName = nextId("key");
     int keyDataLen = (int)(2.5 * CHUNK_SIZE);
-
-    // The data is a string of printable ASCII characters.  This makes it easy
-    // to debug through visual inspection of the chunk files if the test fails.
-    String keyData = new String(dataset(keyDataLen, 33, 93), "UTF-8");
-
+    String keyData = buildKeyData(keyDataLen);
     OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "1GB");
     assertNotNull(volume);
     assertEquals(volumeName, volume.getVolumeName());
@@ -214,6 +207,52 @@ public class TestOzoneRestWithMiniCluster {
     assertEquals(bucketName, bucket.getBucketName());
     bucket.putKey(keyName, keyData);
     assertEquals(keyData, bucket.getKey(keyName));
+  }
+
+  @Test
+  public void testReplaceKey() throws Exception {
+    String volumeName = nextId("volume");
+    String bucketName = nextId("bucket");
+    String keyName = nextId("key");
+    int keyDataLen = (int)(2.5 * CHUNK_SIZE);
+    String keyData = buildKeyData(keyDataLen);
+    OzoneVolume volume = ozoneClient.createVolume(volumeName, "bilbo", "1GB");
+    assertNotNull(volume);
+    assertEquals(volumeName, volume.getVolumeName());
+    assertEquals(ozoneClient.getUserAuth(), volume.getCreatedby());
+    assertEquals("bilbo", volume.getOwnerName());
+    assertNotNull(volume.getQuota());
+    assertEquals(OzoneQuota.parseQuota("1GB").sizeInBytes(),
+        volume.getQuota().sizeInBytes());
+    OzoneBucket bucket = volume.createBucket(bucketName);
+    assertNotNull(bucket);
+    assertEquals(bucketName, bucket.getBucketName());
+    bucket.putKey(keyName, keyData);
+    assertEquals(keyData, bucket.getKey(keyName));
+
+    // Replace key with data consisting of fewer chunks.
+    keyDataLen = (int)(1.5 * CHUNK_SIZE);
+    keyData = buildKeyData(keyDataLen);
+    bucket.putKey(keyName, keyData);
+    assertEquals(keyData, bucket.getKey(keyName));
+
+    // Replace key with data consisting of more chunks.
+    keyDataLen = (int)(3.5 * CHUNK_SIZE);
+    keyData = buildKeyData(keyDataLen);
+    bucket.putKey(keyName, keyData);
+    assertEquals(keyData, bucket.getKey(keyName));
+  }
+
+  /**
+   * Creates sample key data of the specified length.  The data is a string of
+   * printable ASCII characters.  This makes it easy to debug through visual
+   * inspection of the chunk files if a test fails.
+   *
+   * @param keyDataLen desired length of key data
+   * @return string of printable ASCII characters of the specified length
+   */
+  private static String buildKeyData(int keyDataLen) {
+    return new String(dataset(keyDataLen, 33, 93), UTF_8);
   }
 
   /**

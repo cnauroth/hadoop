@@ -23,13 +23,19 @@ import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 import java.io.IOException;
 
+import com.google.protobuf.ByteString;
+
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ChunkInfo;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandResponseProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.GetKeyRequestProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.GetKeyResponseProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyData;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.PutKeyRequestProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkRequestProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ReadChunkResponseProto;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.WriteChunkRequestProto;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.web.exceptions.ErrorTable;
 import org.apache.hadoop.ozone.web.exceptions.OzoneException;
@@ -67,6 +73,23 @@ final class ContainerProtocolCalls {
     validateContainerResponse(response, args);
   }
 
+  public static ReadChunkResponseProto readChunk(XceiverClient xceiverClient,
+      ChunkInfo chunk, String key, UserArgs args) throws IOException, OzoneException {
+    ReadChunkRequestProto.Builder readChunkRequest = ReadChunkRequestProto
+        .newBuilder()
+        .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
+        .setKeyName(key)
+        .setChunkData(chunk);
+    ContainerCommandRequestProto request = ContainerCommandRequestProto
+        .newBuilder()
+        .setCmdType(Type.ReadChunk)
+        .setReadChunk(readChunkRequest)
+        .build();
+    ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
+    validateContainerResponse(response, args);
+    return response.getReadChunk();
+  }
+
   /**
    * Calls the container protocol to read a container key.
    *
@@ -93,6 +116,25 @@ final class ContainerProtocolCalls {
     ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
     validateContainerResponse(response, args);
     return response.getGetKey();
+  }
+
+  public static void writeChunk(XceiverClient xceiverClient, ChunkInfo chunk,
+      String key, ByteString data, UserArgs args)
+      throws IOException, OzoneException {
+    WriteChunkRequestProto.Builder writeChunkRequest = WriteChunkRequestProto
+        .newBuilder()
+        .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
+        .setKeyName(key)
+        .setChunkData(chunk)
+        .setData(data);
+    ContainerCommandRequestProto request = ContainerCommandRequestProto
+        .newBuilder()
+        .setCmdType(Type.WriteChunk)
+        .setTraceID(args.getRequestID())
+        .setWriteChunk(writeChunkRequest)
+        .build();
+    ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
+    validateContainerResponse(response, args);
   }
 
   /**
