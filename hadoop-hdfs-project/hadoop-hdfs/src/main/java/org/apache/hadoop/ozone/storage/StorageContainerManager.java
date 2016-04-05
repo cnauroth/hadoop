@@ -435,7 +435,8 @@ public class StorageContainerManager
         throw new IOException("Storage container locations not found.");
       }
       String leaderId = liveNodes.get(0).getDatanodeUuid();
-      Pipeline newPipeline = newPipelineFromNodes(liveNodes);
+      Pipeline newPipeline = newPipelineFromNodes(liveNodes,
+          UUID.randomUUID().toString());
       XceiverClient xceiverClient =
           xceiverClientManager.acquireClient(newPipeline);
       try {
@@ -486,9 +487,11 @@ public class StorageContainerManager
    * a corresponding {@link Pipeline} object.
    *
    * @param nodes list of nodes
+   * @param containerName container name
    * @return pipeline corresponding to nodes
    */
-  private static Pipeline newPipelineFromNodes(List<DatanodeDescriptor> nodes) {
+  private static Pipeline newPipelineFromNodes(List<DatanodeDescriptor> nodes,
+      String containerName) {
     String leaderId = nodes.get(0).getDatanodeUuid();
     Pipeline pipeline = new Pipeline(leaderId);
     for (DatanodeDescriptor node : nodes) {

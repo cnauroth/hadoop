@@ -83,6 +83,7 @@ final class ContainerProtocolCalls {
     ContainerCommandRequestProto request = ContainerCommandRequestProto
         .newBuilder()
         .setCmdType(Type.ReadChunk)
+        .setTraceID(args.getRequestID())
         .setReadChunk(readChunkRequest)
         .build();
     ContainerCommandResponseProto response = xceiverClient.sendCommand(request);

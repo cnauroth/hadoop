@@ -23,7 +23,6 @@ import static org.apache.hadoop.ozone.web.storage.ContainerProtocolCalls.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
