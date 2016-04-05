@@ -123,8 +123,7 @@ final class OzoneContainerTranslation {
         volume.setOwner(new VolumeOwner(keyValue.getValue()));
         break;
       case QUOTA:
-        volume.setQuota(new OzoneQuota(
-            Integer.parseInt(keyValue.getValue()), OzoneQuota.Units.BYTES));
+        volume.setQuota(OzoneQuota.parseQuota(keyValue.getValue()));
         break;
       }
     }
@@ -161,8 +160,8 @@ final class OzoneContainerTranslation {
         .addMetadata(newKeyValue(CREATED_ON, volume.getCreatedOn()));
 
     if (volume.getQuota() != null && volume.getQuota().sizeInBytes() != -1L) {
-      containerKeyData.addMetadata(
-          newKeyValue(QUOTA, volume.getQuota().sizeInBytes()));
+      containerKeyData.addMetadata(newKeyValue(QUOTA,
+          OzoneQuota.formatQuota(volume.getQuota())));
     }
 
     if (volume.getOwner() != null && volume.getOwner().getName() != null &&
