@@ -63,10 +63,15 @@ class ChunkInputStream extends InputStream {
       throws IOException {
     checkOpen();
 
+    if (chunks.isEmpty()) {
+      // This must be an empty key.
+      return EOF;
+    }
+
     // This loop advances through chunks and buffers as needed until it finds a
     // byte to return or EOF.
     for (;;) {
-      if (buffers == null && !chunks.isEmpty()) {
+      if (buffers == null) {
         // The first read triggers fetching the first chunk.
         readChunk(0);
       } else if (!buffers.isEmpty() &&
@@ -78,8 +83,7 @@ class ChunkInputStream extends InputStream {
           bufferOffset < buffers.size() - 1) {
         // There are additional buffers available.
         ++bufferOffset;
-      } else if (!chunks.isEmpty() &&
-          chunkOffset < chunks.size() - 1) {
+      } else if (chunkOffset < chunks.size() - 1) {
         // There are additional chunks available.
         readChunk(chunkOffset + 1);
       } else {

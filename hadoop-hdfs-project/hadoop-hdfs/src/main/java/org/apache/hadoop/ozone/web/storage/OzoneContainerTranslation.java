@@ -144,6 +144,15 @@ final class OzoneContainerTranslation {
         .build();
   }
 
+  public static KeyData.Builder fromKeyToContainerKeyDataBuilder(
+      String containerName, String containerKey, KeyInfo key) {
+    return KeyData
+        .newBuilder()
+        .setContainerName(containerName)
+        .setName(containerKey)
+        .addMetadata(newKeyValue(TYPE, KEY));
+  }
+
   public static KeyData fromVolumeToContainerKeyData(
       String containerName, String containerKey, VolumeInfo volume) {
     KeyData.Builder containerKeyData = KeyData

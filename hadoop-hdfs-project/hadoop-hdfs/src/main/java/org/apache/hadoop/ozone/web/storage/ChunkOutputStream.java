@@ -18,36 +18,50 @@
 
 package org.apache.hadoop.ozone.web.storage;
 
+import static org.apache.hadoop.ozone.OzoneConsts.CHUNK_SIZE;
+import static org.apache.hadoop.ozone.web.storage.ContainerProtocolCalls.*;
+import static org.apache.hadoop.ozone.web.storage.OzoneContainerTranslation.*;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 import com.google.protobuf.ByteString;
 
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.WriteChunkRequestProto;
-import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ChunkInfo;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.ContainerCommandRequestProto;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyData;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.Type;
+import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.WriteChunkRequestProto;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClient;
 import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientManager;
+import org.apache.hadoop.ozone.web.exceptions.OzoneException;
+import org.apache.hadoop.ozone.web.handlers.UserArgs;
+import org.apache.hadoop.ozone.web.response.KeyInfo;
 
 class ChunkOutputStream extends OutputStream {
 
-  private static final int BUFFER_SIZE = 1 * 1024 * 1024; // 1 MB
-
-  private final String key;
+  private final String containerKey;
+  private final KeyInfo key;
+  private final UserArgs args;
+  private final KeyData.Builder containerKeyData;
   private XceiverClientManager xceiverClientManager;
   private XceiverClient xceiverClient;
-  private long chunkOffset;
   private ByteBuffer buffer;
+  private int chunkId;
 
-  public ChunkOutputStream(String key,
-      XceiverClientManager xceiverClientManager, XceiverClient xceiverClient) {
+  public ChunkOutputStream(String containerKey, KeyInfo key,
+      XceiverClientManager xceiverClientManager, XceiverClient xceiverClient,
+      UserArgs args) {
+    this.containerKey = containerKey;
     this.key = key;
+    this.args = args;
+    this.containerKeyData = fromKeyToContainerKeyDataBuilder(
+        xceiverClient.getPipeline().getContainerName(), containerKey, key);
     this.xceiverClientManager = xceiverClientManager;
     this.xceiverClient = xceiverClient;
-    this.chunkOffset = 0;
-    this.buffer = ByteBuffer.allocate(BUFFER_SIZE);
+    this.buffer = ByteBuffer.allocate(CHUNK_SIZE);
+    this.chunkId = 0;
   }
 
   @Override
@@ -56,7 +70,7 @@ class ChunkOutputStream extends OutputStream {
     int rollbackPosition = buffer.position();
     int rollbackLimit = buffer.limit();
     buffer.put((byte)b);
-    if (buffer.position() == BUFFER_SIZE) {
+    if (buffer.position() == CHUNK_SIZE) {
       flushBufferToChunk(rollbackPosition, rollbackLimit);
     }
   }
@@ -79,6 +93,9 @@ class ChunkOutputStream extends OutputStream {
         if (buffer.position() > 0) {
           writeChunk();
         }
+        createKey(xceiverClient, containerKeyData.build(), args);
+      } catch (OzoneException e) {
+        throw new IOException("Unexpected OzoneException", e);
       } finally {
         xceiverClientManager.releaseClient(xceiverClient);
         xceiverClientManager = null;
@@ -113,15 +130,16 @@ class ChunkOutputStream extends OutputStream {
   private synchronized void writeChunk() throws IOException {
     buffer.flip();
     ByteString byteString = ByteString.copyFrom(buffer);
-    ChunkInfo.Builder chunk = ChunkInfo
+    ChunkInfo chunk = ChunkInfo
         .newBuilder()
-        .setChunkName(key)
-        .setOffset(chunkOffset)
-        .setLen(byteString.size());
+        .setChunkName(key.getKeyName() + "_chunk_" + ++chunkId)
+        .setOffset(0)
+        .setLen(byteString.size())
+        .build();
     WriteChunkRequestProto.Builder writeChunkRequest = WriteChunkRequestProto
         .newBuilder()
         .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-        .setKeyName(key)
+        .setKeyName(key.getKeyName())
         .setChunkData(chunk)
         .setData(byteString);
     ContainerCommandRequestProto request = ContainerCommandRequestProto
@@ -130,6 +148,6 @@ class ChunkOutputStream extends OutputStream {
         .setWriteChunk(writeChunkRequest)
         .build();
     xceiverClient.sendCommand(request);
-    ++chunkOffset;
+    containerKeyData.addChunks(chunk);
   }
 }

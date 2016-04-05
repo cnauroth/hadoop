@@ -232,29 +232,18 @@ public final class DistributedStorageHandler implements StorageHandler {
       OzoneException {
     String containerKey = buildContainerKey(args.getVolumeName(),
         args.getBucketName(), args.getKeyName());
+    KeyInfo key = new KeyInfo();
+    key.setKeyName(args.getKeyName());
+    key.setCreatedOn(dateToString(new Date()));
     XceiverClient xceiverClient = acquireXceiverClient(containerKey);
-    boolean success = false;
-    try {
-      KeyInfo key = new KeyInfo();
-      key.setKeyName(args.getKeyName());
-      key.setCreatedOn(dateToString(new Date()));
-      KeyData containerKeyData = fromKeyToContainerKeyData(
-          xceiverClient.getPipeline().getContainerName(), containerKey, key);
-      createKey(xceiverClient, containerKeyData, args);
-      success = true;
-      return new ChunkOutputStream(containerKey, xceiverClientManager,
-          xceiverClient);
-    } finally {
-      if (!success) {
-        xceiverClientManager.releaseClient(xceiverClient);
-      }
-    }
+    return new ChunkOutputStream(containerKey, key, xceiverClientManager,
+        xceiverClient, args);
   }
 
   @Override
   public void commitKey(KeyArgs args, OutputStream stream) throws
       IOException, OzoneException {
-    throw new UnsupportedOperationException("commitKey not implemented");
+    stream.close();
   }
 
   @Override
