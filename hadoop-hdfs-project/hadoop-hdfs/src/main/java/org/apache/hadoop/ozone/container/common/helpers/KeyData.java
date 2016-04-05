@@ -127,7 +127,7 @@ public class KeyData {
   /**
    * Returns chunks list.
    *
-   * @return list of chunkindfo.
+   * @return list of chunkinfo.
    */
   public List<ContainerProtos.ChunkInfo> getChunks() {
     return chunks;

@@ -139,8 +139,8 @@ message ContainerCommandResponseProto {
   optional   DeleteKeyResponseProto deleteKey = 10;
   optional   ListKeyResponseProto listKey = 11;
 
-  optional  WriteChunkReponseProto writeChunk = 12;
-  optional  ReadChunkReponseProto readChunk = 13;
+  optional  WriteChunkResponseProto writeChunk = 12;
+  optional  ReadChunkResponseProto readChunk = 13;
   optional  DeleteChunkResponseProto deleteChunk = 14;
   optional  ListChunkResponseProto listChunk = 15;
 
@@ -282,7 +282,7 @@ message  WriteChunkRequestProto  {
   required bytes data = 4;
 }
 
-message  WriteChunkReponseProto {
+message  WriteChunkResponseProto {
 }
 
 message  ReadChunkRequestProto  {
@@ -291,7 +291,7 @@ message  ReadChunkRequestProto  {
   required ChunkInfo chunkData = 3;
 }
 
-message  ReadChunkReponseProto {
+message  ReadChunkResponseProto {
   required Pipeline pipeline = 1;
   required ChunkInfo chunkData = 2;
   required bytes data = 3;

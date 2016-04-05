@@ -217,7 +217,7 @@ public final class ChunkUtils {
    * Reads data from an existing chunk file.
    *
    * @param chunkFile - file where data lives.
-   * @param data      - chunk defintion.
+   * @param data      - chunk definition.
    * @return ByteBuffer
    * @throws IOException
    * @throws ExecutionException
@@ -285,8 +285,8 @@ public final class ChunkUtils {
                            byte[] data, ChunkInfo info) {
     Preconditions.checkNotNull(msg);
 
-    ContainerProtos.ReadChunkReponseProto.Builder response =
-        ContainerProtos.ReadChunkReponseProto.newBuilder();
+    ContainerProtos.ReadChunkResponseProto.Builder response =
+        ContainerProtos.ReadChunkResponseProto.newBuilder();
     response.setChunkData(info.getProtoBufMessage());
     response.setData(ByteString.copyFrom(data));
     response.setPipeline(msg.getReadChunk().getPipeline());
