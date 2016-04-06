@@ -85,7 +85,7 @@ class ChunkInputStream extends InputStream {
   }
 
   @Override
-  public int read(byte[] b, int off, int len) throws IOException {
+  public synchronized int read(byte[] b, int off, int len) throws IOException {
     // According to the JavaDocs for InputStream, it is recommended that
     // subclasses provide an override of bulk read if possible for performance
     // reasons.  In addition to performance, we need to do it for correctness
