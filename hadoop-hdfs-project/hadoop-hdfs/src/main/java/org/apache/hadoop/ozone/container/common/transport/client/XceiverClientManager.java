@@ -54,7 +54,7 @@ public class XceiverClientManager {
    * Acquires a XceiverClient connected to a container capable of storing the
    * specified key.
    *
-   * @param key container key to request
+   * @param pipeline the container pipeline for the client connection
    * @return XceiverClient connected to a container
    * @throws IOException if an XceiverClient cannot be acquired
    */
