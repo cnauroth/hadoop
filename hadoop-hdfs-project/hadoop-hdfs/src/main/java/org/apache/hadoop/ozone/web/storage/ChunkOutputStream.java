@@ -118,7 +118,7 @@ class ChunkOutputStream extends OutputStream {
         if (buffer.position() > 0) {
           writeChunkToContainer();
         }
-        createKey(xceiverClient, containerKeyData.build(), args);
+        putKey(xceiverClient, containerKeyData.build(), args);
       } catch (OzoneException e) {
         throw new IOException("Unexpected OzoneException", e);
       } finally {

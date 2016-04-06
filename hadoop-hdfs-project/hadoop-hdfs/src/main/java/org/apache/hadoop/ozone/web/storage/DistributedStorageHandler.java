@@ -96,7 +96,7 @@ public final class DistributedStorageHandler implements StorageHandler {
       volume.setCreatedBy(args.getAdminName());
       KeyData containerKeyData = fromVolumeToContainerKeyData(
           xceiverClient.getPipeline().getContainerName(), containerKey, volume);
-      createKey(xceiverClient, containerKeyData, args);
+      putKey(xceiverClient, containerKeyData, args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
     }
@@ -140,7 +140,7 @@ public final class DistributedStorageHandler implements StorageHandler {
     try {
       KeyData containerKeyData = containerKeyDataForRead(
           xceiverClient.getPipeline().getContainerName(), containerKey);
-      GetKeyResponseProto response = readKey(xceiverClient, containerKeyData,
+      GetKeyResponseProto response = getKey(xceiverClient, containerKeyData,
           args);
       return fromContainerKeyValueListToVolume(
           response.getKeyData().getMetadataList(), args);
@@ -164,7 +164,7 @@ public final class DistributedStorageHandler implements StorageHandler {
       bucket.setStorageType(args.getStorageType());
       KeyData containerKeyData = fromBucketToContainerKeyData(
           xceiverClient.getPipeline().getContainerName(), containerKey, bucket);
-      createKey(xceiverClient, containerKeyData, args);
+      putKey(xceiverClient, containerKeyData, args);
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
     }
@@ -218,7 +218,7 @@ public final class DistributedStorageHandler implements StorageHandler {
     try {
       KeyData containerKeyData = containerKeyDataForRead(
           xceiverClient.getPipeline().getContainerName(), containerKey);
-      GetKeyResponseProto response = readKey(xceiverClient, containerKeyData,
+      GetKeyResponseProto response = getKey(xceiverClient, containerKeyData,
           args);
       return fromContainerKeyValueListToBucket(
           response.getKeyData().getMetadataList(), args);
@@ -256,7 +256,7 @@ public final class DistributedStorageHandler implements StorageHandler {
     try {
       KeyData containerKeyData = containerKeyDataForRead(
           xceiverClient.getPipeline().getContainerName(), containerKey);
-      GetKeyResponseProto response = readKey(xceiverClient, containerKeyData,
+      GetKeyResponseProto response = getKey(xceiverClient, containerKeyData,
           args);
       long length = 0;
       List<ChunkInfo> chunks = response.getKeyData().getChunksList();

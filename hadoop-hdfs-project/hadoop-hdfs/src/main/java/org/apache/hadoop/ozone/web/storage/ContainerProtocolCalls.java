@@ -48,7 +48,35 @@ import org.apache.hadoop.ozone.web.handlers.UserArgs;
 final class ContainerProtocolCalls {
 
   /**
-   * Calls the container protocol to create a container key.
+   * Calls the container protocol to get a container key.
+   *
+   * @param xceiverClient client to perform call
+   * @param containerKeyData key data to identify container
+   * @param args container protocol call args
+   * @returns container protocol get key response
+   * @throws IOException if there is an I/O error while performing the call
+   * @throws OzoneException if the container protocol call failed
+   */
+  public static GetKeyResponseProto getKey(XceiverClient xceiverClient,
+      KeyData containerKeyData, UserArgs args) throws IOException,
+      OzoneException {
+    GetKeyRequestProto.Builder readKeyRequest = GetKeyRequestProto
+        .newBuilder()
+        .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
+        .setKeyData(containerKeyData);
+    ContainerCommandRequestProto request = ContainerCommandRequestProto
+        .newBuilder()
+        .setCmdType(Type.GetKey)
+        .setTraceID(args.getRequestID())
+        .setGetKey(readKeyRequest)
+        .build();
+    ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
+    validateContainerResponse(response, args);
+    return response.getGetKey();
+  }
+
+  /**
+   * Calls the container protocol to put a container key.
    *
    * @param xceiverClient client to perform call
    * @param containerKeyData key data to identify container
@@ -56,7 +84,7 @@ final class ContainerProtocolCalls {
    * @throws IOException if there is an I/O error while performing the call
    * @throws OzoneException if the container protocol call failed
    */
-  public static void createKey(XceiverClient xceiverClient,
+  public static void putKey(XceiverClient xceiverClient,
       KeyData containerKeyData, UserArgs args) throws IOException,
       OzoneException {
     PutKeyRequestProto.Builder createKeyRequest = PutKeyRequestProto
@@ -100,34 +128,6 @@ final class ContainerProtocolCalls {
     ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
     validateContainerResponse(response, args);
     return response.getReadChunk();
-  }
-
-  /**
-   * Calls the container protocol to read a container key.
-   *
-   * @param xceiverClient client to perform call
-   * @param containerKeyData key data to identify container
-   * @param args container protocol call args
-   * @returns container protocol read key response
-   * @throws IOException if there is an I/O error while performing the call
-   * @throws OzoneException if the container protocol call failed
-   */
-  public static GetKeyResponseProto readKey(XceiverClient xceiverClient,
-      KeyData containerKeyData, UserArgs args) throws IOException,
-      OzoneException {
-    GetKeyRequestProto.Builder readKeyRequest = GetKeyRequestProto
-        .newBuilder()
-        .setPipeline(xceiverClient.getPipeline().getProtobufMessage())
-        .setKeyData(containerKeyData);
-    ContainerCommandRequestProto request = ContainerCommandRequestProto
-        .newBuilder()
-        .setCmdType(Type.GetKey)
-        .setTraceID(args.getRequestID())
-        .setGetKey(readKeyRequest)
-        .build();
-    ContainerCommandResponseProto response = xceiverClient.sendCommand(request);
-    validateContainerResponse(response, args);
-    return response.getGetKey();
   }
 
   /**
