@@ -34,6 +34,14 @@ import org.apache.hadoop.ozone.container.common.transport.client.XceiverClientMa
 import org.apache.hadoop.ozone.web.exceptions.OzoneException;
 import org.apache.hadoop.ozone.web.handlers.UserArgs;
 
+/**
+ * An {@link InputStream} used by the REST service in combination with the
+ * {@link DistributedStorageHandler} to read the value of a key from a sequence
+ * of container chunks.  All bytes of the key value are stored in container
+ * chunks.  Each chunk may contain multiple underlying {@link ByteBuffer}
+ * instances.  This class encapsulates all state management for iterating
+ * through the sequence of chunks and the sequence of buffers within each chunk.
+ */
 class ChunkInputStream extends InputStream {
 
   private static final int EOF = -1;
@@ -47,6 +55,15 @@ class ChunkInputStream extends InputStream {
   private List<ByteBuffer> buffers;
   private int bufferOffset;
 
+  /**
+   * Creates a new ChunkInputStream.
+   *
+   * @param key chunk key
+   * @param xceiverClientManager client manager that controls client
+   * @param xceiverClient client to perform container calls
+   * @param chunks list of chunks to read
+   * @param args container protocol call args
+   */
   public ChunkInputStream(String key, XceiverClientManager xceiverClientManager,
       XceiverClient xceiverClient, List<ChunkInfo> chunks, UserArgs args) {
     this.key = key;
@@ -64,7 +81,7 @@ class ChunkInputStream extends InputStream {
       throws IOException {
     checkOpen();
 
-    if (chunks.isEmpty()) {
+    if (chunks == null || chunks.isEmpty()) {
       // This must be an empty key.
       return EOF;
     }
@@ -103,12 +120,25 @@ class ChunkInputStream extends InputStream {
     }
   }
 
+  /**
+   * Checks if the stream is open.  If not, throws an exception.
+   *
+   * @throws IOException if stream is closed
+   */
   private synchronized void checkOpen() throws IOException {
     if (xceiverClient == null) {
       throw new IOException("ChunkInputStream has been closed.");
     }
   }
 
+  /**
+   * Attempts to read the chunk at the specified offset in the chunk list.  If
+   * successful, then the data of the read chunk is saved so that its bytes can
+   * be returned from subsequent read calls.
+   *
+   * @param readChunkOffset offset in the chunk list of which chunk to read
+   * @throws IOException if there is an I/O error while performing the call
+   */
   private synchronized void readChunkFromContainer(int readChunkOffset)
       throws IOException {
     final ReadChunkResponseProto readChunkResponse;

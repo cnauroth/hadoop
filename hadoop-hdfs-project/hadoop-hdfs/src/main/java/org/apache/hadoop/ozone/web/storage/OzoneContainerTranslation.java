@@ -33,6 +33,10 @@ import org.apache.hadoop.ozone.web.response.VolumeInfo;
 import org.apache.hadoop.ozone.web.response.VolumeOwner;
 import org.apache.hadoop.util.StringUtils;
 
+/**
+ * This class contains methods that define the translation between the Ozone
+ * domain model and the storage container domain model.
+ */
 final class OzoneContainerTranslation {
 
   private static final String ACLS = "ACLS";
@@ -49,6 +53,13 @@ final class OzoneContainerTranslation {
   private static final String VOLUME = "VOLUME";
   private static final String VOLUME_NAME = "VOLUME_NAME";
 
+  /**
+   * Creates key data intended for reading a container key.
+   *
+   * @param containerName container name
+   * @param containerKey container key
+   * @return KeyData intended for reading the container key
+   */
   public static KeyData containerKeyDataForRead(String containerName,
       String containerKey) {
     return KeyData
@@ -58,6 +69,14 @@ final class OzoneContainerTranslation {
         .build();
   }
 
+  /**
+   * Translates a bucket to its container representation.
+   *
+   * @param containerName container name
+   * @param containerKey container key
+   * @param bucket the bucket to translate
+   * @return KeyData representation of bucket
+   */
   public static KeyData fromBucketToContainerKeyData(
       String containerName, String containerKey, BucketInfo bucket) {
     KeyData.Builder containerKeyData = KeyData
@@ -87,6 +106,13 @@ final class OzoneContainerTranslation {
     return containerKeyData.build();
   }
 
+  /**
+   * Translates a bucket from its container representation.
+   *
+   * @param metadata container metadata representing the bucket
+   * @param args bucket information received from call
+   * @return bucket translated from container representation
+   */
   public static BucketInfo fromContainerKeyValueListToBucket(
       List<KeyValue> metadata, BucketArgs args) {
     BucketInfo bucket = new BucketInfo();
@@ -107,6 +133,13 @@ final class OzoneContainerTranslation {
     return bucket;
   }
 
+  /**
+   * Translates a volume from its container representation.
+   *
+   * @param metadata container metadata representing the volume
+   * @param args volume information received from call
+   * @return volume translated from container representation
+   */
   public static VolumeInfo fromContainerKeyValueListToVolume(
       List<KeyValue> metadata, VolumeArgs args) {
     VolumeInfo volume = new VolumeInfo();
@@ -130,6 +163,14 @@ final class OzoneContainerTranslation {
     return volume;
   }
 
+  /**
+   * Translates a key to its container representation.
+   *
+   * @param containerName container name
+   * @param containerKey container key
+   * @param keyInfo key information received from call
+   * @return KeyData intended for reading the container key
+   */
   public static KeyData fromKeyToContainerKeyData(String containerName,
       String containerKey, KeyInfo key) {
     return KeyData
@@ -140,6 +181,15 @@ final class OzoneContainerTranslation {
         .build();
   }
 
+  /**
+   * Translates a key to its container representation.  The return value is a
+   * builder that can be manipulated further before building the result.
+   *
+   * @param containerName container name
+   * @param containerKey container key
+   * @param keyInfo key information received from call
+   * @return KeyData builder
+   */
   public static KeyData.Builder fromKeyToContainerKeyDataBuilder(
       String containerName, String containerKey, KeyInfo key) {
     return KeyData
@@ -149,6 +199,14 @@ final class OzoneContainerTranslation {
         .addMetadata(newKeyValue(TYPE, KEY));
   }
 
+  /**
+   * Translates a volume to its container representation.
+   *
+   * @param containerName container name
+   * @param containerKey container key
+   * @param volume the volume to translate
+   * @return KeyData representation of volume
+   */
   public static KeyData fromVolumeToContainerKeyData(
       String containerName, String containerKey, VolumeInfo volume) {
     KeyData.Builder containerKeyData = KeyData
@@ -178,10 +236,20 @@ final class OzoneContainerTranslation {
     return containerKeyData.build();
   }
 
+  /**
+   * Translates a key-value pair to its container representation.
+   *
+   * @param key the key
+   * @param value the value
+   * @return container representation of key-value pair
+   */
   private static KeyValue newKeyValue(String key, Object value) {
     return KeyValue.newBuilder().setKey(key).setValue(value.toString()).build();
   }
 
+  /**
+   * There is no need to instantiate this class.
+   */
   private OzoneContainerTranslation() {
   }
 }

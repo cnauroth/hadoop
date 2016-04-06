@@ -103,11 +103,14 @@ import org.apache.hadoop.util.StringUtils;
  *
  * The current implementation is a stub suitable to begin end-to-end testing of
  * Ozone service interactions.  DataNodes report to StorageContainerManager
- * using the existing heartbeat messages.  StorageContainerManager tells clients
- * container locations by reporting that all registered nodes are a viable
- * location.  This will evolve from a stub to a full-fledged implementation
- * capable of partitioning the keyspace across multiple containers, with
- * appropriate distribution across nodes.
+ * using the existing heartbeat messages.  StorageContainerManager lazily
+ * initializes a single storage container to be served by those DataNodes.
+ * All subsequent requests for container locations will reply with that single
+ * pipeline, using all registered nodes.
+ *
+ * This will evolve from a stub to a full-fledged implementation capable of
+ * partitioning the keyspace across multiple containers, with appropriate
+ * distribution across nodes.
  */
 @InterfaceAudience.Private
 public class StorageContainerManager
@@ -427,6 +430,13 @@ public class StorageContainerManager
     }
   }
 
+  /**
+   * Lazily initializes a single container pipeline using all registered
+   * DataNodes.  This single container pipeline will be reused for container
+   * requests for the lifetime of this StorageContainerManager.
+   *
+   * @throws IOException if there is an I/O error
+   */
   private synchronized void initContainerPipeline() throws IOException {
     if (pipeline == null) {
       List<DatanodeDescriptor> liveNodes = new ArrayList<DatanodeDescriptor>();

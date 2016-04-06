@@ -73,6 +73,17 @@ final class ContainerProtocolCalls {
     validateContainerResponse(response, args);
   }
 
+  /**
+   * Calls the container protocol to read a chunk.
+   *
+   * @param xceiverClient client to perform call
+   * @param chunk information about chunk to read
+   * @param key the key name
+   * @param args container protocol call args
+   * @returns container protocol read chunk response
+   * @throws IOException if there is an I/O error while performing the call
+   * @throws OzoneException if the container protocol call failed
+   */
   public static ReadChunkResponseProto readChunk(XceiverClient xceiverClient,
       ChunkInfo chunk, String key, UserArgs args) throws IOException, OzoneException {
     ReadChunkRequestProto.Builder readChunkRequest = ReadChunkRequestProto
@@ -119,6 +130,17 @@ final class ContainerProtocolCalls {
     return response.getGetKey();
   }
 
+  /**
+   * Calls the container protocol to write a chunk.
+   *
+   * @param xceiverClient client to perform call
+   * @param chunk information about chunk to write
+   * @param key the key name
+   * @param data the data of the chunk to write
+   * @param args container protocol call args
+   * @throws IOException if there is an I/O error while performing the call
+   * @throws OzoneException if the container protocol call failed
+   */
   public static void writeChunk(XceiverClient xceiverClient, ChunkInfo chunk,
       String key, ByteString data, UserArgs args)
       throws IOException, OzoneException {

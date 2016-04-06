@@ -37,6 +37,22 @@ import org.apache.hadoop.ozone.web.exceptions.OzoneException;
 import org.apache.hadoop.ozone.web.handlers.UserArgs;
 import org.apache.hadoop.ozone.web.response.KeyInfo;
 
+/**
+ * An {@link OutputStream} used by the REST service in combination with the
+ * {@link DistributedStorageHandler} to write the value of a key to a sequence
+ * of container chunks.  Writes are buffered locally and periodically written to
+ * the container as a new chunk.  In order to preserve the semantics that
+ * replacement of a pre-existing key is atomic, each instance of the stream has
+ * an internal unique identifier.  This unique identifier and a monotonically
+ * increasing chunk index form a composite key that is used as the chunk name.
+ * After all data is written, a putKey call creates or updates the corresponding
+ * container key, and this call includes the full list of chunks that make up
+ * the key data.  The list of chunks is updated all at once.  Therefore, a
+ * concurrent reader never can see an intermediate state in which different
+ * chunks of data from different versions of the key data are interleaved.
+ * This class encapsulates all state management for buffering and writing
+ * through to the container.
+ */
 class ChunkOutputStream extends OutputStream {
 
   private final String containerKey;
@@ -49,6 +65,15 @@ class ChunkOutputStream extends OutputStream {
   private final String streamId;
   private int chunkIndex;
 
+  /**
+   * Creates a new ChunkOutputStream.
+   *
+   * @param containerKey container key
+   * @param key chunk key
+   * @param xceiverClientManager client manager that controls client
+   * @param xceiverClient client to perform container calls
+   * @param args container protocol call args
+   */
   public ChunkOutputStream(String containerKey, KeyInfo key,
       XceiverClientManager xceiverClientManager, XceiverClient xceiverClient,
       UserArgs args) {
@@ -103,14 +128,29 @@ class ChunkOutputStream extends OutputStream {
         buffer = null;
       }
     }
+
   }
 
+  /**
+   * Checks if the stream is open.  If not, throws an exception.
+   *
+   * @throws IOException if stream is closed
+   */
   private synchronized void checkOpen() throws IOException {
     if (xceiverClient == null) {
       throw new IOException("ChunkOutputStream has been closed.");
     }
   }
 
+  /**
+   * Attempts to flush buffered writes by writing a new chunk to the container.
+   * If successful, then clears the buffer to prepare to receive writes for a
+   * new chunk.
+   *
+   * @param rollbackPosition position to restore in buffer if write fails
+   * @param rollbackLimit limit to restore in buffer if write fails
+   * @throws IOException if there is an I/O error while performing the call
+   */
   private synchronized void flushBufferToChunk(int rollbackPosition,
       int rollbackLimit) throws IOException {
     boolean success = false;
@@ -127,6 +167,12 @@ class ChunkOutputStream extends OutputStream {
     }
   }
 
+  /**
+   * Writes buffered data as a new chunk to the container and saves chunk
+   * information to be used later in putKey call.
+   *
+   * @throws IOException if there is an I/O error while performing the call
+   */
   private synchronized void writeChunkToContainer() throws IOException {
     buffer.flip();
     ByteString data = ByteString.copyFrom(buffer);
