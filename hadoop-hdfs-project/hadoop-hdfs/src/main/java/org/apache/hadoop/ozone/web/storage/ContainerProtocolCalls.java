@@ -113,7 +113,8 @@ final class ContainerProtocolCalls {
    * @throws OzoneException if the container protocol call failed
    */
   public static ReadChunkResponseProto readChunk(XceiverClient xceiverClient,
-      ChunkInfo chunk, String key, UserArgs args) throws IOException, OzoneException {
+      ChunkInfo chunk, String key, UserArgs args)
+      throws IOException, OzoneException {
     ReadChunkRequestProto.Builder readChunkRequest = ReadChunkRequestProto
         .newBuilder()
         .setPipeline(xceiverClient.getPipeline().getProtobufMessage())

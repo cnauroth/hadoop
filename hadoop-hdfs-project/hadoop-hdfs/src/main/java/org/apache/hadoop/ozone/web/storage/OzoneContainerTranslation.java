@@ -128,6 +128,8 @@ final class OzoneContainerTranslation {
         bucket.setStorageType(
             Enum.valueOf(StorageType.class, keyValue.getValue()));
         break;
+      default:
+        break;
       }
     }
     return bucket;
@@ -157,6 +159,8 @@ final class OzoneContainerTranslation {
         break;
       case QUOTA:
         volume.setQuota(OzoneQuota.parseQuota(keyValue.getValue()));
+        break;
+      default:
         break;
       }
     }

@@ -122,7 +122,7 @@ public class StorageContainerManager
   private final StorageContainerNameService ns;
   private final BlockManager blockManager;
   private final XceiverClientManager xceiverClientManager;
-  private Pipeline pipeline;
+  private Pipeline singlePipeline;
 
   /** The RPC server that listens to requests from DataNodes. */
   private final RPC.Server serviceRpcServer;
@@ -208,7 +208,7 @@ public class StorageContainerManager
   public Set<LocatedContainer> getStorageContainerLocations(Set<String> keys)
       throws IOException {
     LOG.trace("getStorageContainerLocations keys = {}", keys);
-    initContainerPipeline();
+    Pipeline pipeline = initSingleContainerPipeline();
     List<DatanodeDescriptor> liveNodes = new ArrayList<DatanodeDescriptor>();
     blockManager.getDatanodeManager().fetchDatanodes(liveNodes, null, false);
     if (liveNodes.isEmpty()) {
@@ -437,14 +437,14 @@ public class StorageContainerManager
    *
    * @throws IOException if there is an I/O error
    */
-  private synchronized void initContainerPipeline() throws IOException {
-    if (pipeline == null) {
+  private synchronized Pipeline initSingleContainerPipeline()
+      throws IOException {
+    if (singlePipeline == null) {
       List<DatanodeDescriptor> liveNodes = new ArrayList<DatanodeDescriptor>();
       blockManager.getDatanodeManager().fetchDatanodes(liveNodes, null, false);
       if (liveNodes.isEmpty()) {
         throw new IOException("Storage container locations not found.");
       }
-      String leaderId = liveNodes.get(0).getDatanodeUuid();
       Pipeline newPipeline = newPipelineFromNodes(liveNodes,
           UUID.randomUUID().toString());
       XceiverClient xceiverClient =
@@ -474,8 +474,9 @@ public class StorageContainerManager
       } finally {
         xceiverClientManager.releaseClient(xceiverClient);
       }
-      pipeline = newPipeline;
+      singlePipeline = newPipeline;
     }
+    return singlePipeline;
   }
 
   /**
