@@ -143,7 +143,7 @@ public final class DistributedStorageHandler implements StorageHandler {
       GetKeyResponseProto response = getKey(xceiverClient, containerKeyData,
           args);
       return fromContainerKeyValueListToVolume(
-          response.getKeyData().getMetadataList(), args);
+          response.getKeyData().getMetadataList());
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
     }
@@ -221,7 +221,7 @@ public final class DistributedStorageHandler implements StorageHandler {
       GetKeyResponseProto response = getKey(xceiverClient, containerKeyData,
           args);
       return fromContainerKeyValueListToBucket(
-          response.getKeyData().getMetadataList(), args);
+          response.getKeyData().getMetadataList());
     } finally {
       xceiverClientManager.releaseClient(xceiverClient);
     }

@@ -432,8 +432,9 @@ public class StorageContainerManager
 
   /**
    * Lazily initializes a single container pipeline using all registered
-   * DataNodes.  This single container pipeline will be reused for container
-   * requests for the lifetime of this StorageContainerManager.
+   * DataNodes via a synchronous call to the container protocol.  This single
+   * container pipeline will be reused for container requests for the lifetime
+   * of this StorageContainerManager.
    *
    * @throws IOException if there is an I/O error
    */
@@ -471,10 +472,10 @@ public class StorageContainerManager
           throw new IOException(
               "Failed to initialize container due to result code: " + result);
         }
+        singlePipeline = newPipeline;
       } finally {
         xceiverClientManager.releaseClient(xceiverClient);
       }
-      singlePipeline = newPipeline;
     }
     return singlePipeline;
   }
@@ -508,7 +509,7 @@ public class StorageContainerManager
     for (DatanodeDescriptor node : nodes) {
       pipeline.addMember(node);
     }
-    pipeline.setContainerName(UUID.randomUUID().toString());
+    pipeline.setContainerName(containerName);
     return pipeline;
   }
 

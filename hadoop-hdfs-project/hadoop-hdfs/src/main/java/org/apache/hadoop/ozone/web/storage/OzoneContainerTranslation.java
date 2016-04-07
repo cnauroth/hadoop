@@ -24,8 +24,6 @@ import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyData;
 import org.apache.hadoop.hdfs.ozone.protocol.proto.ContainerProtos.KeyValue;
 import org.apache.hadoop.ozone.OzoneConsts.Versioning;
-import org.apache.hadoop.ozone.web.handlers.BucketArgs;
-import org.apache.hadoop.ozone.web.handlers.VolumeArgs;
 import org.apache.hadoop.ozone.web.request.OzoneQuota;
 import org.apache.hadoop.ozone.web.response.BucketInfo;
 import org.apache.hadoop.ozone.web.response.KeyInfo;
@@ -110,16 +108,19 @@ final class OzoneContainerTranslation {
    * Translates a bucket from its container representation.
    *
    * @param metadata container metadata representing the bucket
-   * @param args bucket information received from call
    * @return bucket translated from container representation
    */
   public static BucketInfo fromContainerKeyValueListToBucket(
-      List<KeyValue> metadata, BucketArgs args) {
+      List<KeyValue> metadata) {
     BucketInfo bucket = new BucketInfo();
-    bucket.setVolumeName(args.getVolumeName());
-    bucket.setBucketName(args.getBucketName());
     for (KeyValue keyValue : metadata) {
       switch (keyValue.getKey()) {
+      case VOLUME_NAME:
+        bucket.setVolumeName(keyValue.getValue());
+        break;
+      case BUCKET_NAME:
+        bucket.setBucketName(keyValue.getValue());
+        break;
       case VERSIONING:
         bucket.setVersioning(
             Enum.valueOf(Versioning.class, keyValue.getValue()));
@@ -139,15 +140,16 @@ final class OzoneContainerTranslation {
    * Translates a volume from its container representation.
    *
    * @param metadata container metadata representing the volume
-   * @param args volume information received from call
    * @return volume translated from container representation
    */
   public static VolumeInfo fromContainerKeyValueListToVolume(
-      List<KeyValue> metadata, VolumeArgs args) {
+      List<KeyValue> metadata) {
     VolumeInfo volume = new VolumeInfo();
-    volume.setVolumeName(args.getVolumeName());
     for (KeyValue keyValue : metadata) {
       switch (keyValue.getKey()) {
+      case VOLUME_NAME:
+        volume.setVolumeName(keyValue.getValue());
+        break;
       case CREATED_BY:
         volume.setCreatedBy(keyValue.getValue());
         break;
