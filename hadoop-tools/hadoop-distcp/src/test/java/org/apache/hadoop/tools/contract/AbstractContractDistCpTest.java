@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.fs.s3a;
+package org.apache.hadoop.tools.contract;
 
 import static org.apache.hadoop.fs.contract.ContractTestUtils.*;
 import static org.junit.Assert.*;
@@ -28,7 +28,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.contract.AbstractFSContractTestBase;
 import org.apache.hadoop.fs.contract.ContractTestUtils;
-import org.apache.hadoop.fs.contract.s3a.S3AContract;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.test.GenericTestUtils;
 import org.apache.hadoop.tools.DistCp;
@@ -39,7 +38,16 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-public class TestS3ADistCp extends AbstractFSContractTestBase {
+/**
+ * Contract test suite covering a file system's integration with DistCp.  The
+ * tests coordinate two file system instances: one "local", which is the local
+ * file system, and the other "remote", which is the file system implementation
+ * under test.  The tests in the suite cover both copying from local to remote
+ * (e.g. a backup use case) and copying from remote to local (e.g. a restore use
+ * case).
+ */
+public abstract class AbstractContractDistCpTest
+    extends AbstractFSContractTestBase {
 
   @Rule
   public TestName testName = new TestName();
@@ -62,14 +70,18 @@ public class TestS3ADistCp extends AbstractFSContractTestBase {
     conf = getContract().getConf();
     localFS = FileSystem.getLocal(conf);
     remoteFS = getFileSystem();
+    // Test paths are isolated by concrete subclass name and test method name.
+    // All paths are fully qualified including scheme (not taking advantage of
+    // default file system), so if something fails, the messages will make it
+    // clear which paths are local and which paths are remote.
     localDir = localFS.makeQualified(
         new Path(GenericTestUtils.getTestDir().toURI()));
     remoteDir = remoteFS.makeQualified(
-        new Path("/" + TestS3ADistCp.class.getSimpleName()));
+        new Path("/" + getClass().getSimpleName()));
     localDir = new Path(localDir, testName.getMethodName());
-    assertTrue("Failed to mkdir " + localDir, localFS.mkdirs(localDir));
+    mkdirs(localFS, localDir);
     remoteDir = new Path(remoteDir, testName.getMethodName());
-    assertTrue("Failed to mkdir " + remoteDir, remoteFS.mkdirs(remoteDir));
+    mkdirs(remoteFS, remoteDir);
   }
 
   @Test
@@ -120,11 +132,20 @@ public class TestS3ADistCp extends AbstractFSContractTestBase {
     largeFiles(remoteFS, remoteDir, localFS, localDir);
   }
 
-  private void singleFile(FileSystem srcFS, Path srcDir, FileSystem dstFS, Path dstDir) throws Exception {
-    describe("copy a single file from local to remote");
+  /**
+   * Executes a test using a single file.
+   *
+   * @param srcFS source FileSystem
+   * @param srcDir source directory
+   * @param dstFS destination FileSystem
+   * @param dstDir destination directory
+   * @throws Exception if there is a failure
+   */
+  private void singleFile(FileSystem srcFS, Path srcDir, FileSystem dstFS,
+      Path dstDir) throws Exception {
     Path inputDir = new Path(srcDir, "inputDir");
     Path inputFile1 = new Path(inputDir, "file1");
-    assertTrue(srcFS.mkdirs(inputDir));
+    mkdirs(srcFS, inputDir);
     byte[] data1 = dataset(100, 33, 43);
     createFile(srcFS, inputFile1, true, data1);
     Path target = new Path(dstDir, "outputDir");
@@ -133,13 +154,22 @@ public class TestS3ADistCp extends AbstractFSContractTestBase {
     verifyFileContents(dstFS, new Path(target, "inputDir/file1"), data1);
   }
 
-  private void multipleFiles(FileSystem srcFS, Path srcDir, FileSystem dstFS, Path dstDir) throws Exception {
-    describe("copy multiple files from local to remote");
+  /**
+   * Executes a test using multiple files.
+   *
+   * @param srcFS source FileSystem
+   * @param srcDir source directory
+   * @param dstFS destination FileSystem
+   * @param dstDir destination directory
+   * @throws Exception if there is a failure
+   */
+  private void multipleFiles(FileSystem srcFS, Path srcDir, FileSystem dstFS,
+      Path dstDir) throws Exception {
     Path inputDir = new Path(srcDir, "inputDir");
     Path inputFile1 = new Path(inputDir, "file1");
     Path inputFile2 = new Path(inputDir, "file2");
     Path inputFile3 = new Path(inputDir, "file3");
-    assertTrue(srcFS.mkdirs(inputDir));
+    mkdirs(srcFS, inputDir);
     byte[] data1 = dataset(100, 33, 43);
     createFile(srcFS, inputFile1, true, data1);
     byte[] data2 = dataset(200, 43, 53);
@@ -154,16 +184,25 @@ public class TestS3ADistCp extends AbstractFSContractTestBase {
     verifyFileContents(dstFS, new Path(target, "inputDir/file3"), data3);
   }
 
-  private void deepDirectoryStructure(FileSystem srcFS, Path srcDir, FileSystem dstFS, Path dstDir) throws Exception {
-    describe("copy a deep directory structure from local to remote");
+  /**
+   * Executes a test using a file system sub-tree with multiple nesting levels.
+   *
+   * @param srcFS source FileSystem
+   * @param srcDir source directory
+   * @param dstFS destination FileSystem
+   * @param dstDir destination directory
+   * @throws Exception if there is a failure
+   */
+  private void deepDirectoryStructure(FileSystem srcFS, Path srcDir,
+      FileSystem dstFS, Path dstDir) throws Exception {
     Path inputDir = new Path(srcDir, "inputDir");
     Path inputSubDir1 = new Path(inputDir, "subDir1");
     Path inputSubDir2 = new Path(inputDir, "subDir2/subDir3");
     Path inputFile1 = new Path(inputDir, "file1");
     Path inputFile2 = new Path(inputSubDir1, "file2");
     Path inputFile3 = new Path(inputSubDir2, "file3");
-    assertTrue(srcFS.mkdirs(inputSubDir1));
-    assertTrue(srcFS.mkdirs(inputSubDir2));
+    mkdirs(srcFS, inputSubDir1);
+    mkdirs(srcFS, inputSubDir2);
     byte[] data1 = dataset(100, 33, 43);
     createFile(srcFS, inputFile1, true, data1);
     byte[] data2 = dataset(200, 43, 53);
@@ -180,13 +219,22 @@ public class TestS3ADistCp extends AbstractFSContractTestBase {
         new Path(target, "inputDir/subDir2/subDir3/file3"), data3);
   }
 
-  private void largeFiles(FileSystem srcFS, Path srcDir, FileSystem dstFS, Path dstDir) throws Exception {
-    describe("copy multiple large files from local to remote");
+  /**
+   * Executes a test using multiple large files.
+   *
+   * @param srcFS source FileSystem
+   * @param srcDir source directory
+   * @param dstFS destination FileSystem
+   * @param dstDir destination directory
+   * @throws Exception if there is a failure
+   */
+  private void largeFiles(FileSystem srcFS, Path srcDir, FileSystem dstFS,
+      Path dstDir) throws Exception {
     Path inputDir = new Path(srcDir, "inputDir");
     Path inputFile1 = new Path(inputDir, "file1");
     Path inputFile2 = new Path(inputDir, "file2");
     Path inputFile3 = new Path(inputDir, "file3");
-    assertTrue(srcFS.mkdirs(inputDir));
+    mkdirs(srcFS, inputDir);
     byte[] data1 = dataset(1 * 1024 * 1024, 33, 43);
     createFile(srcFS, inputFile1, true, data1);
     byte[] data2 = dataset(2 * 1024 * 1024, 43, 53);
@@ -201,14 +249,29 @@ public class TestS3ADistCp extends AbstractFSContractTestBase {
     verifyFileContents(dstFS, new Path(target, "inputDir/file3"), data3);
   }
 
+  /**
+   * Executes DistCp and asserts that the job finished successfully.
+   *
+   * @param src source path
+   * @param dst destination path
+   * @throws Exception if there is a failure
+   */
   private void runDistCp(Path src, Path dst) throws Exception {
     DistCpOptions options = new DistCpOptions(Arrays.asList(src), dst);
     Job job = new DistCp(conf, options).execute();
-    // TODO assert
+    assertNotNull("Unexpected null job returned from DistCp execution.", job);
+    assertTrue("DistCp job did not complete.", job.isComplete());
+    assertTrue("DistCp job did not complete successfully.", job.isSuccessful());
   }
 
-  @Override
-  protected S3AContract createContract(Configuration conf) {
-    return new S3AContract(conf);
+  /**
+   * Creates a directory and any ancestor directories required.
+   *
+   * @param fs FileSystem in which to create directories
+   * @param dir path of directory to create
+   * @throws Exception if there is a failure
+   */
+  private static void mkdirs(FileSystem fs, Path dir) throws Exception {
+    assertTrue("Failed to mkdir " + dir, fs.mkdirs(dir));
   }
 }
