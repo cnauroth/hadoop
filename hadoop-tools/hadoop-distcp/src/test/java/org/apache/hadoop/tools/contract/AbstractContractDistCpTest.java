@@ -74,13 +74,13 @@ public abstract class AbstractContractDistCpTest
     // All paths are fully qualified including scheme (not taking advantage of
     // default file system), so if something fails, the messages will make it
     // clear which paths are local and which paths are remote.
-    localDir = localFS.makeQualified(
-        new Path(GenericTestUtils.getTestDir().toURI()));
-    remoteDir = remoteFS.makeQualified(
-        new Path("/" + getClass().getSimpleName()));
-    localDir = new Path(localDir, testName.getMethodName());
+    Path testSubDir = new Path(getClass().getSimpleName(),
+        testName.getMethodName());
+    localDir = localFS.makeQualified(new Path(new Path(
+        GenericTestUtils.getTestDir().toURI()), testSubDir));
     mkdirs(localFS, localDir);
-    remoteDir = new Path(remoteDir, testName.getMethodName());
+    remoteDir = remoteFS.makeQualified(
+        new Path(getContract().getTestPath(), testSubDir));
     mkdirs(remoteFS, remoteDir);
   }
 
