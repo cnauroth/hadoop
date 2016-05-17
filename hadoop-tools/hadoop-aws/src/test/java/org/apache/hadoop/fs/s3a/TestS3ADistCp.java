@@ -1,0 +1,214 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.hadoop.fs.s3a;
+
+import static org.apache.hadoop.fs.contract.ContractTestUtils.*;
+import static org.junit.Assert.*;
+
+import java.util.Arrays;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.contract.AbstractFSContractTestBase;
+import org.apache.hadoop.fs.contract.ContractTestUtils;
+import org.apache.hadoop.fs.contract.s3a.S3AContract;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.test.GenericTestUtils;
+import org.apache.hadoop.tools.DistCp;
+import org.apache.hadoop.tools.DistCpOptions;
+
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
+
+public class TestS3ADistCp extends AbstractFSContractTestBase {
+
+  @Rule
+  public TestName testName = new TestName();
+
+  private Configuration conf;
+  private FileSystem localFS, remoteFS;
+  private Path localDir, remoteDir;
+
+  @Override
+  protected Configuration createConfiguration() {
+    Configuration conf = new Configuration();
+    conf.set("mapred.job.tracker", "local");
+    return conf;
+  }
+
+  @Before
+  @Override
+  public void setup() throws Exception {
+    super.setup();
+    conf = getContract().getConf();
+    localFS = FileSystem.getLocal(conf);
+    remoteFS = getFileSystem();
+    localDir = localFS.makeQualified(
+        new Path(GenericTestUtils.getTestDir().toURI()));
+    remoteDir = remoteFS.makeQualified(
+        new Path("/" + TestS3ADistCp.class.getSimpleName()));
+    localDir = new Path(localDir, testName.getMethodName());
+    assertTrue("Failed to mkdir " + localDir, localFS.mkdirs(localDir));
+    remoteDir = new Path(remoteDir, testName.getMethodName());
+    assertTrue("Failed to mkdir " + remoteDir, remoteFS.mkdirs(remoteDir));
+  }
+
+  @Test
+  public void singleFileToRemote() throws Exception {
+    describe("copy a single file from local to remote");
+    singleFile(localFS, localDir, remoteFS, remoteDir);
+  }
+
+  @Test
+  public void multipleFilesToRemote() throws Exception {
+    describe("copy multiple files from local to remote");
+    multipleFiles(localFS, localDir, remoteFS, remoteDir);
+  }
+
+  @Test
+  public void deepDirectoryStructureToRemote() throws Exception {
+    describe("copy a deep directory structure from local to remote");
+    deepDirectoryStructure(localFS, localDir, remoteFS, remoteDir);
+  }
+
+  @Test
+  public void largeFilesToRemote() throws Exception {
+    describe("copy multiple large files from local to remote");
+    largeFiles(localFS, localDir, remoteFS, remoteDir);
+  }
+
+  @Test
+  public void singleFileFromRemote() throws Exception {
+    describe("copy a single file from remote to local");
+    singleFile(remoteFS, remoteDir, localFS, localDir);
+  }
+
+  @Test
+  public void multipleFilesFromRemote() throws Exception {
+    describe("copy multiple files from remote to local");
+    multipleFiles(remoteFS, remoteDir, localFS, localDir);
+  }
+
+  @Test
+  public void deepDirectoryStructureFromRemote() throws Exception {
+    describe("copy a deep directory structure from remote to local");
+    deepDirectoryStructure(remoteFS, remoteDir, localFS, localDir);
+  }
+
+  @Test
+  public void largeFilesFromRemote() throws Exception {
+    describe("copy multiple large files from remote to local");
+    largeFiles(remoteFS, remoteDir, localFS, localDir);
+  }
+
+  private void singleFile(FileSystem srcFS, Path srcDir, FileSystem dstFS, Path dstDir) throws Exception {
+    describe("copy a single file from local to remote");
+    Path inputDir = new Path(srcDir, "inputDir");
+    Path inputFile1 = new Path(inputDir, "file1");
+    assertTrue(srcFS.mkdirs(inputDir));
+    byte[] data1 = dataset(100, 33, 43);
+    createFile(srcFS, inputFile1, true, data1);
+    Path target = new Path(dstDir, "outputDir");
+    runDistCp(inputDir, target);
+    ContractTestUtils.assertIsDirectory(dstFS, target);
+    verifyFileContents(dstFS, new Path(target, "inputDir/file1"), data1);
+  }
+
+  private void multipleFiles(FileSystem srcFS, Path srcDir, FileSystem dstFS, Path dstDir) throws Exception {
+    describe("copy multiple files from local to remote");
+    Path inputDir = new Path(srcDir, "inputDir");
+    Path inputFile1 = new Path(inputDir, "file1");
+    Path inputFile2 = new Path(inputDir, "file2");
+    Path inputFile3 = new Path(inputDir, "file3");
+    assertTrue(srcFS.mkdirs(inputDir));
+    byte[] data1 = dataset(100, 33, 43);
+    createFile(srcFS, inputFile1, true, data1);
+    byte[] data2 = dataset(200, 43, 53);
+    createFile(srcFS, inputFile2, true, data2);
+    byte[] data3 = dataset(300, 53, 63);
+    createFile(srcFS, inputFile3, true, data3);
+    Path target = new Path(dstDir, "outputDir");
+    runDistCp(inputDir, target);
+    ContractTestUtils.assertIsDirectory(dstFS, target);
+    verifyFileContents(dstFS, new Path(target, "inputDir/file1"), data1);
+    verifyFileContents(dstFS, new Path(target, "inputDir/file2"), data2);
+    verifyFileContents(dstFS, new Path(target, "inputDir/file3"), data3);
+  }
+
+  private void deepDirectoryStructure(FileSystem srcFS, Path srcDir, FileSystem dstFS, Path dstDir) throws Exception {
+    describe("copy a deep directory structure from local to remote");
+    Path inputDir = new Path(srcDir, "inputDir");
+    Path inputSubDir1 = new Path(inputDir, "subDir1");
+    Path inputSubDir2 = new Path(inputDir, "subDir2/subDir3");
+    Path inputFile1 = new Path(inputDir, "file1");
+    Path inputFile2 = new Path(inputSubDir1, "file2");
+    Path inputFile3 = new Path(inputSubDir2, "file3");
+    assertTrue(srcFS.mkdirs(inputSubDir1));
+    assertTrue(srcFS.mkdirs(inputSubDir2));
+    byte[] data1 = dataset(100, 33, 43);
+    createFile(srcFS, inputFile1, true, data1);
+    byte[] data2 = dataset(200, 43, 53);
+    createFile(srcFS, inputFile2, true, data2);
+    byte[] data3 = dataset(300, 53, 63);
+    createFile(srcFS, inputFile3, true, data3);
+    Path target = new Path(dstDir, "outputDir");
+    runDistCp(inputDir, target);
+    ContractTestUtils.assertIsDirectory(dstFS, target);
+    verifyFileContents(dstFS, new Path(target, "inputDir/file1"), data1);
+    verifyFileContents(dstFS,
+        new Path(target, "inputDir/subDir1/file2"), data2);
+    verifyFileContents(dstFS,
+        new Path(target, "inputDir/subDir2/subDir3/file3"), data3);
+  }
+
+  private void largeFiles(FileSystem srcFS, Path srcDir, FileSystem dstFS, Path dstDir) throws Exception {
+    describe("copy multiple large files from local to remote");
+    Path inputDir = new Path(srcDir, "inputDir");
+    Path inputFile1 = new Path(inputDir, "file1");
+    Path inputFile2 = new Path(inputDir, "file2");
+    Path inputFile3 = new Path(inputDir, "file3");
+    assertTrue(srcFS.mkdirs(inputDir));
+    byte[] data1 = dataset(1 * 1024 * 1024, 33, 43);
+    createFile(srcFS, inputFile1, true, data1);
+    byte[] data2 = dataset(2 * 1024 * 1024, 43, 53);
+    createFile(srcFS, inputFile2, true, data2);
+    byte[] data3 = dataset(3 * 1024 * 1024, 53, 63);
+    createFile(srcFS, inputFile3, true, data3);
+    Path target = new Path(dstDir, "outputDir");
+    runDistCp(inputDir, target);
+    ContractTestUtils.assertIsDirectory(dstFS, target);
+    verifyFileContents(dstFS, new Path(target, "inputDir/file1"), data1);
+    verifyFileContents(dstFS, new Path(target, "inputDir/file2"), data2);
+    verifyFileContents(dstFS, new Path(target, "inputDir/file3"), data3);
+  }
+
+  private void runDistCp(Path src, Path dst) throws Exception {
+    DistCpOptions options = new DistCpOptions(Arrays.asList(src), dst);
+    Job job = new DistCp(conf, options).execute();
+    // TODO assert
+  }
+
+  @Override
+  protected S3AContract createContract(Configuration conf) {
+    return new S3AContract(conf);
+  }
+}
