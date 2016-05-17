@@ -58,9 +58,9 @@ public abstract class AbstractContractDistCpTest
 
   @Override
   protected Configuration createConfiguration() {
-    Configuration conf = new Configuration();
-    conf.set("mapred.job.tracker", "local");
-    return conf;
+    Configuration newConf = new Configuration();
+    newConf.set("mapred.job.tracker", "local");
+    return newConf;
   }
 
   @Before
