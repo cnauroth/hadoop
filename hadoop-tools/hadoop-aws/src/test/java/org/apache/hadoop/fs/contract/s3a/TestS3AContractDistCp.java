@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.fs.contract.s3a;
 
+import static org.apache.hadoop.fs.s3a.Constants.MIN_MULTIPART_THRESHOLD;
+import static org.apache.hadoop.fs.s3a.Constants.MULTIPART_SIZE;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.tools.contract.AbstractContractDistCpTest;
 
@@ -25,6 +28,16 @@ import org.apache.hadoop.tools.contract.AbstractContractDistCpTest;
  * Contract test suite covering S3A integration with DistCp.
  */
 public class TestS3AContractDistCp extends AbstractContractDistCpTest {
+
+  private static final long MULTIPART_SETTING = 8 * 1024 * 1024; // 8 MB
+
+  @Override
+  protected Configuration createConfiguration() {
+    Configuration newConf = super.createConfiguration();
+    newConf.setLong(MIN_MULTIPART_THRESHOLD, MULTIPART_SETTING);
+    newConf.setLong(MULTIPART_SIZE, MULTIPART_SETTING);
+    return newConf;
+  }
 
   @Override
   protected S3AContract createContract(Configuration conf) {

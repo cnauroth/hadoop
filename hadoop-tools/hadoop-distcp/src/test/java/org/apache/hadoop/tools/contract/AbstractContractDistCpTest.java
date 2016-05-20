@@ -85,18 +85,6 @@ public abstract class AbstractContractDistCpTest
   }
 
   @Test
-  public void singleFileToRemote() throws Exception {
-    describe("copy a single file from local to remote");
-    singleFile(localFS, localDir, remoteFS, remoteDir);
-  }
-
-  @Test
-  public void multipleFilesToRemote() throws Exception {
-    describe("copy multiple files from local to remote");
-    multipleFiles(localFS, localDir, remoteFS, remoteDir);
-  }
-
-  @Test
   public void deepDirectoryStructureToRemote() throws Exception {
     describe("copy a deep directory structure from local to remote");
     deepDirectoryStructure(localFS, localDir, remoteFS, remoteDir);
@@ -109,18 +97,6 @@ public abstract class AbstractContractDistCpTest
   }
 
   @Test
-  public void singleFileFromRemote() throws Exception {
-    describe("copy a single file from remote to local");
-    singleFile(remoteFS, remoteDir, localFS, localDir);
-  }
-
-  @Test
-  public void multipleFilesFromRemote() throws Exception {
-    describe("copy multiple files from remote to local");
-    multipleFiles(remoteFS, remoteDir, localFS, localDir);
-  }
-
-  @Test
   public void deepDirectoryStructureFromRemote() throws Exception {
     describe("copy a deep directory structure from remote to local");
     deepDirectoryStructure(remoteFS, remoteDir, localFS, localDir);
@@ -130,58 +106,6 @@ public abstract class AbstractContractDistCpTest
   public void largeFilesFromRemote() throws Exception {
     describe("copy multiple large files from remote to local");
     largeFiles(remoteFS, remoteDir, localFS, localDir);
-  }
-
-  /**
-   * Executes a test using a single file.
-   *
-   * @param srcFS source FileSystem
-   * @param srcDir source directory
-   * @param dstFS destination FileSystem
-   * @param dstDir destination directory
-   * @throws Exception if there is a failure
-   */
-  private void singleFile(FileSystem srcFS, Path srcDir, FileSystem dstFS,
-      Path dstDir) throws Exception {
-    Path inputDir = new Path(srcDir, "inputDir");
-    Path inputFile1 = new Path(inputDir, "file1");
-    mkdirs(srcFS, inputDir);
-    byte[] data1 = dataset(100, 33, 43);
-    createFile(srcFS, inputFile1, true, data1);
-    Path target = new Path(dstDir, "outputDir");
-    runDistCp(inputDir, target);
-    ContractTestUtils.assertIsDirectory(dstFS, target);
-    verifyFileContents(dstFS, new Path(target, "inputDir/file1"), data1);
-  }
-
-  /**
-   * Executes a test using multiple files.
-   *
-   * @param srcFS source FileSystem
-   * @param srcDir source directory
-   * @param dstFS destination FileSystem
-   * @param dstDir destination directory
-   * @throws Exception if there is a failure
-   */
-  private void multipleFiles(FileSystem srcFS, Path srcDir, FileSystem dstFS,
-      Path dstDir) throws Exception {
-    Path inputDir = new Path(srcDir, "inputDir");
-    Path inputFile1 = new Path(inputDir, "file1");
-    Path inputFile2 = new Path(inputDir, "file2");
-    Path inputFile3 = new Path(inputDir, "file3");
-    mkdirs(srcFS, inputDir);
-    byte[] data1 = dataset(100, 33, 43);
-    createFile(srcFS, inputFile1, true, data1);
-    byte[] data2 = dataset(200, 43, 53);
-    createFile(srcFS, inputFile2, true, data2);
-    byte[] data3 = dataset(300, 53, 63);
-    createFile(srcFS, inputFile3, true, data3);
-    Path target = new Path(dstDir, "outputDir");
-    runDistCp(inputDir, target);
-    ContractTestUtils.assertIsDirectory(dstFS, target);
-    verifyFileContents(dstFS, new Path(target, "inputDir/file1"), data1);
-    verifyFileContents(dstFS, new Path(target, "inputDir/file2"), data2);
-    verifyFileContents(dstFS, new Path(target, "inputDir/file3"), data3);
   }
 
   /**
@@ -235,11 +159,14 @@ public abstract class AbstractContractDistCpTest
     Path inputFile2 = new Path(inputDir, "file2");
     Path inputFile3 = new Path(inputDir, "file3");
     mkdirs(srcFS, inputDir);
-    byte[] data1 = dataset(1 * 1024 * 1024, 33, 43);
+    int fileSizeKb = conf.getInt("scale.test.distcp.file.size.kb", 10 * 1024);
+    int fileSizeMb = fileSizeKb * 1024;
+    getLog().info("{} with file size {}", testName.getMethodName(), fileSizeMb);
+    byte[] data1 = dataset((fileSizeMb + 1) * 1024 * 1024, 33, 43);
     createFile(srcFS, inputFile1, true, data1);
-    byte[] data2 = dataset(2 * 1024 * 1024, 43, 53);
+    byte[] data2 = dataset((fileSizeMb + 2) * 1024 * 1024, 43, 53);
     createFile(srcFS, inputFile2, true, data2);
-    byte[] data3 = dataset(3 * 1024 * 1024, 53, 63);
+    byte[] data3 = dataset((fileSizeMb + 3) * 1024 * 1024, 53, 63);
     createFile(srcFS, inputFile3, true, data3);
     Path target = new Path(dstDir, "outputDir");
     runDistCp(inputDir, target);
