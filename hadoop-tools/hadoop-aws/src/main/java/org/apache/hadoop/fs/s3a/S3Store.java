@@ -85,6 +85,7 @@ import org.apache.hadoop.fs.StorageStatistics;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.s3native.S3xLoginHelper;
 import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.VersionInfo;
 
 import static org.apache.hadoop.fs.s3a.Constants.*;
@@ -92,7 +93,6 @@ import static org.apache.hadoop.fs.s3a.S3AUtils.*;
 import static org.apache.hadoop.fs.s3a.Statistic.*;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  */
@@ -113,7 +113,7 @@ class S3Store extends Configured implements Closeable {
   private TransferManager transfers;
   private ExecutorService threadPoolExecutor;
   private long multiPartThreshold;
-  public static final Logger LOG = LoggerFactory.getLogger(S3AFileSystem.class);
+  public static final Logger LOG = S3AFileSystem.LOG;
   private CannedAccessControlList cannedACL;
   private String serverSideEncryptionAlgorithm;
   private S3AInstrumentation instrumentation;
@@ -130,49 +130,25 @@ class S3Store extends Configured implements Closeable {
    *   for this FileSystem
    * @param conf the configuration
    */
-  public S3Store(URI name, Configuration conf, Statistics statistics)
+  public S3Store(URI name, URI uri, Statistics statistics,
+      S3AStorageStatistics storageStatistics, Configuration conf)
       throws IOException {
+    this.uri = uri;
+    this.statistics = statistics;
     setConf(conf);
     try {
       instrumentation = new S3AInstrumentation(name);
 
-      uri = S3xLoginHelper.buildFSURI(name);
       workingDir = new Path("/user", System.getProperty("user.name"))
           .makeQualified(this.uri, this.getWorkingDirectory());
 
       bucket = name.getHost();
 
-      AWSCredentialsProvider credentials =
-          getAWSCredentialsProvider(name, conf);
-
-      ClientConfiguration awsConf = new ClientConfiguration();
-      awsConf.setMaxConnections(intOption(conf, MAXIMUM_CONNECTIONS,
-          DEFAULT_MAXIMUM_CONNECTIONS, 1));
-      boolean secureConnections = conf.getBoolean(SECURE_CONNECTIONS,
-          DEFAULT_SECURE_CONNECTIONS);
-      awsConf.setProtocol(secureConnections ?  Protocol.HTTPS : Protocol.HTTP);
-      awsConf.setMaxErrorRetry(intOption(conf, MAX_ERROR_RETRIES,
-          DEFAULT_MAX_ERROR_RETRIES, 0));
-      awsConf.setConnectionTimeout(intOption(conf, ESTABLISH_TIMEOUT,
-          DEFAULT_ESTABLISH_TIMEOUT, 0));
-      awsConf.setSocketTimeout(intOption(conf, SOCKET_TIMEOUT,
-          DEFAULT_SOCKET_TIMEOUT, 0));
-      int sockSendBuffer = intOption(conf, SOCKET_SEND_BUFFER,
-          DEFAULT_SOCKET_SEND_BUFFER, 2048);
-      int sockRecvBuffer = intOption(conf, SOCKET_RECV_BUFFER,
-          DEFAULT_SOCKET_RECV_BUFFER, 2048);
-      awsConf.setSocketBufferSizeHints(sockSendBuffer, sockRecvBuffer);
-      String signerOverride = conf.getTrimmed(SIGNING_ALGORITHM, "");
-      if (!signerOverride.isEmpty()) {
-        LOG.debug("Signer override = {}", signerOverride);
-        awsConf.setSignerOverride(signerOverride);
-      }
-
-      initProxySupport(conf, awsConf, secureConnections);
-
-      initUserAgent(conf, awsConf);
-
-      initAmazonS3Client(conf, credentials, awsConf);
+      Class<? extends S3ClientFactory> s3ClientFactoryClass = conf.getClass(
+          "fs.s3a.s3.client.factory.impl",
+          S3ClientFactory.DefaultS3ClientFactory.class, S3ClientFactory.class);
+      s3 = ReflectionUtils.newInstance(s3ClientFactoryClass, conf)
+          .createS3Client(name, uri);
 
       maxKeys = intOption(conf, MAX_PAGING_KEYS, DEFAULT_MAX_PAGING_KEYS, 1);
       partSize = conf.getLong(MULTIPART_SIZE, DEFAULT_MULTIPART_SIZE);
@@ -192,15 +168,7 @@ class S3Store extends Configured implements Closeable {
       enableMultiObjectsDelete = conf.getBoolean(ENABLE_MULTI_DELETE, true);
 
       readAhead = longOption(conf, READAHEAD_RANGE, DEFAULT_READAHEAD_RANGE, 0);
-      storageStatistics = (S3AStorageStatistics)
-          GlobalStorageStatistics.INSTANCE
-              .put(S3AStorageStatistics.NAME,
-                  new GlobalStorageStatistics.StorageStatisticsProvider() {
-                    @Override
-                    public StorageStatistics provide() {
-                      return new S3AStorageStatistics();
-                    }
-                  });
+      this.storageStatistics = storageStatistics;
 
       int maxThreads = conf.getInt(MAX_THREADS, DEFAULT_MAX_THREADS);
       if (maxThreads < 2) {
@@ -260,101 +228,12 @@ class S3Store extends Configured implements Closeable {
     }
   }
 
-  void initProxySupport(Configuration conf, ClientConfiguration awsConf,
-      boolean secureConnections) throws IllegalArgumentException {
-    String proxyHost = conf.getTrimmed(PROXY_HOST, "");
-    int proxyPort = conf.getInt(PROXY_PORT, -1);
-    if (!proxyHost.isEmpty()) {
-      awsConf.setProxyHost(proxyHost);
-      if (proxyPort >= 0) {
-        awsConf.setProxyPort(proxyPort);
-      } else {
-        if (secureConnections) {
-          LOG.warn("Proxy host set without port. Using HTTPS default 443");
-          awsConf.setProxyPort(443);
-        } else {
-          LOG.warn("Proxy host set without port. Using HTTP default 80");
-          awsConf.setProxyPort(80);
-        }
-      }
-      String proxyUsername = conf.getTrimmed(PROXY_USERNAME);
-      String proxyPassword = conf.getTrimmed(PROXY_PASSWORD);
-      if ((proxyUsername == null) != (proxyPassword == null)) {
-        String msg = "Proxy error: " + PROXY_USERNAME + " or " +
-            PROXY_PASSWORD + " set without the other.";
-        LOG.error(msg);
-        throw new IllegalArgumentException(msg);
-      }
-      awsConf.setProxyUsername(proxyUsername);
-      awsConf.setProxyPassword(proxyPassword);
-      awsConf.setProxyDomain(conf.getTrimmed(PROXY_DOMAIN));
-      awsConf.setProxyWorkstation(conf.getTrimmed(PROXY_WORKSTATION));
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Using proxy server {}:{} as user {} with password {} on " +
-                "domain {} as workstation {}", awsConf.getProxyHost(),
-            awsConf.getProxyPort(),
-            String.valueOf(awsConf.getProxyUsername()),
-            awsConf.getProxyPassword(), awsConf.getProxyDomain(),
-            awsConf.getProxyWorkstation());
-      }
-    } else if (proxyPort >= 0) {
-      String msg = "Proxy error: " + PROXY_PORT + " set without " + PROXY_HOST;
-      LOG.error(msg);
-      throw new IllegalArgumentException(msg);
-    }
-  }
-
   /**
    * Get S3A Instrumentation. For test purposes.
    * @return this instance's instrumentation.
    */
   public S3AInstrumentation getInstrumentation() {
     return instrumentation;
-  }
-
-  /**
-   * Initializes the User-Agent header to send in HTTP requests to the S3
-   * back-end.  We always include the Hadoop version number.  The user also may
-   * set an optional custom prefix to put in front of the Hadoop version number.
-   * The AWS SDK interally appends its own information, which seems to include
-   * the AWS SDK version, OS and JVM version.
-   *
-   * @param conf Hadoop configuration
-   * @param awsConf AWS SDK configuration
-   */
-  private void initUserAgent(Configuration conf, ClientConfiguration awsConf) {
-    String userAgent = "Hadoop " + VersionInfo.getVersion();
-    String userAgentPrefix = conf.getTrimmed(USER_AGENT_PREFIX, "");
-    if (!userAgentPrefix.isEmpty()) {
-      userAgent = userAgentPrefix + ", " + userAgent;
-    }
-    LOG.debug("Using User-Agent: {}", userAgent);
-    awsConf.setUserAgent(userAgent);
-  }
-
-  private void initAmazonS3Client(Configuration conf,
-      AWSCredentialsProvider credentials, ClientConfiguration awsConf)
-      throws IllegalArgumentException {
-    s3 = new AmazonS3Client(credentials, awsConf);
-    String endPoint = conf.getTrimmed(ENDPOINT, "");
-    if (!endPoint.isEmpty()) {
-      try {
-        s3.setEndpoint(endPoint);
-      } catch (IllegalArgumentException e) {
-        String msg = "Incorrect endpoint: "  + e.getMessage();
-        LOG.error(msg);
-        throw new IllegalArgumentException(msg, e);
-      }
-    }
-    enablePathStyleAccessIfRequired(conf);
-  }
-
-  private void enablePathStyleAccessIfRequired(Configuration conf) {
-    final boolean pathStyleAccess = conf.getBoolean(PATH_STYLE_ACCESS, false);
-    if (pathStyleAccess) {
-      LOG.debug("Enabling path style access!");
-      s3.setS3ClientOptions(new S3ClientOptions().withPathStyleAccess(true));
-    }
   }
 
   private void initTransferManager() {
@@ -399,57 +278,6 @@ class S3Store extends Configured implements Closeable {
         }
       }
     }
-  }
-
-  /**
-   * Create the standard credential provider, or load in one explicitly
-   * identified in the configuration.
-   * @param binding the S3 binding/bucket.
-   * @param conf configuration
-   * @return a credential provider
-   * @throws IOException on any problem. Class construction issues may be
-   * nested inside the IOE.
-   */
-  private AWSCredentialsProvider getAWSCredentialsProvider(URI binding,
-      Configuration conf) throws IOException {
-    AWSCredentialsProvider credentials;
-
-    String className = conf.getTrimmed(AWS_CREDENTIALS_PROVIDER);
-    if (StringUtils.isEmpty(className)) {
-      S3xLoginHelper.Login creds = getAWSAccessKeys(binding, conf);
-      credentials = new AWSCredentialsProviderChain(
-          new BasicAWSCredentialsProvider(
-              creds.getUser(), creds.getPassword()),
-          new InstanceProfileCredentialsProvider(),
-          new EnvironmentVariableCredentialsProvider());
-
-    } else {
-      try {
-        LOG.debug("Credential provider class is {}", className);
-        Class<?> credClass = Class.forName(className);
-        try {
-          credentials =
-              (AWSCredentialsProvider)credClass.getDeclaredConstructor(
-                  URI.class, Configuration.class).newInstance(this.uri, conf);
-        } catch (NoSuchMethodException | SecurityException e) {
-          credentials =
-              (AWSCredentialsProvider)credClass.getDeclaredConstructor()
-                  .newInstance();
-        }
-      } catch (ClassNotFoundException e) {
-        throw new IOException(className + " not found.", e);
-      } catch (NoSuchMethodException | SecurityException e) {
-        throw new IOException(String.format("%s constructor exception.  A "
-            + "class specified in %s must provide an accessible constructor "
-            + "accepting URI and Configuration, or an accessible default "
-            + "constructor.", className, AWS_CREDENTIALS_PROVIDER), e);
-      } catch (ReflectiveOperationException | IllegalArgumentException e) {
-        throw new IOException(className + " instantiation exception.", e);
-      }
-      LOG.debug("Using {} for {}.", credentials, this.uri);
-    }
-
-    return credentials;
   }
 
   /**
@@ -1810,40 +1638,5 @@ class S3Store extends Configured implements Closeable {
 
   private long getDefaultBlockSize(Path f) {
     return getDefaultBlockSize();
-  }
-
-  /**
-   * This is a simple encapsulation of the
-   * S3 access key and secret.
-   */
-  static class AWSAccessKeys {
-    private String accessKey = null;
-    private String accessSecret = null;
-
-    /**
-     * Constructor.
-     * @param key - AWS access key
-     * @param secret - AWS secret key
-     */
-    public AWSAccessKeys(String key, String secret) {
-      accessKey = key;
-      accessSecret = secret;
-    }
-
-    /**
-     * Return the AWS access key.
-     * @return key
-     */
-    public String getAccessKey() {
-      return accessKey;
-    }
-
-    /**
-     * Return the AWS secret key.
-     * @return secret
-     */
-    public String getAccessSecret() {
-      return accessSecret;
-    }
   }
 }

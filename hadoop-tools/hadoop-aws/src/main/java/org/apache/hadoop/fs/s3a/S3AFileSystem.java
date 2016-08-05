@@ -139,7 +139,17 @@ public class S3AFileSystem extends FileSystem {
   public void initialize(URI name, Configuration conf) throws IOException {
     super.initialize(name, conf);
     setConf(conf);
-    s3Store = new S3Store(name, conf, statistics);
+    storageStatistics = (S3AStorageStatistics)
+        GlobalStorageStatistics.INSTANCE
+            .put(S3AStorageStatistics.NAME,
+                new GlobalStorageStatistics.StorageStatisticsProvider() {
+                  @Override
+                  public StorageStatistics provide() {
+                    return new S3AStorageStatistics();
+                  }
+                });
+    uri = S3xLoginHelper.buildFSURI(name);
+    s3Store = new S3Store(name, uri, statistics, storageStatistics, conf);
     instrumentation = new S3AInstrumentation(name);
   }
 
