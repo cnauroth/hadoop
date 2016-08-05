@@ -21,7 +21,7 @@ package org.apache.hadoop.fs.s3a;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -71,10 +71,10 @@ public class S3AFastOutputStream extends OutputStream {
   private static final Logger LOG = S3AFileSystem.LOG;
   private final String key;
   private final String bucket;
-  private final AmazonS3Client client;
+  private final AmazonS3 client;
   private final int partSize;
   private final int multiPartThreshold;
-  private final S3AFileSystem fs;
+  private final S3Store s3Store;
   private final CannedAccessControlList cannedACL;
   private final ProgressListener progressListener;
   private final ListeningExecutorService executorService;
@@ -90,8 +90,8 @@ public class S3AFastOutputStream extends OutputStream {
    * the stream a part is uploaded immediately (by using the low-level
    * multi-part upload API on the AmazonS3Client).
    *
-   * @param client AmazonS3Client used for S3 calls
-   * @param fs S3AFilesystem
+   * @param client AmazonS3 client used for S3 calls
+   * @param s3Store S3Store
    * @param bucket S3 bucket name
    * @param key S3 key name
    * @param progress report progress in order to prevent timeouts
@@ -102,8 +102,8 @@ public class S3AFastOutputStream extends OutputStream {
    * @param threadPoolExecutor thread factory
    * @throws IOException on any problem
    */
-  public S3AFastOutputStream(AmazonS3Client client,
-      S3AFileSystem fs,
+  public S3AFastOutputStream(AmazonS3 client,
+      S3Store s3Store,
       String bucket,
       String key,
       Progressable progress,
@@ -115,7 +115,7 @@ public class S3AFastOutputStream extends OutputStream {
     this.bucket = bucket;
     this.key = key;
     this.client = client;
-    this.fs = fs;
+    this.s3Store = s3Store;
     this.cannedACL = cannedACL;
     //Ensure limit as ByteArrayOutputStream size cannot exceed Integer.MAX_VALUE
     if (partSize > Integer.MAX_VALUE) {
@@ -134,7 +134,7 @@ public class S3AFastOutputStream extends OutputStream {
     }
     this.bufferLimit = this.multiPartThreshold;
     this.closed = false;
-    int initialBufferSize = this.fs.getConf()
+    int initialBufferSize = this.s3Store.getConf()
         .getInt(Constants.FAST_BUFFER_SIZE, Constants.DEFAULT_FAST_BUFFER_SIZE);
     if (initialBufferSize < 0) {
       LOG.warn("s3a: FAST_BUFFER_SIZE should be a positive number. Using " +
@@ -245,7 +245,7 @@ public class S3AFastOutputStream extends OutputStream {
       } else {
         int size = buffer.size();
         if (size > 0) {
-          fs.incrementPutStartStatistics(size);
+          s3Store.incrementPutStartStatistics(size);
           //send last part
           multiPartUpload.uploadPartAsync(new ByteArrayInputStream(buffer
               .toByteArray()), size);
@@ -255,7 +255,7 @@ public class S3AFastOutputStream extends OutputStream {
         multiPartUpload.complete(partETags);
       }
       // This will delete unnecessary fake parent directories
-      fs.finishedWrite(key);
+      s3Store.finishedWrite(key);
       LOG.debug("Upload complete for bucket '{}' key '{}'", bucket, key);
     } finally {
       buffer = null;
@@ -268,7 +268,7 @@ public class S3AFastOutputStream extends OutputStream {
    * @return the metadata to use/extend.
    */
   private ObjectMetadata createDefaultMetadata() {
-    return fs.newObjectMetadata();
+    return s3Store.newObjectMetadata();
   }
 
   private MultiPartUpload initiateMultiPartUpload() throws IOException {
@@ -292,7 +292,7 @@ public class S3AFastOutputStream extends OutputStream {
     final int size = buffer.size();
     om.setContentLength(size);
     final PutObjectRequest putObjectRequest =
-        fs.newPutObjectRequest(key,
+        s3Store.newPutObjectRequest(key,
             om,
             new ByteArrayInputStream(buffer.toByteArray()));
     putObjectRequest.setGeneralProgressListener(progressListener);
@@ -300,7 +300,7 @@ public class S3AFastOutputStream extends OutputStream {
         executorService.submit(new Callable<PutObjectResult>() {
           @Override
           public PutObjectResult call() throws Exception {
-            fs.incrementPutStartStatistics(size);
+            s3Store.incrementPutStartStatistics(size);
             return client.putObject(putObjectRequest);
           }
         });
@@ -341,7 +341,7 @@ public class S3AFastOutputStream extends OutputStream {
             public PartETag call() throws Exception {
               LOG.debug("Uploading part {} for id '{}'", currentPartNumber,
                   uploadId);
-              return fs.uploadPart(request).getPartETag();
+              return s3Store.uploadPart(request).getPartETag();
             }
           });
       partETagsFutures.add(partETagFuture);
@@ -384,7 +384,7 @@ public class S3AFastOutputStream extends OutputStream {
     public void abort() {
       LOG.warn("Aborting multi-part upload with id '{}'", uploadId);
       try {
-        fs.incrementStatistic(OBJECT_MULTIPART_UPLOAD_ABORTED);
+        s3Store.incrementStatistic(OBJECT_MULTIPART_UPLOAD_ABORTED);
         client.abortMultipartUpload(new AbortMultipartUploadRequest(bucket,
             key, uploadId));
       } catch (Exception e2) {

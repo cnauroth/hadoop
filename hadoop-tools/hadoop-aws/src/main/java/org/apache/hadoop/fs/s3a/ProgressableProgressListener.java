@@ -33,7 +33,7 @@ import static com.amazonaws.event.ProgressEventType.TRANSFER_PART_STARTED_EVENT;
  */
 public class ProgressableProgressListener implements ProgressListener {
   private static final Logger LOG = S3AFileSystem.LOG;
-  private final S3AFileSystem fs;
+  private final S3Store s3Store;
   private final String key;
   private final Progressable progress;
   private long lastBytesTransferred;
@@ -41,16 +41,16 @@ public class ProgressableProgressListener implements ProgressListener {
 
   /**
    * Instantiate.
-   * @param fs filesystem: will be invoked with statistics updates
+   * @param s3Store: will be invoked with statistics updates
    * @param key key for the upload
    * @param upload source of events
    * @param progress optional callback for progress.
    */
-  public ProgressableProgressListener(S3AFileSystem fs,
+  public ProgressableProgressListener(S3Store s3Store,
       String key,
       Upload upload,
       Progressable progress) {
-    this.fs = fs;
+    this.s3Store = s3Store;
     this.key = key;
     this.upload = upload;
     this.progress = progress;
@@ -67,12 +67,12 @@ public class ProgressableProgressListener implements ProgressListener {
     ProgressEventType pet = progressEvent.getEventType();
     if (pet == TRANSFER_PART_STARTED_EVENT ||
         pet == TRANSFER_COMPLETED_EVENT) {
-      fs.incrementWriteOperations();
+      s3Store.incrementWriteOperations();
     }
 
     long transferred = upload.getProgress().getBytesTransferred();
     long delta = transferred - lastBytesTransferred;
-    fs.incrementPutProgressStatistics(key, delta);
+    s3Store.incrementPutProgressStatistics(key, delta);
     lastBytesTransferred = transferred;
   }
 
@@ -86,7 +86,7 @@ public class ProgressableProgressListener implements ProgressListener {
         lastBytesTransferred;
     if (delta > 0) {
       LOG.debug("S3A write delta changed after finished: {} bytes", delta);
-      fs.incrementPutProgressStatistics(key, delta);
+      s3Store.incrementPutProgressStatistics(key, delta);
     }
     return delta;
   }
