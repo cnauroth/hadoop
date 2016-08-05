@@ -127,6 +127,7 @@ public class S3AFileSystem extends FileSystem {
   private long readAhead;
   private S3AInputPolicy inputPolicy;
   private S3Store s3Store;
+  private AbstractS3AccessPolicy s3AccessPolicy;
 
   // The maximum number of entries that can be deleted in any call to s3
   private static final int MAX_ENTRIES_TO_DELETE = 1000;
@@ -150,6 +151,7 @@ public class S3AFileSystem extends FileSystem {
                 });
     uri = S3xLoginHelper.buildFSURI(name);
     s3Store = new S3Store(name, uri, statistics, storageStatistics, conf);
+    s3AccessPolicy = new DirectS3AccessPolicy(s3Store);
     instrumentation = new S3AInstrumentation(name);
   }
 
@@ -242,7 +244,7 @@ public class S3AFileSystem extends FileSystem {
   @Override
   public FSDataInputStream open(Path f, int bufferSize)
       throws IOException {
-    return s3Store.open(f, bufferSize);
+    return s3AccessPolicy.open(f, bufferSize);
   }
 
   /**
@@ -263,7 +265,7 @@ public class S3AFileSystem extends FileSystem {
   public FSDataOutputStream create(Path f, FsPermission permission,
       boolean overwrite, int bufferSize, short replication, long blockSize,
       Progressable progress) throws IOException {
-    return s3Store.create(f, permission, overwrite, bufferSize, replication,
+    return s3AccessPolicy.create(f, permission, overwrite, bufferSize, replication,
         blockSize, progress);
   }
 
@@ -302,7 +304,7 @@ public class S3AFileSystem extends FileSystem {
    */
   @Override
   public boolean rename(Path src, Path dst) throws IOException {
-    return s3Store.rename(src, dst);
+    return s3AccessPolicy.rename(src, dst);
   }
 
   /**
@@ -347,7 +349,7 @@ public class S3AFileSystem extends FileSystem {
    */
   @Override
   public boolean delete(Path f, boolean recursive) throws IOException {
-    return s3Store.delete(f, recursive);
+    return s3AccessPolicy.delete(f, recursive);
   }
 
   /**
@@ -362,7 +364,7 @@ public class S3AFileSystem extends FileSystem {
   @Override
   public FileStatus[] listStatus(Path f) throws FileNotFoundException,
       IOException {
-    return s3Store.listStatus(f);
+    return s3AccessPolicy.listStatus(f);
   }
 
   /**
@@ -400,7 +402,7 @@ public class S3AFileSystem extends FileSystem {
   @Override
   public boolean mkdirs(Path path, FsPermission permission) throws IOException,
       FileAlreadyExistsException {
-    return s3Store.mkdirs(path, permission);
+    return s3AccessPolicy.mkdirs(path, permission);
   }
 
   /**
@@ -412,7 +414,7 @@ public class S3AFileSystem extends FileSystem {
    */
   @Override
   public S3AFileStatus getFileStatus(Path f) throws IOException {
-    return s3Store.getFileStatus(f);
+    return s3AccessPolicy.getFileStatus(f);
   }
 
   /**
@@ -435,7 +437,7 @@ public class S3AFileSystem extends FileSystem {
   @Override
   public void copyFromLocalFile(boolean delSrc, boolean overwrite, Path src,
       Path dst) throws IOException {
-    s3Store.copyFromLocalFile(delSrc, overwrite, src, dst);
+    s3AccessPolicy.copyFromLocalFile(delSrc, overwrite, src, dst);
   }
 
   /**
