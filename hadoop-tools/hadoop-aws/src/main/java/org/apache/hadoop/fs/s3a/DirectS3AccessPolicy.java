@@ -20,6 +20,8 @@ package org.apache.hadoop.fs.s3a;
 
 import java.io.IOException;
 
+import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -27,8 +29,22 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 
+/**
+ * An access policy that simply interacts directly with S3 by delegating
+ * directly to {@link S3Store} for all operations.  This access policy is
+ * subject to the eventual consistency model presented by the S3 service.  There
+ * is no external cross-validation or caching of file system metadata.  This
+ * access policy is the default mode of operation for S3A.
+ */
+@InterfaceAudience.Private
+@InterfaceStability.Unstable
 class DirectS3AccessPolicy extends AbstractS3AccessPolicy {
 
+  /**
+   * Creates a DirectS3AccessPolicy.
+   *
+   * @param s3Store S3Store used to interact with S3
+   */
   public DirectS3AccessPolicy(S3Store s3Store)
       throws IOException {
     super(s3Store);
@@ -37,6 +53,7 @@ class DirectS3AccessPolicy extends AbstractS3AccessPolicy {
   @Override
   public void copyFromLocalFile(boolean delSrc, boolean overwrite,
       Path src, Path dst) throws IOException {
+    s3Store.copyFromLocalFile(delSrc, overwrite, src, dst);
   }
 
   @Override
@@ -77,5 +94,10 @@ class DirectS3AccessPolicy extends AbstractS3AccessPolicy {
   @Override
   public boolean rename(Path src, Path dst) throws IOException {
     return s3Store.rename(src, dst);
+  }
+
+  @Override
+  public String toString() {
+    return "direct";
   }
 }

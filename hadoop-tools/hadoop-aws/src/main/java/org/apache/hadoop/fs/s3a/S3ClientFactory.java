@@ -49,7 +49,7 @@ import org.slf4j.Logger;
  * Factory for creation of S3 client instances to be used by {@link S3Store}.
  */
 @InterfaceAudience.Private
-@InterfaceStability.Evolving
+@InterfaceStability.Unstable
 interface S3ClientFactory {
 
   /**

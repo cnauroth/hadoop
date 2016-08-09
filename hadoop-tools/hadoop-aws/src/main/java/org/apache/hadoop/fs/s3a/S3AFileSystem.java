@@ -407,6 +407,7 @@ public class S3AFileSystem extends FileSystem {
     final StringBuilder sb = new StringBuilder(getClass().getSimpleName());
     sb.append('{');
     sb.append("s3Store=").append(s3Store);
+    sb.append("s3AccessPolicy=").append(s3AccessPolicy);
     sb.append('}');
     return sb.toString();
   }

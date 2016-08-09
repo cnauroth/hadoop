@@ -83,7 +83,7 @@ import org.slf4j.Logger;
 /**
  */
 @InterfaceAudience.Private
-@InterfaceStability.Evolving
+@InterfaceStability.Unstable
 class S3Store extends Configured implements Closeable {
 
   private static final Logger LOG = S3AFileSystem.LOG;
