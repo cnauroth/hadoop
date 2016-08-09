@@ -81,6 +81,10 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.slf4j.Logger;
 
 /**
+ * Encapsulates S3 calls required for {@link S3AFileSystem} operations.  In
+ * general, the methods of this class will mirror the methods defined on
+ * {@link FileSystem}, and the implementation of each method will translate it
+ * to a set of S3 service calls.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
@@ -114,6 +118,16 @@ class S3Store extends Configured implements Closeable {
    * @param name a uri whose authority section names the host, port, etc.
    *   for this FileSystem
    * @param conf the configuration
+   */
+
+  /**
+   * Creates a new S3Store.
+   *
+   * @param name raw input S3A file system URI
+   * @param statistics file system statistics
+   * @param storageStatistics S3A storage statistics
+   * @param conf the configuration
+   * @throws IOException IO problem
    */
   public S3Store(URI name, Statistics statistics,
       S3AStorageStatistics storageStatistics, Configuration conf)
@@ -197,7 +211,7 @@ class S3Store extends Configured implements Closeable {
    * @throws FileNotFoundException the bucket is absent
    * @throws IOException any other problem talking to S3
    */
-  protected void verifyBucketExists()
+  private void verifyBucketExists()
       throws FileNotFoundException, IOException {
     try {
       if (!s3.doesBucketExist(bucket)) {
@@ -216,10 +230,6 @@ class S3Store extends Configured implements Closeable {
     }
   }
 
-  /**
-   * Get S3A Instrumentation. For test purposes.
-   * @return this instance's instrumentation.
-   */
   public S3AInstrumentation getInstrumentation() {
     return instrumentation;
   }
@@ -277,27 +287,14 @@ class S3Store extends Configured implements Closeable {
     return s3;
   }
 
-  /**
-   * Returns a URI whose scheme and authority identify this FileSystem.
-   */
   public URI getUri() {
     return uri;
   }
 
-  /**
-   * Get the input policy for this FS instance.
-   * @return the input policy
-   */
-  @InterfaceStability.Unstable
   public S3AInputPolicy getInputPolicy() {
     return inputPolicy;
   }
 
-  /**
-   * Change the input policy for this FS.
-   * @param inputPolicy new policy
-   */
-  @InterfaceStability.Unstable
   public void setInputPolicy(S3AInputPolicy inputPolicy) {
     Objects.requireNonNull(inputPolicy, "Null inputStrategy");
     LOG.debug("Setting input strategy: {}", inputPolicy);
@@ -322,11 +319,6 @@ class S3Store extends Configured implements Closeable {
     return new Path("/" + key);
   }
 
-  /**
-     * Opens an FSDataInputStream at the indicated Path.
-     * @param f the file name to open
-     * @param bufferSize the size of the buffer to be used.
-     */
   public FSDataInputStream open(Path f, int bufferSize)
       throws IOException {
 
@@ -342,20 +334,6 @@ class S3Store extends Configured implements Closeable {
         inputPolicy));
   }
 
-  /**
-   * Create an FSDataOutputStream at the indicated Path with write-progress
-   * reporting.
-   * @param f the file name to open
-   * @param permission the permission to set.
-   * @param overwrite if a file with this name already exists, then if true,
-   *   the file will be overwritten, and if false an error will be thrown.
-   * @param bufferSize the size of the buffer to be used.
-   * @param replication required block replication for the file.
-   * @param blockSize the requested block size.
-   * @param progress the progress reporter.
-   * @throws IOException in the event of IO related errors.
-   * @see #setPermission(Path, FsPermission)
-   */
   public FSDataOutputStream create(Path f, FsPermission permission,
       boolean overwrite, int bufferSize, short replication, long blockSize,
       Progressable progress) throws IOException {
@@ -404,38 +382,6 @@ class S3Store extends Configured implements Closeable {
         null);
   }
 
-  /**
-   * Append to an existing file (optional operation).
-   * @param f the existing file to be appended.
-   * @param bufferSize the size of the buffer to be used.
-   * @param progress for reporting progress if it is not null.
-   * @throws IOException indicating that append is not supported.
-   */
-  public FSDataOutputStream append(Path f, int bufferSize,
-      Progressable progress) throws IOException {
-    throw new IOException("Not supported");
-  }
-
-
-  /**
-   * Renames Path src to Path dst.  Can take place on local fs
-   * or remote DFS.
-   *
-   * Warning: S3 does not support renames. This method does a copy which can
-   * take S3 some time to execute with large files and directories. Since
-   * there is no Progressable passed in, this can time out jobs.
-   *
-   * Note: This implementation differs with other S3 drivers. Specifically:
-   *       Fails if src is a file and dst is a directory.
-   *       Fails if src is a directory and dst is a file.
-   *       Fails if the parent of dst does not exist or is a file.
-   *       Fails if dst is a directory that is not empty.
-   *
-   * @param src path to be renamed
-   * @param dst new path after rename
-   * @throws IOException on IO failure
-   * @return true if rename is successful
-   */
   public boolean rename(Path src, Path dst) throws IOException {
     try {
       return innerRename(src, dst);
@@ -445,8 +391,8 @@ class S3Store extends Configured implements Closeable {
   }
 
   /**
-   * The inner rename operation. See {@link #rename(Path, Path)} for
-   * the description of the operation.
+   * The inner rename operation. See {@link S3AFileSystem#rename(Path, Path)}
+   * for the description of the operation.
    * @param src path to be renamed
    * @param dst new path after rename
    * @return true if rename is successful
@@ -839,17 +785,6 @@ class S3Store extends Configured implements Closeable {
     }
   }
 
-  /**
-   * Delete a Path. This operation is at least {@code O(files)}, with
-   * added overheads to enumerate the path. It is also not atomic.
-   *
-   * @param f the path to delete.
-   * @param recursive if path is a directory and set to
-   * true, the directory is deleted else throws an exception. In
-   * case of a file the recursive can be set to either true or false.
-   * @return  true if delete is successful else false.
-   * @throws IOException due to inability to delete a directory or file.
-   */
   public boolean delete(Path f, boolean recursive) throws IOException {
     try {
       return innerDelete(getFileStatus(f), recursive);
@@ -863,7 +798,7 @@ class S3Store extends Configured implements Closeable {
   }
 
   /**
-   * Delete an object. See {@link #delete(Path, boolean)}.
+   * Delete an object. See {@link S3AFileSystem#delete(Path, boolean)}.
    *
    * @param status fileStatus object
    * @param recursive if path is a directory and set to
@@ -953,15 +888,6 @@ class S3Store extends Configured implements Closeable {
     }
   }
 
-  /**
-   * List the statuses of the files/directories in the given path if the path is
-   * a directory.
-   *
-   * @param f given path
-   * @return the statuses of the files/directories in the given patch
-   * @throws FileNotFoundException when the path does not exist;
-   *         IOException see specific implementation
-   */
   public FileStatus[] listStatus(Path f) throws FileNotFoundException,
       IOException {
     try {
@@ -1045,37 +971,14 @@ class S3Store extends Configured implements Closeable {
     return result.toArray(new FileStatus[result.size()]);
   }
 
-  /**
-   * Set the current working directory for the given file system. All relative
-   * paths will be resolved relative to it.
-   *
-   * @param newDir the current working directory.
-   */
   public void setWorkingDirectory(Path newDir) {
     workingDir = newDir;
   }
 
-  /**
-   * Get the current working directory for the given file system.
-   * @return the directory pathname
-   */
   public Path getWorkingDirectory() {
     return workingDir;
   }
 
-  /**
-   *
-   * Make the given path and all non-existent parents into
-   * directories. Has the semantics of Unix {@code 'mkdir -p'}.
-   * Existence of the directory hierarchy is not an error.
-   * @param path path to create
-   * @param permission to apply to f
-   * @return true if a directory was created
-   * @throws FileAlreadyExistsException there is a file at the path specified
-   * @throws IOException other IO problems
-   */
-  // TODO: If we have created an empty file at /foo/bar and we then call
-  // mkdirs for /foo/bar/baz/roo what happens to the empty file /foo/bar/?
   public boolean mkdirs(Path path, FsPermission permission) throws IOException,
       FileAlreadyExistsException {
     try {
@@ -1084,11 +987,11 @@ class S3Store extends Configured implements Closeable {
       throw translateException("innerMkdirs", path, e);
     }
   }
+
   /**
-   *
    * Make the given path and all non-existent parents into
    * directories.
-   * See {@link #mkdirs(Path, FsPermission)}
+   * See {@link S3AFileSystem#mkdirs(Path, FsPermission)}
    * @param f path to create
    * @param permission to apply to f
    * @return true if a directory was created
@@ -1136,13 +1039,6 @@ class S3Store extends Configured implements Closeable {
     }
   }
 
-  /**
-   * Return a file status object that represents the path.
-   * @param f The path we want information from
-   * @return a FileStatus object
-   * @throws java.io.FileNotFoundException when the path does not exist;
-   * @throws IOException on other problems.
-   */
   public S3AFileStatus getFileStatus(Path f) throws IOException {
     String key = pathToKey(f);
     incrementStatistic(INVOCATION_GET_FILE_STATUS);
@@ -1243,23 +1139,6 @@ class S3Store extends Configured implements Closeable {
     throw new FileNotFoundException("No such file or directory: " + f);
   }
 
-  /**
-   * The src file is on the local disk.  Add it to FS at
-   * the given dst name.
-   *
-   * This version doesn't need to create a temporary file to calculate the md5.
-   * Sadly this doesn't seem to be used by the shell cp :(
-   *
-   * delSrc indicates if the source should be removed
-   * @param delSrc whether to delete the src
-   * @param overwrite whether to overwrite an existing file
-   * @param src path
-   * @param dst path
-   * @throws IOException IO problem
-   * @throws FileAlreadyExistsException the destination file exists and
-   * overwrite==false
-   * @throws AmazonClientException failure in the AWS SDK
-   */
   public void copyFromLocalFile(boolean delSrc, boolean overwrite, Path src,
       Path dst) throws IOException {
     try {
@@ -1430,7 +1309,6 @@ class S3Store extends Configured implements Closeable {
     }
   }
 
-
   private void createFakeDirectory(final String objectName)
       throws AmazonClientException, AmazonServiceException,
       InterruptedIOException {
@@ -1529,12 +1407,6 @@ class S3Store extends Configured implements Closeable {
     return ret;
   }
 
-  /**
-   * Return the number of bytes that large input files should be optimally
-   * be split into to minimize I/O time.
-   * @deprecated use {@link #getDefaultBlockSize(Path)} instead
-   */
-  @Deprecated
   public long getDefaultBlockSize() {
     return getConf().getLong(FS_S3A_BLOCK_SIZE, DEFAULT_BLOCKSIZE);
   }
@@ -1570,18 +1442,10 @@ class S3Store extends Configured implements Closeable {
     return sb.toString();
   }
 
-  /**
-   * Get the partition size for multipart operations.
-   * @return the value as set during initialization
-   */
   public long getPartitionSize() {
     return partSize;
   }
 
-  /**
-   * Get the threshold for multipart files.
-   * @return the value as set during initialization
-   */
   public long getMultiPartThreshold() {
     return multiPartThreshold;
   }
