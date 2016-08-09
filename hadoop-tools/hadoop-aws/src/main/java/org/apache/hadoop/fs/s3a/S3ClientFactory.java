@@ -46,13 +46,28 @@ import org.apache.hadoop.util.VersionInfo;
 import org.slf4j.Logger;
 
 /**
+ * Factory for creation of S3 client instances to be used by {@link S3Store}.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
 interface S3ClientFactory {
 
+  /**
+   * Creates a new {@link AmazonS3} client.  This method accepts the S3A file
+   * system URI both in raw input form and validated form as separate arguments,
+   * because both values may be useful in logging.
+   *
+   * @param name raw input S3A file system URI
+   * @param uri validated form of S3A file system URI
+   * @return S3 client
+   * @throws IOException IO problem
+   */
   AmazonS3 createS3Client(URI name, URI uri) throws IOException;
 
+  /**
+   * The default factory implementation, which calls the AWS SDK to configure
+   * and create an {@link AmazonS3Client} that communicates with the S3 service.
+   */
   static class DefaultS3ClientFactory extends Configured
       implements S3ClientFactory {
 
@@ -80,8 +95,8 @@ interface S3ClientFactory {
      * @throws IOException on any problem. Class construction issues may be
      * nested inside the IOE.
      */
-    private AWSCredentialsProvider getAWSCredentialsProvider(Configuration conf,
-        URI binding, URI uri) throws IOException {
+    private static AWSCredentialsProvider getAWSCredentialsProvider(
+        Configuration conf, URI binding, URI uri) throws IOException {
       AWSCredentialsProvider credentials;
 
       String className = conf.getTrimmed(AWS_CREDENTIALS_PROVIDER);
@@ -122,6 +137,12 @@ interface S3ClientFactory {
       return credentials;
     }
 
+    /**
+     * Initializes all AWS SDK settings related to connection management.
+     *
+     * @param conf Hadoop configuration
+     * @param awsConf AWS SDK configuration
+     */
     private static void initConnectionSettings(Configuration conf,
         ClientConfiguration awsConf) {
       awsConf.setMaxConnections(intOption(conf, MAXIMUM_CONNECTIONS,
@@ -147,8 +168,15 @@ interface S3ClientFactory {
       }
     }
 
-    void initProxySupport(Configuration conf, ClientConfiguration awsConf)
-        throws IllegalArgumentException {
+    /**
+     * Initializes AWS SDK proxy support if configured.
+     *
+     * @param conf Hadoop configuration
+     * @param awsConf AWS SDK configuration
+     * @throws IllegalArgumentException if misconfigured
+     */
+    private static void initProxySupport(Configuration conf,
+        ClientConfiguration awsConf) throws IllegalArgumentException {
       String proxyHost = conf.getTrimmed(PROXY_HOST, "");
       int proxyPort = conf.getInt(PROXY_PORT, -1);
       if (!proxyHost.isEmpty()) {
@@ -202,7 +230,7 @@ interface S3ClientFactory {
      * @param conf Hadoop configuration
      * @param awsConf AWS SDK configuration
      */
-    private void initUserAgent(Configuration conf,
+    private static void initUserAgent(Configuration conf,
         ClientConfiguration awsConf) {
       String userAgent = "Hadoop " + VersionInfo.getVersion();
       String userAgentPrefix = conf.getTrimmed(USER_AGENT_PREFIX, "");
@@ -213,7 +241,16 @@ interface S3ClientFactory {
       awsConf.setUserAgent(userAgent);
     }
 
-    private AmazonS3 createAmazonS3Client(Configuration conf,
+    /**
+     * Creates an {@link AmazonS3Client} from the established configuration.
+     *
+     * @param conf Hadoop configuration
+     * @param credentials AWS credentials
+     * @param awsConf AWS SDK configuration
+     * @return S3 client
+     * @throws IllegalArgumentException if misconfigured
+     */
+    private static AmazonS3 createAmazonS3Client(Configuration conf,
         AWSCredentialsProvider credentials, ClientConfiguration awsConf)
         throws IllegalArgumentException {
       AmazonS3 s3 = new AmazonS3Client(credentials, awsConf);
@@ -231,7 +268,17 @@ interface S3ClientFactory {
       return s3;
     }
 
-    private void enablePathStyleAccessIfRequired(AmazonS3 s3,
+    /**
+     * Enables path-style access to S3 buckets if configured.  By default, the
+     * behavior is to use virtual hosted-style access with URIs of the form
+     * http://bucketname.s3.amazonaws.com.  Enabling path-style access and a
+     * region-specific endpoint switches the behavior to use URIs of the form
+     * http://s3-eu-west-1.amazonaws.com/bucketname.
+     *
+     * @param s3 S3 client
+     * @param conf Hadoop configuration
+     */
+    private static void enablePathStyleAccessIfRequired(AmazonS3 s3,
         Configuration conf) {
       final boolean pathStyleAccess = conf.getBoolean(PATH_STYLE_ACCESS, false);
       if (pathStyleAccess) {
