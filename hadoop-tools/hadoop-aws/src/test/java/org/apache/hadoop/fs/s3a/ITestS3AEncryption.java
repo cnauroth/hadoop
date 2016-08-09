@@ -97,7 +97,7 @@ public class ITestS3AEncryption extends AbstractS3ATestBase {
    * @throws IOException on a failure
    */
   private void assertEncrypted(Path path) throws IOException {
-    ObjectMetadata md = getFileSystem().getObjectMetadata(path);
+    ObjectMetadata md = getFileSystem().getS3Store().getObjectMetadata(path);
     assertEquals(AES256, md.getSSEAlgorithm());
   }
 

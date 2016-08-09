@@ -18,6 +18,10 @@
 
 package org.apache.hadoop.fs.s3a;
 
+import static org.apache.hadoop.fs.s3a.Constants.*;
+import static org.apache.hadoop.fs.s3a.S3AUtils.*;
+import static org.apache.hadoop.fs.s3a.Statistic.*;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,29 +33,23 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSCredentialsProviderChain;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
@@ -59,8 +57,7 @@ import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerConfiguration;
 import com.amazonaws.services.s3.transfer.Upload;
-import com.amazonaws.event.ProgressListener;
-import com.amazonaws.event.ProgressEvent;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
@@ -75,22 +72,12 @@ import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileSystem.Statistics;
-import org.apache.hadoop.fs.GlobalStorageStatistics;
 import org.apache.hadoop.fs.LocalFileSystem;
-import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.hadoop.fs.StorageStatistics;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.s3native.S3xLoginHelper;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.hadoop.util.VersionInfo;
-
-import static org.apache.hadoop.fs.s3a.Constants.*;
-import static org.apache.hadoop.fs.s3a.S3AUtils.*;
-import static org.apache.hadoop.fs.s3a.Statistic.*;
 
 import org.slf4j.Logger;
 
@@ -130,10 +117,10 @@ class S3Store extends Configured implements Closeable {
    *   for this FileSystem
    * @param conf the configuration
    */
-  public S3Store(URI name, URI uri, Statistics statistics,
+  public S3Store(URI name, Statistics statistics,
       S3AStorageStatistics storageStatistics, Configuration conf)
       throws IOException {
-    this.uri = uri;
+    uri = S3xLoginHelper.buildFSURI(name);
     this.statistics = statistics;
     setConf(conf);
     try {
@@ -282,11 +269,18 @@ class S3Store extends Configured implements Closeable {
 
   /**
    * Returns the S3 client used by this filesystem.
-   * @return AmazonS3Client
+   * @return AmazonS3
    */
   @VisibleForTesting
   AmazonS3 getAmazonS3Client() {
     return s3;
+  }
+
+  /**
+   * Returns a URI whose scheme and authority identify this FileSystem.
+   */
+  public URI getUri() {
+    return uri;
   }
 
   /**
@@ -1546,8 +1540,8 @@ class S3Store extends Configured implements Closeable {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder(
-        "S3AFileSystem{");
+    final StringBuilder sb = new StringBuilder(getClass().getSimpleName());
+    sb.append('{');
     sb.append("uri=").append(uri);
     sb.append(", workingDir=").append(workingDir);
     sb.append(", inputPolicy=").append(inputPolicy);

@@ -18,51 +18,15 @@
 
 package org.apache.hadoop.fs.s3a;
 
-import java.io.File;
+import static org.apache.hadoop.fs.s3a.Statistic.*;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSCredentialsProviderChain;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.S3ClientOptions;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.CopyObjectRequest;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.UploadPartRequest;
-import com.amazonaws.services.s3.model.UploadPartResult;
-import com.amazonaws.services.s3.transfer.Copy;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.TransferManagerConfiguration;
-import com.amazonaws.services.s3.transfer.Upload;
-import com.amazonaws.event.ProgressListener;
-import com.amazonaws.event.ProgressEvent;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -72,7 +36,6 @@ import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.GlobalStorageStatistics;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
@@ -81,11 +44,6 @@ import org.apache.hadoop.fs.StorageStatistics;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.s3native.S3xLoginHelper;
 import org.apache.hadoop.util.Progressable;
-import org.apache.hadoop.util.VersionInfo;
-
-import static org.apache.hadoop.fs.s3a.Constants.*;
-import static org.apache.hadoop.fs.s3a.S3AUtils.*;
-import static org.apache.hadoop.fs.s3a.Statistic.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,26 +64,11 @@ import org.slf4j.LoggerFactory;
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
 public class S3AFileSystem extends FileSystem {
-  /**
-   * Default blocksize as used in blocksize and FS status queries.
-   */
-  public static final int DEFAULT_BLOCKSIZE = 32 * 1024 * 1024;
-  private URI uri;
-  private Path workingDir;
-  private String bucket;
-  private int maxKeys;
-  private long partSize;
-  private boolean enableMultiObjectsDelete;
-  private TransferManager transfers;
-  private ExecutorService threadPoolExecutor;
-  private long multiPartThreshold;
+
   public static final Logger LOG = LoggerFactory.getLogger(S3AFileSystem.class);
-  private CannedAccessControlList cannedACL;
-  private String serverSideEncryptionAlgorithm;
+
   private S3AInstrumentation instrumentation;
   private S3AStorageStatistics storageStatistics;
-  private long readAhead;
-  private S3AInputPolicy inputPolicy;
   private S3Store s3Store;
   private AbstractS3AccessPolicy s3AccessPolicy;
 
@@ -149,8 +92,7 @@ public class S3AFileSystem extends FileSystem {
                     return new S3AStorageStatistics();
                   }
                 });
-    uri = S3xLoginHelper.buildFSURI(name);
-    s3Store = new S3Store(name, uri, statistics, storageStatistics, conf);
+    s3Store = new S3Store(name, statistics, storageStatistics, conf);
     s3AccessPolicy = new DirectS3AccessPolicy(s3Store);
     instrumentation = new S3AInstrumentation(name);
   }
@@ -160,7 +102,7 @@ public class S3AFileSystem extends FileSystem {
    * @return this instance's instrumentation.
    */
   public S3AInstrumentation getInstrumentation() {
-    return instrumentation;
+    return s3Store.getInstrumentation();
   }
 
   /**
@@ -178,7 +120,7 @@ public class S3AFileSystem extends FileSystem {
    */
   @Override
   public URI getUri() {
-    return uri;
+    return s3Store.getUri();
   }
 
   @Override
@@ -191,8 +133,8 @@ public class S3AFileSystem extends FileSystem {
    * @return AmazonS3Client
    */
   @VisibleForTesting
-  AmazonS3 getAmazonS3Client() {
-    return s3Store.getAmazonS3Client();
+  S3Store getS3Store() {
+    return s3Store;
   }
 
   /**
@@ -201,7 +143,7 @@ public class S3AFileSystem extends FileSystem {
    */
   @InterfaceStability.Unstable
   public S3AInputPolicy getInputPolicy() {
-    return inputPolicy;
+    return s3Store.getInputPolicy();
   }
 
   /**
@@ -210,13 +152,7 @@ public class S3AFileSystem extends FileSystem {
    */
   @InterfaceStability.Unstable
   public void setInputPolicy(S3AInputPolicy inputPolicy) {
-    Objects.requireNonNull(inputPolicy, "Null inputStrategy");
-    LOG.debug("Setting input strategy: {}", inputPolicy);
-    this.inputPolicy = inputPolicy;
-  }
-
-  public S3AFileSystem() {
-    super();
+    s3Store.setInputPolicy(inputPolicy);
   }
 
   /**
@@ -305,17 +241,6 @@ public class S3AFileSystem extends FileSystem {
   @Override
   public boolean rename(Path src, Path dst) throws IOException {
     return s3AccessPolicy.rename(src, dst);
-  }
-
-  /**
-   * Low-level call to get at the object metadata.
-   * @param path path to the object
-   * @return metadata
-   * @throws IOException IO and object access problems.
-   */
-  @VisibleForTesting
-  public ObjectMetadata getObjectMetadata(Path path) throws IOException {
-    return s3Store.getObjectMetadata(path);
   }
 
   /**
@@ -473,36 +398,14 @@ public class S3AFileSystem extends FileSystem {
   @Override
   @Deprecated
   public long getDefaultBlockSize() {
-    return getConf().getLong(FS_S3A_BLOCK_SIZE, DEFAULT_BLOCKSIZE);
+    return s3Store.getDefaultBlockSize();
   }
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder(
-        "S3AFileSystem{");
-    sb.append("uri=").append(uri);
-    sb.append(", workingDir=").append(workingDir);
-    sb.append(", inputPolicy=").append(inputPolicy);
-    sb.append(", partSize=").append(partSize);
-    sb.append(", enableMultiObjectsDelete=").append(enableMultiObjectsDelete);
-    sb.append(", maxKeys=").append(maxKeys);
-    if (cannedACL != null) {
-      sb.append(", cannedACL=").append(cannedACL.toString());
-    }
-    sb.append(", readAhead=").append(readAhead);
-    sb.append(", blockSize=").append(getDefaultBlockSize());
-    sb.append(", multiPartThreshold=").append(multiPartThreshold);
-    if (serverSideEncryptionAlgorithm != null) {
-      sb.append(", serverSideEncryptionAlgorithm='")
-          .append(serverSideEncryptionAlgorithm)
-          .append('\'');
-    }
-    sb.append(", statistics {")
-        .append(statistics)
-        .append("}");
-    sb.append(", metrics {")
-        .append(instrumentation.dump("{", "=", "} ", true))
-        .append("}");
+    final StringBuilder sb = new StringBuilder(getClass().getSimpleName());
+    sb.append('{');
+    sb.append("s3Store=").append(s3Store);
     sb.append('}');
     return sb.toString();
   }
@@ -512,7 +415,7 @@ public class S3AFileSystem extends FileSystem {
    * @return the value as set during initialization
    */
   public long getPartitionSize() {
-    return partSize;
+    return s3Store.getPartitionSize();
   }
 
   /**
@@ -520,7 +423,7 @@ public class S3AFileSystem extends FileSystem {
    * @return the value as set during initialization
    */
   public long getMultiPartThreshold() {
-    return multiPartThreshold;
+    return s3Store.getMultiPartThreshold();
   }
 
   /**
