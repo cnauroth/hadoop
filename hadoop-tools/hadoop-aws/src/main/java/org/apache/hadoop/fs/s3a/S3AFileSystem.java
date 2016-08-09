@@ -23,7 +23,6 @@ import static org.apache.hadoop.fs.s3a.Statistic.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -202,8 +201,8 @@ public class S3AFileSystem extends FileSystem {
   public FSDataOutputStream create(Path f, FsPermission permission,
       boolean overwrite, int bufferSize, short replication, long blockSize,
       Progressable progress) throws IOException {
-    return s3AccessPolicy.create(f, permission, overwrite, bufferSize, replication,
-        blockSize, progress);
+    return s3AccessPolicy.create(f, permission, overwrite, bufferSize,
+        replication, blockSize, progress);
   }
 
   /**
@@ -358,7 +357,7 @@ public class S3AFileSystem extends FileSystem {
    * @throws IOException IO problem
    * @throws FileAlreadyExistsException the destination file exists and
    * overwrite==false
-   * @throws AmazonClientException failure in the AWS SDK
+   * @throws IOException failure in the AWS SDK
    */
   @Override
   public void copyFromLocalFile(boolean delSrc, boolean overwrite, Path src,

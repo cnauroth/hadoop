@@ -235,7 +235,8 @@ class S3Store extends Configured implements Closeable {
   }
 
   private void initTransferManager() {
-    TransferManagerConfiguration transferConfiguration = new TransferManagerConfiguration();
+    TransferManagerConfiguration transferConfiguration =
+        new TransferManagerConfiguration();
     transferConfiguration.setMinimumUploadPartSize(partSize);
     transferConfiguration.setMultipartUploadThreshold(multiPartThreshold);
     transferConfiguration.setMultipartCopyPartSize(partSize);
@@ -507,8 +508,10 @@ class S3Store extends Configured implements Closeable {
 
       while (true) {
         for (S3ObjectSummary summary : objects.getObjectSummaries()) {
-          keysToDelete.add(new DeleteObjectsRequest.KeyVersion(summary.getKey()));
-          String newDstKey = dstKey + summary.getKey().substring(srcKey.length());
+          keysToDelete.add(
+              new DeleteObjectsRequest.KeyVersion(summary.getKey()));
+          String newDstKey =
+              dstKey + summary.getKey().substring(srcKey.length());
           copyFile(summary.getKey(), newDstKey, summary.getSize());
 
           if (keysToDelete.size() == MAX_ENTRIES_TO_DELETE) {
@@ -935,7 +938,8 @@ class S3Store extends Configured implements Closeable {
 
       while (true) {
         for (S3ObjectSummary summary : objects.getObjectSummaries()) {
-          Path keyPath = keyToPath(summary.getKey()).makeQualified(uri, workingDir);
+          Path keyPath =
+              keyToPath(summary.getKey()).makeQualified(uri, workingDir);
           // Skip over keys that are ourselves and old S3N _$folder$ files
           if (keyPath.equals(fQualified) ||
               summary.getKey().endsWith(S3N_FOLDER_SUFFIX)) {
@@ -1075,9 +1079,11 @@ class S3Store extends Configured implements Closeable {
 
           if (objectRepresentsDirectory(newKey, meta.getContentLength())) {
             LOG.debug("Found file (with /): fake directory");
-            return new S3AFileStatus(true, true, f.makeQualified(uri, workingDir));
+            return new S3AFileStatus(true, true,
+                f.makeQualified(uri, workingDir));
           } else {
-            LOG.warn("Found file (with /): real file? should not happen: {}", key);
+            LOG.warn("Found file (with /): real file? should not happen: {}",
+                key);
 
             return new S3AFileStatus(meta.getContentLength(),
                 dateToLong(meta.getLastModified()),
@@ -1452,7 +1458,8 @@ class S3Store extends Configured implements Closeable {
 
   private boolean exists(Path f) throws IOException {
     try {
-      return getFileStatus(f) != null;
+      getFileStatus(f);
+      return true;
     } catch (FileNotFoundException e) {
       return false;
     }
