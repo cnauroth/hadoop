@@ -34,8 +34,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
 
-import com.google.common.base.Preconditions;
-
 import org.apache.commons.lang.StringUtils;
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -240,23 +238,6 @@ interface S3ClientFactory {
         LOG.debug("Enabling path style access!");
         s3.setS3ClientOptions(new S3ClientOptions().withPathStyleAccess(true));
       }
-    }
-
-    /**
-     * Get a integer option >= the minimum allowed value.
-     * @param conf configuration
-     * @param key key to look up
-     * @param defVal default value
-     * @param min minimum value
-     * @return the value
-     * @throws IllegalArgumentException if the value is below the minimum
-     */
-    static int intOption(Configuration conf, String key, int defVal, int min) {
-      int v = conf.getInt(key, defVal);
-      Preconditions.checkArgument(v >= min,
-          String.format("Value of %s: %d is below the minimum value %d",
-              key, v, min));
-      return v;
     }
   }
 }

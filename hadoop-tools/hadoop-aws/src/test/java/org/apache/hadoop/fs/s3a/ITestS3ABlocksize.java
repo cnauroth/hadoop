@@ -54,7 +54,7 @@ public class ITestS3ABlocksize extends AbstractFSContractTestBase {
     FileSystem fs = getFileSystem();
     long defaultBlockSize = fs.getDefaultBlockSize();
     assertEquals("incorrect blocksize",
-        S3Store.DEFAULT_BLOCKSIZE, defaultBlockSize);
+        Constants.DEFAULT_BLOCKSIZE, defaultBlockSize);
     long newBlockSize = defaultBlockSize * 2;
     fs.getConf().setLong(Constants.FS_S3A_BLOCK_SIZE, newBlockSize);
 

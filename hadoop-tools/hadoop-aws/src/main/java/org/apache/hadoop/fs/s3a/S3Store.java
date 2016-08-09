@@ -59,7 +59,6 @@ import com.amazonaws.services.s3.transfer.TransferManagerConfiguration;
 import com.amazonaws.services.s3.transfer.Upload;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -86,28 +85,27 @@ import org.slf4j.Logger;
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
 class S3Store extends Configured implements Closeable {
-  /**
-   * Default blocksize as used in blocksize and FS status queries.
-   */
-  public static final int DEFAULT_BLOCKSIZE = 32 * 1024 * 1024;
-  private URI uri;
+
+  private static final Logger LOG = S3AFileSystem.LOG;
+
+  private final URI uri;
+  private final AmazonS3 s3;
+  private final String bucket;
+  private final int maxKeys;
+  private final long partSize;
+  private final boolean enableMultiObjectsDelete;
+  private final ExecutorService threadPoolExecutor;
+  private final long multiPartThreshold;
+  private final CannedAccessControlList cannedACL;
+  private final String serverSideEncryptionAlgorithm;
+  private final S3AInstrumentation instrumentation;
+  private final S3AStorageStatistics storageStatistics;
+  private final long readAhead;
+  private final Statistics statistics;
+
   private Path workingDir;
-  private AmazonS3 s3;
-  private String bucket;
-  private int maxKeys;
-  private long partSize;
-  private boolean enableMultiObjectsDelete;
   private TransferManager transfers;
-  private ExecutorService threadPoolExecutor;
-  private long multiPartThreshold;
-  public static final Logger LOG = S3AFileSystem.LOG;
-  private CannedAccessControlList cannedACL;
-  private String serverSideEncryptionAlgorithm;
-  private S3AInstrumentation instrumentation;
-  private S3AStorageStatistics storageStatistics;
-  private long readAhead;
   private S3AInputPolicy inputPolicy;
-  private Statistics statistics;
 
   // The maximum number of entries that can be deleted in any call to s3
   private static final int MAX_ENTRIES_TO_DELETE = 1000;
@@ -132,24 +130,27 @@ class S3Store extends Configured implements Closeable {
       bucket = name.getHost();
 
       Class<? extends S3ClientFactory> s3ClientFactoryClass = conf.getClass(
-          "fs.s3a.s3.client.factory.impl",
-          S3ClientFactory.DefaultS3ClientFactory.class, S3ClientFactory.class);
+          S3_CLIENT_FACTORY_IMPL, DEFAULT_S3_CLIENT_FACTORY_IMPL,
+          S3ClientFactory.class);
       s3 = ReflectionUtils.newInstance(s3ClientFactoryClass, conf)
           .createS3Client(name, uri);
 
       maxKeys = intOption(conf, MAX_PAGING_KEYS, DEFAULT_MAX_PAGING_KEYS, 1);
-      partSize = conf.getLong(MULTIPART_SIZE, DEFAULT_MULTIPART_SIZE);
-      if (partSize < 5 * 1024 * 1024) {
+      long tmpPartSize = conf.getLong(MULTIPART_SIZE, DEFAULT_MULTIPART_SIZE);
+      if (tmpPartSize < 5 * 1024 * 1024) {
         LOG.error(MULTIPART_SIZE + " must be at least 5 MB");
-        partSize = 5 * 1024 * 1024;
+        tmpPartSize = 5 * 1024 * 1024;
       }
+      partSize = tmpPartSize;
 
-      multiPartThreshold = conf.getLong(MIN_MULTIPART_THRESHOLD,
+      long tmpMultiPartThreshold = conf.getLong(MIN_MULTIPART_THRESHOLD,
           DEFAULT_MIN_MULTIPART_THRESHOLD);
-      if (multiPartThreshold < 5 * 1024 * 1024) {
+      if (tmpMultiPartThreshold < 5 * 1024 * 1024) {
         LOG.error(MIN_MULTIPART_THRESHOLD + " must be at least 5 MB");
-        multiPartThreshold = 5 * 1024 * 1024;
+        tmpMultiPartThreshold = 5 * 1024 * 1024;
       }
+      multiPartThreshold = tmpMultiPartThreshold;
+
       //check but do not store the block size
       longOption(conf, FS_S3A_BLOCK_SIZE, DEFAULT_BLOCKSIZE, 1);
       enableMultiObjectsDelete = conf.getBoolean(ENABLE_MULTI_DELETE, true);
@@ -174,7 +175,7 @@ class S3Store extends Configured implements Closeable {
 
       initTransferManager();
 
-      initCannedAcls(conf);
+      cannedACL = createCannedAcls(conf);
 
       verifyBucketExists();
 
@@ -234,12 +235,12 @@ class S3Store extends Configured implements Closeable {
     transfers.setConfiguration(transferConfiguration);
   }
 
-  private void initCannedAcls(Configuration conf) {
+  private static CannedAccessControlList createCannedAcls(Configuration conf) {
     String cannedACLName = conf.get(CANNED_ACL, DEFAULT_CANNED_ACL);
     if (!cannedACLName.isEmpty()) {
-      cannedACL = CannedAccessControlList.valueOf(cannedACLName);
+      return CannedAccessControlList.valueOf(cannedACLName);
     } else {
-      cannedACL = null;
+      return null;
     }
   }
 
@@ -1583,43 +1584,6 @@ class S3Store extends Configured implements Closeable {
    */
   public long getMultiPartThreshold() {
     return multiPartThreshold;
-  }
-
-  /**
-   * Get a integer option >= the minimum allowed value.
-   * @param conf configuration
-   * @param key key to look up
-   * @param defVal default value
-   * @param min minimum value
-   * @return the value
-   * @throws IllegalArgumentException if the value is below the minimum
-   */
-  static int intOption(Configuration conf, String key, int defVal, int min) {
-    int v = conf.getInt(key, defVal);
-    Preconditions.checkArgument(v >= min,
-        String.format("Value of %s: %d is below the minimum value %d",
-            key, v, min));
-    return v;
-  }
-
-  /**
-   * Get a long option >= the minimum allowed value.
-   * @param conf configuration
-   * @param key key to look up
-   * @param defVal default value
-   * @param min minimum value
-   * @return the value
-   * @throws IllegalArgumentException if the value is below the minimum
-   */
-  static long longOption(Configuration conf,
-      String key,
-      long defVal,
-      long min) {
-    long v = conf.getLong(key, defVal);
-    Preconditions.checkArgument(v >= min,
-        String.format("Value of %s: %d is below the minimum value %d",
-            key, v, min));
-    return v;
   }
 
   private boolean exists(Path f) throws IOException {

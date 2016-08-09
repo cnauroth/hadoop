@@ -157,6 +157,12 @@ public final class Constants {
 
   public static final String S3N_FOLDER_SUFFIX = "_$folder$";
   public static final String FS_S3A_BLOCK_SIZE = "fs.s3a.block.size";
+
+  /**
+   * Default blocksize as used in blocksize and FS status queries.
+   */
+  public static final int DEFAULT_BLOCKSIZE = 32 * 1024 * 1024;
+
   public static final String FS_S3A = "s3a";
 
   public static final int S3A_DEFAULT_PORT = -1;
@@ -198,4 +204,15 @@ public final class Constants {
    */
   @InterfaceStability.Unstable
   public static final String INPUT_FADV_RANDOM = "random";
+
+  @InterfaceAudience.Private
+  @InterfaceStability.Unstable
+  public static final String S3_CLIENT_FACTORY_IMPL =
+      "fs.s3a.s3.client.factory.impl";
+
+  @InterfaceAudience.Private
+  @InterfaceStability.Unstable
+  public static final Class<? extends S3ClientFactory>
+      DEFAULT_S3_CLIENT_FACTORY_IMPL =
+          S3ClientFactory.DefaultS3ClientFactory.class;
 }

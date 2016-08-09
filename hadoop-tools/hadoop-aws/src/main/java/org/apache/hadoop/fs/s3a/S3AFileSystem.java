@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.fs.s3a;
 
+import static org.apache.hadoop.fs.s3a.Constants.*;
 import static org.apache.hadoop.fs.s3a.Statistic.*;
 
 import java.io.FileNotFoundException;
@@ -112,7 +113,7 @@ public class S3AFileSystem extends FileSystem {
    */
   @Override
   public String getScheme() {
-    return "s3a";
+    return FS_S3A;
   }
 
   /**
@@ -125,7 +126,7 @@ public class S3AFileSystem extends FileSystem {
 
   @Override
   public int getDefaultPort() {
-    return Constants.S3A_DEFAULT_PORT;
+    return S3A_DEFAULT_PORT;
   }
 
   /**
