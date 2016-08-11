@@ -20,7 +20,7 @@ import org.apache.hadoop.fs.s3a.S3ATestUtils;
 import org.junit.Before;
 
 /**
- * Extends FileContextCreateMkdirBaseTest for a S3a FileContext
+ * Extends FileContextCreateMkdirBaseTest for a S3a FileContext.
  */
 public class ITestS3AFileContextCreateMkdir
         extends FileContextCreateMkdirBaseTest {

@@ -35,6 +35,9 @@ import static org.apache.hadoop.fs.contract.ContractTestUtils.createFile;
 import static org.apache.hadoop.fs.contract.ContractTestUtils.dataset;
 import static org.apache.hadoop.fs.contract.ContractTestUtils.fileStatsToString;
 
+/**
+ * S3A tests for configuring block size.
+ */
 public class ITestS3ABlocksize extends AbstractFSContractTestBase {
 
   private static final Logger LOG =

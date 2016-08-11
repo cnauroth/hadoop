@@ -22,6 +22,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.contract.AbstractContractRenameTest;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 
+/**
+ * S3N contract tests covering rename.
+ */
 public class ITestS3NContractRename extends AbstractContractRenameTest {
 
   @Override

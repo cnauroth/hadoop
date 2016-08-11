@@ -24,7 +24,7 @@ import org.junit.Assert;
 import org.junit.Before;
 
 /**
- * S3a implementation of FCStatisticsBaseTest
+ * S3a implementation of FCStatisticsBaseTest.
  */
 public class ITestS3AFileContextStatistics extends FCStatisticsBaseTest {
 
@@ -32,7 +32,8 @@ public class ITestS3AFileContextStatistics extends FCStatisticsBaseTest {
   public void setUp() throws Exception {
     Configuration conf = new Configuration();
     fc = S3ATestUtils.createTestFileContext(conf);
-    fc.mkdir(fileContextTestHelper.getTestRootPath(fc, "test"), FileContext.DEFAULT_PERM, true);
+    fc.mkdir(fileContextTestHelper.getTestRootPath(fc, "test"),
+        FileContext.DEFAULT_PERM, true);
   }
 
   @After

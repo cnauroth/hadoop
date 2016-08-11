@@ -20,8 +20,11 @@ package org.apache.hadoop.fs.s3native;
 
 import java.io.IOException;
 
+/**
+ * S3N basic contract tests through live S3 service.
+ */
 public class ITestJets3tNativeS3FileSystemContract
-  extends NativeS3FileSystemContractBaseTest {
+    extends NativeS3FileSystemContractBaseTest {
 
   @Override
   NativeFileSystemStore getNativeFileSystemStore() throws IOException {

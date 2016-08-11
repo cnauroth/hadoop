@@ -45,6 +45,9 @@ import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
+/**
+ * Tests that S3A is usable through a YARN application.
+ */
 public class ITestS3AMiniYarnCluster {
 
   private final Configuration conf = new YarnConfiguration();
@@ -105,9 +108,10 @@ public class ITestS3AMiniYarnCluster {
   }
 
   /**
-   * helper method
+   * helper method.
    */
-  private Map<String, Integer> getResultAsMap(String outputAsStr) throws IOException {
+  private Map<String, Integer> getResultAsMap(String outputAsStr)
+      throws IOException {
     Map<String, Integer> result = new HashMap<>();
     for (String line : outputAsStr.split("\n")) {
       String[] tokens = line.split("\t");
@@ -117,7 +121,7 @@ public class ITestS3AMiniYarnCluster {
   }
 
   /**
-   * helper method
+   * helper method.
    */
   private void writeStringToFile(Path path, String string) throws IOException {
     FileContext fc = S3ATestUtils.createTestFileContext(conf);
@@ -128,7 +132,7 @@ public class ITestS3AMiniYarnCluster {
   }
 
   /**
-   * helper method
+   * helper method.
    */
   private String readStringFromFile(Path path) {
     try (FSDataInputStream in = fs.open(path)) {

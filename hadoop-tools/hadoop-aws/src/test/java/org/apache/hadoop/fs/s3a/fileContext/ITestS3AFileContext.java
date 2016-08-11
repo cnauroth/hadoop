@@ -16,7 +16,7 @@ package org.apache.hadoop.fs.s3a.fileContext;
 import org.apache.hadoop.fs.TestFileContext;
 
 /**
- * Implementation of TestFileContext for S3a
+ * Implementation of TestFileContext for S3a.
  */
 public class ITestS3AFileContext extends TestFileContext{
 

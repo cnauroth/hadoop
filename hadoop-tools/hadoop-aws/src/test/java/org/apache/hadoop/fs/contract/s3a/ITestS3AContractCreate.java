@@ -21,8 +21,10 @@ package org.apache.hadoop.fs.contract.s3a;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.contract.AbstractContractCreateTest;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
-import org.apache.hadoop.fs.contract.ContractTestUtils;
 
+/**
+ * S3A contract tests creating files.
+ */
 public class ITestS3AContractCreate extends AbstractContractCreateTest {
 
   @Override

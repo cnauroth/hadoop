@@ -20,7 +20,7 @@ import org.apache.hadoop.fs.s3a.S3ATestUtils;
 import org.junit.Before;
 
 /**
- * S3A implementation of FileContextUtilBase
+ * S3A implementation of FileContextUtilBase.
  */
 public class ITestS3AFileContextUtil extends FileContextUtilBase {
 

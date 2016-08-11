@@ -50,6 +50,9 @@ import org.apache.hadoop.util.VersionInfo;
 import org.apache.http.HttpStatus;
 import org.junit.rules.TemporaryFolder;
 
+/**
+ * S3A tests for configuration.
+ */
 public class ITestS3AConfiguration {
   private static final String EXAMPLE_ID = "AKASOMEACCESSKEY";
   private static final String EXAMPLE_KEY =
@@ -351,7 +354,8 @@ public class ITestS3AConfiguration {
   }
 
   @Test
-  public void shouldBeAbleToSwitchOnS3PathStyleAccessViaConfigProperty() throws Exception {
+  public void shouldBeAbleToSwitchOnS3PathStyleAccessViaConfigProperty()
+      throws Exception {
 
     conf = new Configuration();
     conf.set(Constants.PATH_STYLE_ACCESS, Boolean.toString(true));
@@ -367,7 +371,9 @@ public class ITestS3AConfiguration {
       assertTrue("Expected to find path style access to be switched on!",
           clientOptions.isPathStyleAccess());
       byte[] file = ContractTestUtils.toAsciiByteArray("test file");
-      ContractTestUtils.writeAndRead(fs, new Path("/path/style/access/testFile"), file, file.length, conf.getInt(Constants.FS_S3A_BLOCK_SIZE, file.length), false, true);
+      ContractTestUtils.writeAndRead(fs,
+          new Path("/path/style/access/testFile"), file, file.length,
+          conf.getInt(Constants.FS_S3A_BLOCK_SIZE, file.length), false, true);
     } catch (final AWSS3IOException e) {
       LOG.error("Caught exception: ", e);
       // Catch/pass standard path style access behaviour when live bucket

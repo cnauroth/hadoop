@@ -36,6 +36,9 @@ import org.apache.hadoop.fs.s3a.S3ATestUtils;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * S3A tests through the {@link FileContext} API.
+ */
 public class ITestS3A {
   private FileContext fc;
 
@@ -50,7 +53,7 @@ public class ITestS3A {
 
   @After
   public void tearDown() throws Exception {
-    fc.delete(getTestPath(),true);
+    fc.delete(getTestPath(), true);
   }
 
   protected Path getTestPath() {
@@ -73,7 +76,7 @@ public class ITestS3A {
   @Test
   public void testS3ACreateFileInSubDir() throws Exception {
     Path dirPath = getTestPath();
-    fc.mkdir(dirPath,FileContext.DIR_DEFAULT_PERM,true);
+    fc.mkdir(dirPath, FileContext.DIR_DEFAULT_PERM, true);
     Path filePath = new Path(dirPath, "file");
     try (FSDataOutputStream file = fc.create(filePath, EnumSet.of(CreateFlag
         .CREATE))) {

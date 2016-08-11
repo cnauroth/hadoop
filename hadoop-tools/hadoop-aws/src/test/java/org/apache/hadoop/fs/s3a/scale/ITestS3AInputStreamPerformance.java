@@ -221,7 +221,7 @@ public class ITestS3AInputStreamPerformance extends S3AScaleTestBase {
       int reads = 0;
       while (remaining > 0) {
         int bytesRead = in.read(block, offset, remaining);
-        reads ++;
+        reads++;
         if (bytesRead == 1) {
           break;
         }
@@ -231,7 +231,7 @@ public class ITestS3AInputStreamPerformance extends S3AScaleTestBase {
       }
       blockTimer.end("Reading block %d in %d reads", i, reads);
     }
-    timer2.end("Time to read %d bytes in %d blocks", len, blockCount );
+    timer2.end("Time to read %d bytes in %d blocks", len, blockCount);
     bandwidth(timer2, count);
     logStreamStatistics();
   }

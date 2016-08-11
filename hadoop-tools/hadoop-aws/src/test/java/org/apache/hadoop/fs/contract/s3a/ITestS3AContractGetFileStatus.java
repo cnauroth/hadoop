@@ -21,6 +21,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 import org.apache.hadoop.fs.contract.AbstractContractGetFileStatusTest;
 
+/**
+ * S3A contract tests covering getFileStatus.
+ */
 public class ITestS3AContractGetFileStatus
     extends AbstractContractGetFileStatusTest {
 

@@ -23,7 +23,7 @@ import org.apache.hadoop.fs.contract.AbstractContractMkdirTest;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 
 /**
- * Test dir operations on S3
+ * Test dir operations on S3A.
  */
 public class ITestS3AContractMkdir extends AbstractContractMkdirTest {
 
