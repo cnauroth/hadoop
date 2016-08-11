@@ -52,20 +52,20 @@ public class S3AOutputStream extends OutputStream {
   private Progressable progress;
   private long partSize;
   private long partSizeThreshold;
-  private S3Store s3Store;
+  private S3AFileSystem fs;
   private LocalDirAllocator lDirAlloc;
 
   public static final Logger LOG = S3AFileSystem.LOG;
 
   public S3AOutputStream(Configuration conf,
-      S3Store s3Store, String key, Progressable progress)
+      S3AFileSystem fs, String key, Progressable progress)
       throws IOException {
     this.key = key;
     this.progress = progress;
-    this.s3Store = s3Store;
+    this.fs = fs;
 
-    partSize = s3Store.getPartitionSize();
-    partSizeThreshold = s3Store.getMultiPartThreshold();
+    partSize = fs.getPartitionSize();
+    partSizeThreshold = fs.getMultiPartThreshold();
 
     if (conf.get(BUFFER_DIR, null) != null) {
       lDirAlloc = new LocalDirAllocator(BUFFER_DIR);
@@ -102,20 +102,20 @@ public class S3AOutputStream extends OutputStream {
 
 
     try {
-      final ObjectMetadata om = s3Store.newObjectMetadata();
-      Upload upload = s3Store.putObject(
-          s3Store.newPutObjectRequest(
+      final ObjectMetadata om = fs.newObjectMetadata();
+      Upload upload = fs.putObject(
+          fs.newPutObjectRequest(
               key,
               om,
               backupFile));
       ProgressableProgressListener listener =
-          new ProgressableProgressListener(s3Store, key, upload, progress);
+          new ProgressableProgressListener(fs, key, upload, progress);
       upload.addProgressListener(listener);
 
       upload.waitForUploadResult();
       listener.uploadCompleted();
       // This will delete unnecessary fake parent directories
-      s3Store.finishedWrite(key);
+      fs.finishedWrite(key);
     } catch (InterruptedException e) {
       throw (InterruptedIOException) new InterruptedIOException(e.toString())
           .initCause(e);
