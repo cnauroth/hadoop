@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.AutoCloseableLock;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.server.datanode.DiskBalancerWorkStatus
@@ -33,8 +34,8 @@ import org.apache.hadoop.hdfs.server.diskbalancer.DiskBalancerConstants;
 import org.apache.hadoop.hdfs.server.diskbalancer.DiskBalancerException;
 import org.apache.hadoop.hdfs.server.diskbalancer.planner.NodePlan;
 import org.apache.hadoop.hdfs.server.diskbalancer.planner.Step;
+import org.apache.hadoop.hdfs.web.JsonUtil;
 import org.apache.hadoop.util.Time;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,6 +85,7 @@ public class DiskBalancer {
   private ExecutorService scheduler;
   private Future future;
   private String planID;
+  private String planFile;
   private DiskBalancerWorkStatus.Result currentResult;
   private long bandwidth;
 
@@ -105,6 +107,7 @@ public class DiskBalancer {
     lock = new ReentrantLock();
     workMap = new ConcurrentHashMap<>();
     this.planID = "";  // to keep protobuf happy.
+    this.planFile = "";  // to keep protobuf happy.
     this.isDiskBalancerEnabled = conf.getBoolean(
         DFSConfigKeys.DFS_DISK_BALANCER_ENABLED,
         DFSConfigKeys.DFS_DISK_BALANCER_ENABLED_DEFAULT);
@@ -154,15 +157,16 @@ public class DiskBalancer {
    * Takes a client submitted plan and converts into a set of work items that
    * can be executed by the blockMover.
    *
-   * @param planID      - A SHA512 of the plan string
+   * @param planId      - A SHA-1 of the plan string
    * @param planVersion - version of the plan string - for future use.
-   * @param plan        - Actual Plan
+   * @param planFileName    - Plan file name
+   * @param planData    - Plan data in json format
    * @param force       - Skip some validations and execute the plan file.
    * @throws DiskBalancerException
    */
-  public void submitPlan(String planID, long planVersion, String plan,
-                         boolean force) throws DiskBalancerException {
-
+  public void submitPlan(String planId, long planVersion, String planFileName,
+                         String planData, boolean force)
+          throws DiskBalancerException {
     lock.lock();
     try {
       checkDiskBalancerEnabled();
@@ -171,9 +175,10 @@ public class DiskBalancer {
         throw new DiskBalancerException("Executing another plan",
             DiskBalancerException.Result.PLAN_ALREADY_IN_PROGRESS);
       }
-      NodePlan nodePlan = verifyPlan(planID, planVersion, plan, force);
+      NodePlan nodePlan = verifyPlan(planId, planVersion, planData, force);
       createWorkPlan(nodePlan);
-      this.planID = planID;
+      this.planID = planId;
+      this.planFile = planFileName;
       this.currentResult = Result.PLAN_UNDER_PROGRESS;
       executePlan();
     } finally {
@@ -199,7 +204,8 @@ public class DiskBalancer {
       }
 
       DiskBalancerWorkStatus status =
-          new DiskBalancerWorkStatus(this.currentResult, this.planID);
+          new DiskBalancerWorkStatus(this.currentResult, this.planID,
+                  this.planFile);
       for (Map.Entry<VolumePair, DiskBalancerWorkItem> entry :
           workMap.entrySet()) {
         DiskBalancerWorkEntry workEntry = new DiskBalancerWorkEntry(
@@ -257,8 +263,7 @@ public class DiskBalancer {
       for (Map.Entry<String, FsVolumeSpi> entry : volMap.entrySet()) {
         pathMap.put(entry.getKey(), entry.getValue().getBasePath());
       }
-      ObjectMapper mapper = new ObjectMapper();
-      return mapper.writeValueAsString(pathMap);
+      return JsonUtil.toJsonString(pathMap);
     } catch (DiskBalancerException ex) {
       throw ex;
     } catch (IOException e) {
@@ -294,7 +299,6 @@ public class DiskBalancer {
   private void checkDiskBalancerEnabled()
       throws DiskBalancerException {
     if (!isDiskBalancerEnabled) {
-      LOG.error("Disk Balancer is not enabled.");
       throw new DiskBalancerException("Disk Balancer is not enabled.",
           DiskBalancerException.Result.DISK_BALANCER_NOT_ENABLED);
     }
@@ -303,7 +307,7 @@ public class DiskBalancer {
   /**
    * Verifies that user provided plan is valid.
    *
-   * @param planID      - SHA 512 of the plan.
+   * @param planID      - SHA-1 of the plan.
    * @param planVersion - Version of the plan, for future use.
    * @param plan        - Plan String in Json.
    * @param force       - Skip verifying when the plan was generated.
@@ -340,15 +344,15 @@ public class DiskBalancer {
   }
 
   /**
-   * Verifies that plan matches the SHA512 provided by the client.
+   * Verifies that plan matches the SHA-1 provided by the client.
    *
-   * @param planID - Sha512 Hex Bytes
+   * @param planID - SHA-1 Hex Bytes
    * @param plan   - Plan String
    * @throws DiskBalancerException
    */
   private NodePlan verifyPlanHash(String planID, String plan)
       throws DiskBalancerException {
-    final long sha512Length = 128;
+    final long sha1Length = 40;
     if (plan == null || plan.length() == 0) {
       LOG.error("Disk Balancer -  Invalid plan.");
       throw new DiskBalancerException("Invalid plan.",
@@ -356,8 +360,8 @@ public class DiskBalancer {
     }
 
     if ((planID == null) ||
-        (planID.length() != sha512Length) ||
-        !DigestUtils.sha512Hex(plan.getBytes(Charset.forName("UTF-8")))
+        (planID.length() != sha1Length) ||
+        !DigestUtils.shaHex(plan.getBytes(Charset.forName("UTF-8")))
             .equalsIgnoreCase(planID)) {
       LOG.error("Disk Balancer - Invalid plan hash.");
       throw new DiskBalancerException("Invalid or mis-matched hash.",
@@ -455,7 +459,7 @@ public class DiskBalancer {
     Map<String, FsVolumeSpi> pathMap = new HashMap<>();
     FsDatasetSpi.FsVolumeReferences references;
     try {
-      synchronized (this.dataset) {
+      try(AutoCloseableLock lock = this.dataset.acquireDatasetLock()) {
         references = this.dataset.getFsVolumeReferences();
         for (int ndx = 0; ndx < references.size(); ndx++) {
           FsVolumeSpi vol = references.get(ndx);
@@ -485,11 +489,15 @@ public class DiskBalancer {
       @Override
       public void run() {
         Thread.currentThread().setName("DiskBalancerThread");
-        LOG.info("Executing Disk balancer plan. Plan ID -  " + planID);
-
-        for (Map.Entry<VolumePair, DiskBalancerWorkItem> entry :
-            workMap.entrySet()) {
-          blockMover.copyBlocks(entry.getKey(), entry.getValue());
+        LOG.info("Executing Disk balancer plan. Plan File: {}, Plan ID: {}",
+                planFile, planID);
+        try {
+          for (Map.Entry<VolumePair, DiskBalancerWorkItem> entry :
+              workMap.entrySet()) {
+            blockMover.copyBlocks(entry.getKey(), entry.getValue());
+          }
+        } finally {
+          blockMover.setExitFlag();
         }
       }
     });
@@ -943,8 +951,7 @@ public class DiskBalancer {
               LOG.error("Exceeded the max error count. source {}, dest: {} " +
                       "error count: {}", source.getBasePath(),
                   dest.getBasePath(), item.getErrorCount());
-              this.setExitFlag();
-              continue;
+              break;
             }
 
             // Check for the block tolerance constraint.
@@ -953,17 +960,15 @@ public class DiskBalancer {
                       "blocks.",
                   source.getBasePath(), dest.getBasePath(),
                   item.getBytesCopied(), item.getBlocksCopied());
-              this.setExitFlag();
-              continue;
+              break;
             }
 
             ExtendedBlock block = getNextBlock(poolIters, item);
             // we are not able to find any blocks to copy.
             if (block == null) {
-              this.setExitFlag();
               LOG.error("No source blocks, exiting the copy. Source: {}, " +
                   "dest:{}", source.getBasePath(), dest.getBasePath());
-              continue;
+              break;
             }
 
             // check if someone told us exit, treat this as an interruption
@@ -971,7 +976,7 @@ public class DiskBalancer {
             // for the thread, since both getNextBlock and moveBlocAcrossVolume
             // can take some time.
             if (!shouldRun()) {
-              continue;
+              break;
             }
 
             long timeUsed;
@@ -990,8 +995,7 @@ public class DiskBalancer {
               LOG.error("Destination volume: {} does not have enough space to" +
                   " accommodate a block. Block Size: {} Exiting from" +
                   " copyBlocks.", dest.getBasePath(), block.getNumBytes());
-              this.setExitFlag();
-              continue;
+              break;
             }
 
             LOG.debug("Moved block with size {} from  {} to {}",

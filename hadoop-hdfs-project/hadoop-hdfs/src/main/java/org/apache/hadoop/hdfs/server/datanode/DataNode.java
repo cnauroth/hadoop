@@ -115,6 +115,7 @@ import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.DFSUtilClient;
 import org.apache.hadoop.hdfs.HDFSPolicyProvider;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
+import org.apache.hadoop.util.AutoCloseableLock;
 import org.apache.hadoop.hdfs.client.BlockReportOptions;
 import org.apache.hadoop.hdfs.client.HdfsClientConfigKeys;
 import org.apache.hadoop.hdfs.net.DomainPeerServer;
@@ -206,6 +207,7 @@ import org.apache.hadoop.util.Daemon;
 import org.apache.hadoop.util.DiskChecker;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.InvalidChecksumSizeException;
 import org.apache.hadoop.util.JvmPauseMonitor;
 import org.apache.hadoop.util.ServicePlugin;
 import org.apache.hadoop.util.StringUtils;
@@ -347,7 +349,7 @@ public class DataNode extends ReconfigurableBase
   BlockPoolTokenSecretManager blockPoolTokenSecretManager;
   private boolean hasAnyBlockPoolRegistered = false;
   
-  private final BlockScanner blockScanner;
+  private  BlockScanner blockScanner;
   private DirectoryScanner directoryScanner = null;
   
   /** Activated plug-ins. */
@@ -2139,7 +2141,8 @@ public class DataNode extends ReconfigurableBase
     LOG.warn(msg);
   }
 
-  private void transferBlock(ExtendedBlock block, DatanodeInfo[] xferTargets,
+  @VisibleForTesting
+  void transferBlock(ExtendedBlock block, DatanodeInfo[] xferTargets,
       StorageType[] xferTargetStorageTypes) throws IOException {
     BPOfferService bpos = getBPOSForBlock(block);
     DatanodeRegistration bpReg = getDNRegistrationForBP(block.getBlockPoolId());
@@ -2424,6 +2427,13 @@ public class DataNode extends ReconfigurableBase
           metrics.incrBlocksReplicated();
         }
       } catch (IOException ie) {
+        if (ie instanceof InvalidChecksumSizeException) {
+          // Add the block to the front of the scanning queue if metadata file
+          // is corrupt. We already add the block to front of scanner if the
+          // peer disconnects.
+          LOG.info("Adding block: " + b + " for scanning");
+          blockScanner.markSuspectBlock(data.getVolume(b).getStorageID(), b);
+        }
         LOG.warn(bpReg + ":Failed to transfer " + b + " to " +
             targets[0] + " got ", ie);
         // check if there are any disk problem
@@ -2877,7 +2887,7 @@ public class DataNode extends ReconfigurableBase
     final BlockConstructionStage stage;
 
     //get replica information
-    synchronized(data) {
+    try(AutoCloseableLock lock = data.acquireDatasetLock()) {
       Block storedBlock = data.getStoredBlock(b.getBlockPoolId(),
           b.getBlockId());
       if (null == storedBlock) {
@@ -3398,16 +3408,18 @@ public class DataNode extends ReconfigurableBase
    * @param planID  - Hash value of the plan.
    * @param planVersion - Plan version, reserved for future use. We have only
    *                    version 1 now.
-   * @param plan - Actual plan
+   * @param planFile - Plan file name
+   * @param planData - Actual plan data in json format
    * @throws IOException
    */
   @Override
-  public void submitDiskBalancerPlan(String planID,
-      long planVersion, String plan, boolean skipDateCheck) throws IOException {
-
+  public void submitDiskBalancerPlan(String planID, long planVersion,
+      String planFile, String planData, boolean skipDateCheck)
+      throws IOException {
     checkSuperuserPrivilege();
     // TODO : Support force option
-    this.diskBalancer.submitPlan(planID, planVersion, plan, skipDateCheck);
+    this.diskBalancer.submitPlan(planID, planVersion, planFile, planData,
+            skipDateCheck);
   }
 
   /**
@@ -3455,5 +3467,10 @@ public class DataNode extends ReconfigurableBase
       throw new DiskBalancerException("Unknown key",
           DiskBalancerException.Result.UNKNOWN_KEY);
     }
+  }
+
+  @VisibleForTesting
+  void setBlockScanner(BlockScanner blockScanner) {
+    this.blockScanner = blockScanner;
   }
 }

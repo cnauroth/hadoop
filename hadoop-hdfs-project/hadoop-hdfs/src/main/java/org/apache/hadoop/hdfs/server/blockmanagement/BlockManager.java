@@ -22,6 +22,7 @@ import static org.apache.hadoop.util.ExitUtil.terminate;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -1045,24 +1046,32 @@ public class BlockManager implements BlockStatsMXBean {
     final boolean isCorrupt = numCorruptReplicas != 0 &&
         numCorruptReplicas == numNodes;
     final int numMachines = isCorrupt ? numNodes: numNodes - numCorruptReplicas;
-    final DatanodeStorageInfo[] machines = new DatanodeStorageInfo[numMachines];
+    DatanodeStorageInfo[] machines = new DatanodeStorageInfo[numMachines];
     final byte[] blockIndices = blk.isStriped() ? new byte[numMachines] : null;
     int j = 0, i = 0;
     if (numMachines > 0) {
+      final boolean noCorrupt = (numCorruptReplicas == 0);
       for(DatanodeStorageInfo storage : blocksMap.getStorages(blk)) {
-        final DatanodeDescriptor d = storage.getDatanodeDescriptor();
-        final boolean replicaCorrupt = corruptReplicas.isReplicaCorrupt(blk, d);
-        if (isCorrupt || (!replicaCorrupt)) {
-          machines[j++] = storage;
-          // TODO this can be more efficient
-          if (blockIndices != null) {
-            byte index = ((BlockInfoStriped) blk).getStorageBlockIndex(storage);
-            assert index >= 0;
-            blockIndices[i++] = index;
+        if (storage.getState() != State.FAILED) {
+          if (noCorrupt) {
+            machines[j++] = storage;
+            i = setBlockIndices(blk, blockIndices, i, storage);
+          } else {
+            final DatanodeDescriptor d = storage.getDatanodeDescriptor();
+            final boolean replicaCorrupt = isReplicaCorrupt(blk, d);
+            if (isCorrupt || !replicaCorrupt) {
+              machines[j++] = storage;
+              i = setBlockIndices(blk, blockIndices, i, storage);
+            }
           }
         }
       }
     }
+
+    if(j < machines.length) {
+      machines = Arrays.copyOf(machines, j);
+    }
+
     assert j == machines.length :
       "isCorrupt: " + isCorrupt + 
       " numMachines: " + numMachines +
@@ -2138,12 +2147,14 @@ public class BlockManager implements BlockStatsMXBean {
   public boolean processReport(final DatanodeID nodeID,
       final DatanodeStorage storage,
       final BlockListAsLongs newReport,
-      BlockReportContext context) throws IOException {
+      BlockReportContext context, boolean lastStorageInRpc) throws IOException {
     namesystem.writeLock();
     final long startTime = Time.monotonicNow(); //after acquiring write lock
     final long endTime;
     DatanodeDescriptor node;
     Collection<Block> invalidatedBlocks = Collections.emptyList();
+    String strBlockReportId =
+        context != null ? Long.toHexString(context.getReportId()) : "";
 
     try {
       node = datanodeManager.getDatanode(nodeID);
@@ -2162,9 +2173,10 @@ public class BlockManager implements BlockStatsMXBean {
       }
       if (namesystem.isInStartupSafeMode()
           && storageInfo.getBlockReportCount() > 0) {
-        blockLog.info("BLOCK* processReport: "
+        blockLog.info("BLOCK* processReport 0x{}: "
             + "discarded non-initial block report from {}"
-            + " because namenode still in startup phase", nodeID);
+            + " because namenode still in startup phase",
+            strBlockReportId, nodeID);
         blockReportLeaseManager.removeLease(node);
         return !node.hasStaleStorages();
       }
@@ -2178,25 +2190,42 @@ public class BlockManager implements BlockStatsMXBean {
       if (storageInfo.getBlockReportCount() == 0) {
         // The first block report can be processed a lot more efficiently than
         // ordinary block reports.  This shortens restart times.
-        LOG.info("Processing first storage report for " +
-            storageInfo.getStorageID() + " from datanode " +
+        blockLog.info("BLOCK* processReport 0x{}: Processing first "
+            + "storage report for {} from datanode {}",
+            strBlockReportId,
+            storageInfo.getStorageID(),
             nodeID.getDatanodeUuid());
         processFirstBlockReport(storageInfo, newReport);
       } else {
-        invalidatedBlocks = processReport(storageInfo, newReport,
-            context != null ? context.isSorted() : false);
+        invalidatedBlocks = processReport(storageInfo, newReport, context);
       }
       
       storageInfo.receivedBlockReport();
       if (context != null) {
-        if (context.getTotalRpcs() == context.getCurRpc() + 1) {
-          long leaseId = this.getBlockReportLeaseManager().removeLease(node);
-          BlockManagerFaultInjector.getInstance().
-              removeBlockReportLease(node, leaseId);
+        storageInfo.setLastBlockReportId(context.getReportId());
+        if (lastStorageInRpc) {
+          int rpcsSeen = node.updateBlockReportContext(context);
+          if (rpcsSeen >= context.getTotalRpcs()) {
+            long leaseId = blockReportLeaseManager.removeLease(node);
+            BlockManagerFaultInjector.getInstance().
+                removeBlockReportLease(node, leaseId);
+            List<DatanodeStorageInfo> zombies = node.removeZombieStorages();
+            if (zombies.isEmpty()) {
+              LOG.debug("processReport 0x{}: no zombie storages found.",
+                  Long.toHexString(context.getReportId()));
+            } else {
+              for (DatanodeStorageInfo zombie : zombies) {
+                removeZombieReplicas(context, zombie);
+              }
+            }
+            node.clearBlockReportContext();
+          } else {
+            LOG.debug("processReport 0x{}: {} more RPCs remaining in this " +
+                    "report.", Long.toHexString(context.getReportId()),
+                (context.getTotalRpcs() - rpcsSeen)
+            );
+          }
         }
-        LOG.debug("Processing RPC with index {} out of total {} RPCs in "
-                + "processReport 0x{}", context.getCurRpc(),
-            context.getTotalRpcs(), Long.toHexString(context.getReportId()));
       }
     } finally {
       endTime = Time.monotonicNow();
@@ -2204,8 +2233,8 @@ public class BlockManager implements BlockStatsMXBean {
     }
 
     for (Block b : invalidatedBlocks) {
-      blockLog.debug("BLOCK* processReport: {} on node {} size {} does not " +
-          "belong to any file", b, node, b.getNumBytes());
+      blockLog.debug("BLOCK* processReport 0x{}: {} on node {} size {} does not"
+          + " belong to any file", strBlockReportId, b, node, b.getNumBytes());
     }
 
     // Log the block report processing stats from Namenode perspective
@@ -2213,33 +2242,13 @@ public class BlockManager implements BlockStatsMXBean {
     if (metrics != null) {
       metrics.addBlockReport((int) (endTime - startTime));
     }
-    blockLog.info("BLOCK* processReport: from storage {} node {}, " +
+    blockLog.info("BLOCK* processReport 0x{}: from storage {} node {}, " +
         "blocks: {}, hasStaleStorage: {}, processing time: {} msecs, " +
-        "invalidatedBlocks: {}", storage.getStorageID(), nodeID,
-        newReport.getNumberOfBlocks(),
+        "invalidatedBlocks: {}", strBlockReportId, storage.getStorageID(),
+        nodeID, newReport.getNumberOfBlocks(),
         node.hasStaleStorages(), (endTime - startTime),
         invalidatedBlocks.size());
     return !node.hasStaleStorages();
-  }
-
-  public void removeZombieStorages(DatanodeRegistration nodeReg,
-      BlockReportContext context, Set<String> storageIDsInBlockReport)
-      throws UnregisteredNodeException {
-    namesystem.writeLock();
-    DatanodeDescriptor node = this.getDatanodeManager().getDatanode(nodeReg);
-    if (node != null) {
-      List<DatanodeStorageInfo> zombies =
-          node.removeZombieStorages(storageIDsInBlockReport);
-      if (zombies.isEmpty()) {
-        LOG.debug("processReport 0x{}: no zombie storages found.",
-            Long.toHexString(context.getReportId()));
-      } else {
-        for (DatanodeStorageInfo zombie : zombies) {
-          this.removeZombieReplicas(context, zombie);
-        }
-      }
-    }
-    namesystem.writeUnlock();
   }
 
   private void removeZombieReplicas(BlockReportContext context,
@@ -2282,9 +2291,9 @@ public class BlockManager implements BlockStatsMXBean {
       return;
     }
     long startTimeRescanPostponedMisReplicatedBlocks = Time.monotonicNow();
+    namesystem.writeLock();
     long startPostponedMisReplicatedBlocksCount =
         getPostponedMisreplicatedBlocksCount();
-    namesystem.writeLock();
     try {
       // blocksPerRescan is the configured number of blocks per rescan.
       // Randomly select blocksPerRescan consecutive blocks from the HashSet
@@ -2337,9 +2346,9 @@ public class BlockManager implements BlockStatsMXBean {
         }
       }
     } finally {
-      namesystem.writeUnlock();
       long endPostponedMisReplicatedBlocksCount =
           getPostponedMisreplicatedBlocksCount();
+      namesystem.writeUnlock();
       LOG.info("Rescan of postponedMisreplicatedBlocks completed in " +
           (Time.monotonicNow() - startTimeRescanPostponedMisReplicatedBlocks) +
           " msecs. " + endPostponedMisReplicatedBlocksCount +
@@ -2350,7 +2359,8 @@ public class BlockManager implements BlockStatsMXBean {
   
   private Collection<Block> processReport(
       final DatanodeStorageInfo storageInfo,
-      final BlockListAsLongs report, final boolean sorted) throws IOException {
+      final BlockListAsLongs report,
+      BlockReportContext context) throws IOException {
     // Normal case:
     // Modify the (block-->datanode) map, according to the difference
     // between the old and new block report.
@@ -2361,13 +2371,21 @@ public class BlockManager implements BlockStatsMXBean {
     Collection<BlockToMarkCorrupt> toCorrupt = new LinkedList<>();
     Collection<StatefulBlockInfo> toUC = new LinkedList<>();
 
+    boolean sorted = false;
+    String strBlockReportId = "";
+    if (context != null) {
+      sorted = context.isSorted();
+      strBlockReportId = Long.toHexString(context.getReportId());
+    }
+
     Iterable<BlockReportReplica> sortedReport;
     if (!sorted) {
-      blockLog.warn("BLOCK* processReport: Report from the DataNode ({}) is "
-                    + "unsorted. This will cause overhead on the NameNode "
+      blockLog.warn("BLOCK* processReport 0x{}: Report from the DataNode ({}) "
+                    + "is unsorted. This will cause overhead on the NameNode "
                     + "which needs to sort the Full BR. Please update the "
                     + "DataNode to the same version of Hadoop HDFS as the "
                     + "NameNode ({}).",
+                    strBlockReportId,
                     storageInfo.getDatanodeDescriptor().getDatanodeUuid(),
                     VersionInfo.getVersion());
       Set<BlockReportReplica> set = new FoldedTreeSet<>();
@@ -2398,8 +2416,8 @@ public class BlockManager implements BlockStatsMXBean {
       numBlocksLogged++;
     }
     if (numBlocksLogged > maxNumBlocksToLog) {
-      blockLog.info("BLOCK* processReport: logged info for {} of {} " +
-          "reported.", maxNumBlocksToLog, numBlocksLogged);
+      blockLog.info("BLOCK* processReport 0x{}: logged info for {} of {} " +
+          "reported.", strBlockReportId, maxNumBlocksToLog, numBlocksLogged);
     }
     for (Block b : toInvalidate) {
       addToInvalidates(b, node);
@@ -4582,5 +4600,20 @@ public class BlockManager implements BlockStatsMXBean {
 
   boolean isGenStampInFuture(Block block) {
     return blockIdManager.isGenStampInFuture(block);
+  }
+
+  boolean isReplicaCorrupt(BlockInfo blk, DatanodeDescriptor d) {
+    return corruptReplicas.isReplicaCorrupt(blk, d);
+  }
+
+  private int setBlockIndices(BlockInfo blk, byte[] blockIndices, int i,
+                              DatanodeStorageInfo storage) {
+    // TODO this can be more efficient
+    if (blockIndices != null) {
+      byte index = ((BlockInfoStriped)blk).getStorageBlockIndex(storage);
+      assert index >= 0;
+      blockIndices[i++] = index;
+    }
+    return i;
   }
 }
