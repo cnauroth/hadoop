@@ -40,7 +40,9 @@ import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-
+/**
+ * S3N tests through live S3 service.
+ */
 public class ITestJets3tNativeFileSystemStore {
   private Configuration conf;
   private Jets3tNativeFileSystemStore store;
@@ -98,7 +100,9 @@ public class ITestJets3tNativeFileSystemStore {
     InputStream in = new BufferedInputStream(
         new DigestInputStream(fs.open(copyPath), digest2));
     long copyLen = 0;
-    while (in.read() != -1) {copyLen++;}
+    while (in.read() != -1) {
+      copyLen++;
+    }
     in.close();
 
     assertEquals("Copy length matches original", len, copyLen);

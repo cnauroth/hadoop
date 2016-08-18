@@ -61,7 +61,9 @@ public class ITestS3AFileSystemContract extends FileSystemContractBaseTest {
 
   @Override
   public void testRenameFileAsExistingFile() throws Exception {
-    if (!renameSupported()) return;
+    if (!renameSupported()) {
+      return;
+    }
 
     Path src = path("/test/hadoop/file");
     createFile(src);

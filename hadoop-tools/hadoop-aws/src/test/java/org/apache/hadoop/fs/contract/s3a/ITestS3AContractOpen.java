@@ -22,6 +22,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.contract.AbstractContractOpenTest;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 
+/**
+ * S3A contract tests opening files.
+ */
 public class ITestS3AContractOpen extends AbstractContractOpenTest {
 
   @Override

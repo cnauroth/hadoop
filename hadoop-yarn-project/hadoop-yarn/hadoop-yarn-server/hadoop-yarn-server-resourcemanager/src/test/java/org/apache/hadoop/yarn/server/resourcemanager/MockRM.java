@@ -613,12 +613,12 @@ public class MockRM extends ResourceManager {
       sub.setLogAggregationContext(logAggregationContext);
     }
     sub.setCancelTokensWhenComplete(cancelTokensWhenComplete);
+    ResourceRequest amResourceRequest = ResourceRequest.newInstance(
+        Priority.newInstance(0), ResourceRequest.ANY, capability, 1);
     if (amLabel != null && !amLabel.isEmpty()) {
-      ResourceRequest amResourceRequest = ResourceRequest.newInstance(
-          Priority.newInstance(0), ResourceRequest.ANY, capability, 1);
       amResourceRequest.setNodeLabelExpression(amLabel.trim());
-      sub.setAMContainerResourceRequest(amResourceRequest);
     }
+    sub.setAMContainerResourceRequest(amResourceRequest);
     req.setApplicationSubmissionContext(sub);
     UserGroupInformation fakeUser =
       UserGroupInformation.createUserForTesting(user, new String[] {"someGroup"});
@@ -709,6 +709,9 @@ public class MockRM extends ResourceManager {
   public void waitForState(NodeId nodeId, NodeState finalState)
       throws InterruptedException {
     RMNode node = getRMContext().getRMNodes().get(nodeId);
+    if (node == null) {
+      node = getRMContext().getInactiveRMNodes().get(nodeId);
+    }
     Assert.assertNotNull("node shouldn't be null", node);
     int timeWaiting = 0;
     while (!finalState.equals(node.getState())) {
@@ -722,9 +725,15 @@ public class MockRM extends ResourceManager {
       timeWaiting += WAIT_MS_PER_LOOP;
     }
 
-    System.out.println("Node State is : " + node.getState());
+    System.out.println("Node " + nodeId + " State is : " + node.getState());
     Assert.assertEquals("Node state is not correct (timedout)", finalState,
         node.getState());
+  }
+
+  public void sendNodeEvent(MockNM nm, RMNodeEventType event) throws Exception {
+    RMNodeImpl node = (RMNodeImpl)
+        getRMContext().getRMNodes().get(nm.getNodeId());
+    node.handle(new RMNodeEvent(nm.getNodeId(), event));
   }
 
   public KillApplicationResponse killApp(ApplicationId appId) throws Exception {
@@ -820,9 +829,10 @@ public class MockRM extends ResourceManager {
   @Override
   protected ApplicationMasterService createApplicationMasterService() {
     if (this.rmContext.getYarnConfiguration().getBoolean(
-        YarnConfiguration.DIST_SCHEDULING_ENABLED,
-        YarnConfiguration.DIST_SCHEDULING_ENABLED_DEFAULT)) {
-      return new DistributedSchedulingService(getRMContext(), scheduler) {
+        YarnConfiguration.OPPORTUNISTIC_CONTAINER_ALLOCATION_ENABLED,
+        YarnConfiguration.OPPORTUNISTIC_CONTAINER_ALLOCATION_ENABLED_DEFAULT)) {
+      return new OpportunisticContainerAllocatorAMService(getRMContext(),
+          scheduler) {
         @Override
         protected void serviceStart() {
           // override to not start rpc handler

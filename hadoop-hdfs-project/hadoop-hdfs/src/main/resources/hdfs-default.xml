@@ -1496,6 +1496,13 @@
 </property>
 
 <property>
+  <name>dfs.ha.tail-edits.rolledits.timeout</name>
+  <value>60</value>
+  <description>The timeout in seconds of calling rollEdits RPC on Active NN.
+  </description>
+</property>
+
+<property>
   <name>dfs.ha.automatic-failover.enabled</name>
   <value>false</value>
   <description>
@@ -2786,6 +2793,16 @@
     tries to get local NN thread dump after local NN becomes
     SERVICE_NOT_RESPONDING or SERVICE_UNHEALTHY.
     If it is set to zero, DFS ZKFC won't get local NN thread dump.
+  </description>
+</property>
+
+<property>
+  <name>dfs.ha.tail-edits.in-progress</name>
+  <value>false</value>
+  <description>
+    Whether enable standby namenode to tail in-progress edit logs.
+    Clients might want to turn it on when they want Standby NN to have
+    more up-to-date data.
   </description>
 </property>
 

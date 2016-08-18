@@ -22,7 +22,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * S3a implementation of FileContextURIBase
+ * S3a implementation of FileContextURIBase.
  */
 public class ITestS3AFileContextURI extends FileContextURIBase {
 
@@ -37,7 +37,8 @@ public class ITestS3AFileContextURI extends FileContextURIBase {
   @Test
   @Ignore
   public void testFileStatus() throws IOException {
-    //test disabled (the statistics tested with this method are not relevant for an S3FS)
+    // test disabled
+    // (the statistics tested with this method are not relevant for an S3FS)
   }
 
 }

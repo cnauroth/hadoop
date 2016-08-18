@@ -24,7 +24,6 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.InvalidRequestException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 import org.apache.hadoop.fs.contract.AbstractFSContractTestBase;
@@ -37,7 +36,6 @@ import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.nio.file.AccessDeniedException;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 import static org.apache.hadoop.fs.contract.ContractTestUtils.*;
 import static org.apache.hadoop.fs.s3a.S3ATestUtils.*;

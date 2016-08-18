@@ -22,6 +22,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.contract.AbstractContractSeekTest;
 import org.apache.hadoop.fs.contract.AbstractFSContract;
 
+/**
+ * S3N contract tests covering file seek.
+ */
 public class ITestS3NContractSeek extends AbstractContractSeekTest {
 
   @Override

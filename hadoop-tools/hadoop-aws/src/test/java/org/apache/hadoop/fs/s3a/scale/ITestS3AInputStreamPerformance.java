@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.s3a.S3AFileSystem;
 import org.apache.hadoop.fs.s3a.S3AInputPolicy;
 import org.apache.hadoop.fs.s3a.S3AInputStream;
 import org.apache.hadoop.fs.s3a.S3AInstrumentation;
+import org.apache.hadoop.fs.s3a.S3ATestUtils;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -79,6 +80,7 @@ public class ITestS3AInputStreamPerformance extends S3AScaleTestBase {
       assumptionMessage = "Empty test property: " + KEY_CSVTEST_FILE;
       testDataAvailable = false;
     } else {
+      S3ATestUtils.useCSVDataEndpoint(conf);
       testData = new Path(testFile);
       Path path = this.testData;
       bindS3aFS(path);
@@ -221,7 +223,7 @@ public class ITestS3AInputStreamPerformance extends S3AScaleTestBase {
       int reads = 0;
       while (remaining > 0) {
         int bytesRead = in.read(block, offset, remaining);
-        reads ++;
+        reads++;
         if (bytesRead == 1) {
           break;
         }
@@ -231,7 +233,7 @@ public class ITestS3AInputStreamPerformance extends S3AScaleTestBase {
       }
       blockTimer.end("Reading block %d in %d reads", i, reads);
     }
-    timer2.end("Time to read %d bytes in %d blocks", len, blockCount );
+    timer2.end("Time to read %d bytes in %d blocks", len, blockCount);
     bandwidth(timer2, count);
     logStreamStatistics();
   }

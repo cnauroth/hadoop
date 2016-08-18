@@ -46,6 +46,7 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.ExecutionType;
+import org.apache.hadoop.yarn.api.records.ExecutionTypeRequest;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -235,7 +236,8 @@ public class BuilderUtils {
 
   public static Container newContainer(ContainerId containerId, NodeId nodeId,
       String nodeHttpAddress, Resource resource, Priority priority,
-      Token containerToken, ExecutionType executionType) {
+      Token containerToken, ExecutionType executionType,
+      long allocationRequestId) {
     Container container = recordFactory.newRecordInstance(Container.class);
     container.setId(containerId);
     container.setNodeId(nodeId);
@@ -244,6 +246,7 @@ public class BuilderUtils {
     container.setPriority(priority);
     container.setContainerToken(containerToken);
     container.setExecutionType(executionType);
+    container.setAllocationRequestId(allocationRequestId);
     return container;
   }
 
@@ -251,7 +254,15 @@ public class BuilderUtils {
       String nodeHttpAddress, Resource resource, Priority priority,
       Token containerToken) {
     return newContainer(containerId, nodeId, nodeHttpAddress, resource,
-        priority, containerToken, ExecutionType.GUARANTEED);
+        priority, containerToken, ExecutionType.GUARANTEED, 0);
+  }
+
+  public static Container newContainer(ContainerId containerId, NodeId nodeId,
+      String nodeHttpAddress, Resource resource, Priority priority,
+      Token containerToken, long allocationRequestId) {
+    return newContainer(containerId, nodeId, nodeHttpAddress, resource,
+        priority, containerToken, ExecutionType.GUARANTEED,
+        allocationRequestId);
   }
 
   public static <T extends Token> T newToken(Class<T> tokenClass,
@@ -334,6 +345,7 @@ public class BuilderUtils {
     request.setResourceName(hostName);
     request.setCapability(capability);
     request.setNumContainers(numContainers);
+    request.setExecutionTypeRequest(ExecutionTypeRequest.newInstance());
     return request;
   }
 
@@ -346,6 +358,7 @@ public class BuilderUtils {
     request.setCapability(capability);
     request.setNumContainers(numContainers);
     request.setNodeLabelExpression(label);
+    request.setExecutionTypeRequest(ExecutionTypeRequest.newInstance());
     return request;
   }
 
@@ -357,6 +370,7 @@ public class BuilderUtils {
     request.setCapability(r.getCapability());
     request.setNumContainers(r.getNumContainers());
     request.setNodeLabelExpression(r.getNodeLabelExpression());
+    request.setExecutionTypeRequest(r.getExecutionTypeRequest());
     return request;
   }
 

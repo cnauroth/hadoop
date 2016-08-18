@@ -554,9 +554,9 @@ this capability.
 
     <property>
       <name>fs.s3a.acl.default</name>
-      <description>Set a canned ACL for newly created and copied objects. Value may be private,
-         public-read, public-read-write, authenticated-read, log-delivery-write,
-         bucket-owner-read, or bucket-owner-full-control.</description>
+      <description>Set a canned ACL for newly created and copied objects. Value may be Private,
+        PublicRead, PublicReadWrite, AuthenticatedRead, LogDeliveryWrite, BucketOwnerRead,
+        or BucketOwnerFullControl.</description>
     </property>
 
     <property>
@@ -633,6 +633,60 @@ this capability.
       re-opening the S3 HTTP connection. This option will be overridden if
       any call to setReadahead() is made to an open stream.</description>
     </property>
+
+### Working with buckets in different regions
+
+S3 Buckets are hosted in different regions, the default being US-East.
+The client talks to it by default, under the URL `s3.amazonaws.com`
+
+S3A can work with buckets from any region. Each region has its own
+S3 endpoint, documented [by Amazon](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region).
+
+1. Applications running in EC2 infrastructure do not pay for IO to/from
+*local S3 buckets*. They will be billed for access to remote buckets. Always
+use local buckets and local copies of data, wherever possible.
+1. The default S3 endpoint can support data IO with any bucket when the V1 request
+signing protocol is used.
+1. When the V4 signing protocol is used, AWS requires the explicit region endpoint
+to be used —hence S3A must be configured to use the specific endpoint. This
+is done in the configuration option `fs.s3a.endpoint`.
+1. All endpoints other than the default endpoint only support interaction
+with buckets local to that S3 instance.
+
+While it is generally simpler to use the default endpoint, working with
+V4-signing-only regions (Frankfurt, Seoul) requires the endpoint to be identified.
+Expect better performance from direct connections —traceroute will give you some insight.
+
+Examples:
+
+The default endpoint:
+
+```xml
+<property>
+  <name>fs.s3a.endpoint</name>
+  <value>s3.amazonaws.com</value>
+</property>
+```
+
+Frankfurt
+
+```xml
+<property>
+  <name>fs.s3a.endpoint</name>
+  <value>s3.eu-central-1.amazonaws.com</value>
+</property>
+```
+
+Seoul
+```xml
+<property>
+  <name>fs.s3a.endpoint</name>
+  <value>s3.ap-northeast-2.amazonaws.com</value>
+</property>
+```
+
+If the wrong endpoint is used, the request may fail. This may be reported as a 301/redirect error,
+or as a 400 Bad Request.
 
 ### S3AFastOutputStream
  **Warning: NEW in hadoop 2.7. UNSTABLE, EXPERIMENTAL: use at own risk**
@@ -819,8 +873,6 @@ of environment-variable authentication by attempting to use the `hdfs fs` comman
 to read or write data on S3. That is: comment out the `fs.s3a` secrets and rely on
 the environment variables.
 
-S3 Frankfurt is a special case. It uses the V4 authentication API.
-
 ### Authentication failures running on Java 8u60+
 
 A change in the Java 8 JVM broke some of the `toString()` string generation
@@ -828,6 +880,106 @@ of Joda Time 2.8.0, which stopped the amazon s3 client from being able to
 generate authentication headers suitable for validation by S3.
 
 Fix: make sure that the version of Joda Time is 2.8.1 or later.
+
+### "Bad Request" exception when working with AWS S3 Frankfurt, Seoul, or elsewhere
+
+
+S3 Frankfurt and Seoul *only* support
+[the V4 authentication API](http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-authenticating-requests.html).
+
+Requests using the V2 API will be rejected with 400 `Bad Request`
+
+```
+$ bin/hadoop fs -ls s3a://frankfurt/
+WARN s3a.S3AFileSystem: Client: Amazon S3 error 400: 400 Bad Request; Bad Request (retryable)
+
+com.amazonaws.services.s3.model.AmazonS3Exception: Bad Request (Service: Amazon S3; Status Code: 400; Error Code: 400 Bad Request; Request ID: 923C5D9E75E44C06), S3 Extended Request ID: HDwje6k+ANEeDsM6aJ8+D5gUmNAMguOk2BvZ8PH3g9z0gpH+IuwT7N19oQOnIr5CIx7Vqb/uThE=
+	at com.amazonaws.http.AmazonHttpClient.handleErrorResponse(AmazonHttpClient.java:1182)
+	at com.amazonaws.http.AmazonHttpClient.executeOneRequest(AmazonHttpClient.java:770)
+	at com.amazonaws.http.AmazonHttpClient.executeHelper(AmazonHttpClient.java:489)
+	at com.amazonaws.http.AmazonHttpClient.execute(AmazonHttpClient.java:310)
+	at com.amazonaws.services.s3.AmazonS3Client.invoke(AmazonS3Client.java:3785)
+	at com.amazonaws.services.s3.AmazonS3Client.headBucket(AmazonS3Client.java:1107)
+	at com.amazonaws.services.s3.AmazonS3Client.doesBucketExist(AmazonS3Client.java:1070)
+	at org.apache.hadoop.fs.s3a.S3AFileSystem.verifyBucketExists(S3AFileSystem.java:307)
+	at org.apache.hadoop.fs.s3a.S3AFileSystem.initialize(S3AFileSystem.java:284)
+	at org.apache.hadoop.fs.FileSystem.createFileSystem(FileSystem.java:2793)
+	at org.apache.hadoop.fs.FileSystem.access$200(FileSystem.java:101)
+	at org.apache.hadoop.fs.FileSystem$Cache.getInternal(FileSystem.java:2830)
+	at org.apache.hadoop.fs.FileSystem$Cache.get(FileSystem.java:2812)
+	at org.apache.hadoop.fs.FileSystem.get(FileSystem.java:389)
+	at org.apache.hadoop.fs.Path.getFileSystem(Path.java:356)
+	at org.apache.hadoop.fs.shell.PathData.expandAsGlob(PathData.java:325)
+	at org.apache.hadoop.fs.shell.Command.expandArgument(Command.java:235)
+	at org.apache.hadoop.fs.shell.Command.expandArguments(Command.java:218)
+	at org.apache.hadoop.fs.shell.FsCommand.processRawArguments(FsCommand.java:103)
+	at org.apache.hadoop.fs.shell.Command.run(Command.java:165)
+	at org.apache.hadoop.fs.FsShell.run(FsShell.java:315)
+	at org.apache.hadoop.util.ToolRunner.run(ToolRunner.java:76)
+	at org.apache.hadoop.util.ToolRunner.run(ToolRunner.java:90)
+	at org.apache.hadoop.fs.FsShell.main(FsShell.java:373)
+ls: doesBucketExist on frankfurt-new: com.amazonaws.services.s3.model.AmazonS3Exception:
+  Bad Request (Service: Amazon S3; Status Code: 400; Error Code: 400 Bad Request;
+```
+
+This happens when trying to work with any S3 service which only supports the
+"V4" signing API —and he client is configured to use the default S3A service
+endpoint.
+
+The S3A client needs to be given the endpoint to use via the `fs.s3a.endpoint`
+property.
+
+```xml
+<property>
+  <name>fs.s3a.endpoint</name>
+  <value>s3.eu-central-1.amazonaws.com</value>
+</property>
+```
+
+### Error message "The bucket you are attempting to access must be addressed using the specified endpoint"
+
+This surfaces when `fs.s3a.endpoint` is configured to use S3 service endpoint
+which is neither the original AWS one, `s3.amazonaws.com` , nor the one where
+the bucket is hosted.
+
+```
+org.apache.hadoop.fs.s3a.AWSS3IOException: purging multipart uploads on landsat-pds:
+ com.amazonaws.services.s3.model.AmazonS3Exception:
+  The bucket you are attempting to access must be addressed using the specified endpoint.
+  Please send all future requests to this endpoint.
+   (Service: Amazon S3; Status Code: 301; Error Code: PermanentRedirect; Request ID: 5B7A5D18BE596E4B),
+    S3 Extended Request ID: uE4pbbmpxi8Nh7rycS6GfIEi9UH/SWmJfGtM9IeKvRyBPZp/hN7DbPyz272eynz3PEMM2azlhjE=:
+
+	at com.amazonaws.http.AmazonHttpClient.handleErrorResponse(AmazonHttpClient.java:1182)
+	at com.amazonaws.http.AmazonHttpClient.executeOneRequest(AmazonHttpClient.java:770)
+	at com.amazonaws.http.AmazonHttpClient.executeHelper(AmazonHttpClient.java:489)
+	at com.amazonaws.http.AmazonHttpClient.execute(AmazonHttpClient.java:310)
+	at com.amazonaws.services.s3.AmazonS3Client.invoke(AmazonS3Client.java:3785)
+	at com.amazonaws.services.s3.AmazonS3Client.invoke(AmazonS3Client.java:3738)
+	at com.amazonaws.services.s3.AmazonS3Client.listMultipartUploads(AmazonS3Client.java:2796)
+	at com.amazonaws.services.s3.transfer.TransferManager.abortMultipartUploads(TransferManager.java:1217)
+	at org.apache.hadoop.fs.s3a.S3AFileSystem.initMultipartUploads(S3AFileSystem.java:454)
+	at org.apache.hadoop.fs.s3a.S3AFileSystem.initialize(S3AFileSystem.java:289)
+	at org.apache.hadoop.fs.FileSystem.createFileSystem(FileSystem.java:2715)
+	at org.apache.hadoop.fs.FileSystem.access$200(FileSystem.java:96)
+	at org.apache.hadoop.fs.FileSystem$Cache.getInternal(FileSystem.java:2749)
+	at org.apache.hadoop.fs.FileSystem$Cache.getUnique(FileSystem.java:2737)
+	at org.apache.hadoop.fs.FileSystem.newInstance(FileSystem.java:430)
+```
+
+1. Use the [Specific endpoint of the bucket's S3 service](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region)
+1. If not using "V4" authentication (see above), the original S3 endpoint
+can be used:
+
+```
+    <property>
+      <name>fs.s3a.endpoint</name>
+      <value>s3.amazonaws.com</value>
+    </property>
+```
+
+Using the explicit endpoint for the region is recommended for speed and the
+ability to use the V4 signing API.
 
 ## Visible S3 Inconsistency
 
@@ -1132,99 +1284,6 @@ that the file `contract-test-options.xml` does not contain any
 secret credentials itself. As the auth keys XML file is kept out of the
 source code tree, it is not going to get accidentally committed.
 
-### Running Tests against non-AWS storage infrastructures
-
-### S3A session tests
-
-The test `TestS3ATemporaryCredentials` requests a set of temporary
-credentials from the STS service, then uses them to authenticate with S3.
-
-If an S3 implementation does not support STS, then the functional test
-cases must be disabled:
-
-        <property>
-          <name>test.fs.s3a.sts.enabled</name>
-          <value>false</value>
-        </property>
-
-These tests reqest a temporary set of credentials from the STS service endpoint.
-An alternate endpoint may be defined in `test.fs.s3a.sts.endpoint`.
-
-        <property>
-          <name>test.fs.s3a.sts.endpoint</name>
-          <value>https://sts.example.org/</value>
-        </property>
-
-The default is ""; meaning "use the amazon default value".
-
-#### CSV Data source
-
-The `TestS3AInputStreamPerformance` tests require read access to a multi-MB
-text file. The default file for these tests is one published by amazon,
-[s3a://landsat-pds.s3.amazonaws.com/scene_list.gz](http://landsat-pds.s3.amazonaws.com/scene_list.gz).
-This is a gzipped CSV index of other files which amazon serves for open use.
-
-The path to this object is set in the option `fs.s3a.scale.test.csvfile`:
-
-    <property>
-      <name>fs.s3a.scale.test.csvfile</name>
-      <value>s3a://landsat-pds/scene_list.gz</value>
-    </property>
-
-1. If the option is not overridden, the default value is used. This
-is hosted in Amazon's US-east datacenter.
-1. If the property is empty, tests which require it will be skipped.
-1. If the data cannot be read for any reason then the test will fail.
-1. If the property is set to a different path, then that data must be readable
-and "sufficiently" large.
-
-To test on different S3 endpoints, or alternate infrastructures supporting
-the same APIs, the option `fs.s3a.scale.test.csvfile` must therefore be
-set to " ", or an object of at least 10MB is uploaded to the object store, and
-the `fs.s3a.scale.test.csvfile` option set to its path.
-
-      <property>
-        <name>fs.s3a.scale.test.csvfile</name>
-        <value> </value>
-      </property>
-
-
-#### Scale test operation count
-
-Some scale tests perform multiple operations (such as creating many directories).
-
-The exact number of operations to perform is configurable in the option
-`scale.test.operation.count`
-
-      <property>
-        <name>scale.test.operation.count</name>
-        <value>10</value>
-      </property>
-
-Larger values generate more load, and are recommended when testing locally,
-or in batch runs.
-
-Smaller values results in faster test runs, especially when the object
-store is a long way away.
-
-Operations which work on directories have a separate option: this controls
-the width and depth of tests creating recursive directories. Larger
-values create exponentially more directories, with consequent performance
-impact.
-
-      <property>
-        <name>scale.test.directory.count</name>
-        <value>2</value>
-      </property>
-
-DistCp tests targeting S3A support a configurable file size.  The default is
-10 MB, but the configuration value is expressed in KB so that it can be tuned
-smaller to achieve faster test runs.
-
-      <property>
-        <name>scale.test.distcp.file.size.kb</name>
-        <value>10240</value>
-      </property>
 
 ### Running the Tests
 
@@ -1274,6 +1333,130 @@ results, so the recommendation is to avoid passing `parallel-tests` in
 combination with `test` or `it.test`.  If you know that you are specifying only
 tests that can run safely in parallel, then it will work.  For wide patterns,
 like `ITestS3A*` shown above, it may cause unpredictable test failures.
+
+### Testing against different regions
+
+S3A can connect to different regions —the tests support this. Simply
+define the target region in `contract-tests.xml` or any `auth-keys.xml`
+file referenced.
+
+```xml
+<property>
+  <name>fs.s3a.endpoint</name>
+  <value>s3.eu-central-1.amazonaws.com</value>
+</property>
+```
+This is used for all tests expect for scale tests using a Public CSV.gz file
+(see below)
+
+### S3A session tests
+
+The test `TestS3ATemporaryCredentials` requests a set of temporary
+credentials from the STS service, then uses them to authenticate with S3.
+
+If an S3 implementation does not support STS, then the functional test
+cases must be disabled:
+
+        <property>
+          <name>test.fs.s3a.sts.enabled</name>
+          <value>false</value>
+        </property>
+
+These tests reqest a temporary set of credentials from the STS service endpoint.
+An alternate endpoint may be defined in `test.fs.s3a.sts.endpoint`.
+
+        <property>
+          <name>test.fs.s3a.sts.endpoint</name>
+          <value>https://sts.example.org/</value>
+        </property>
+
+The default is ""; meaning "use the amazon default value".
+
+#### CSV Data source Tests
+
+The `TestS3AInputStreamPerformance` tests require read access to a multi-MB
+text file. The default file for these tests is one published by amazon,
+[s3a://landsat-pds.s3.amazonaws.com/scene_list.gz](http://landsat-pds.s3.amazonaws.com/scene_list.gz).
+This is a gzipped CSV index of other files which amazon serves for open use.
+
+The path to this object is set in the option `fs.s3a.scale.test.csvfile`,
+
+    <property>
+      <name>fs.s3a.scale.test.csvfile</name>
+      <value>s3a://landsat-pds/scene_list.gz</value>
+    </property>
+
+1. If the option is not overridden, the default value is used. This
+is hosted in Amazon's US-east datacenter.
+1. If `fs.s3a.scale.test.csvfile` is empty, tests which require it will be skipped.
+1. If the data cannot be read for any reason then the test will fail.
+1. If the property is set to a different path, then that data must be readable
+and "sufficiently" large.
+
+To test on different S3 endpoints, or alternate infrastructures supporting
+the same APIs, the option `fs.s3a.scale.test.csvfile` must either be
+set to " ", or an object of at least 10MB is uploaded to the object store, and
+the `fs.s3a.scale.test.csvfile` option set to its path.
+
+```xml
+<property>
+  <name>fs.s3a.scale.test.csvfile</name>
+  <value> </value>
+</property>
+```
+
+(the reason the space or newline is needed is to add "an empty entry"; an empty
+`<value/>` would be considered undefined and pick up the default)
+
+*Note:* if using a test file in an S3 region requiring a different endpoint value
+set in `fs.s3a.endpoint`, define it in `fs.s3a.scale.test.csvfile.endpoint`.
+If the default CSV file is used, the tests will automatically use the us-east
+endpoint:
+
+```xml
+<property>
+  <name>fs.s3a.scale.test.csvfile.endpoint</name>
+  <value>s3.amazonaws.com</value>
+</property>
+```
+
+#### Scale test operation count
+
+Some scale tests perform multiple operations (such as creating many directories).
+
+The exact number of operations to perform is configurable in the option
+`scale.test.operation.count`
+
+      <property>
+        <name>scale.test.operation.count</name>
+        <value>10</value>
+      </property>
+
+Larger values generate more load, and are recommended when testing locally,
+or in batch runs.
+
+Smaller values results in faster test runs, especially when the object
+store is a long way away.
+
+Operations which work on directories have a separate option: this controls
+the width and depth of tests creating recursive directories. Larger
+values create exponentially more directories, with consequent performance
+impact.
+
+      <property>
+        <name>scale.test.directory.count</name>
+        <value>2</value>
+      </property>
+
+DistCp tests targeting S3A support a configurable file size.  The default is
+10 MB, but the configuration value is expressed in KB so that it can be tuned
+smaller to achieve faster test runs.
+
+      <property>
+        <name>scale.test.distcp.file.size.kb</name>
+        <value>10240</value>
+      </property>
+
 
 ### Testing against non AWS S3 endpoints.
 
