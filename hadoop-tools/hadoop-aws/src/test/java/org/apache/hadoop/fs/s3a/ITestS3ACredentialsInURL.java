@@ -109,7 +109,7 @@ public class ITestS3ACredentialsInURL extends Assert {
       fail(text + " Test failed");
     }
   }
-  
+
   /**
    * Set up some invalid credentials, verify login is rejected.
    * @throws Throwable
