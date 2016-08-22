@@ -29,6 +29,7 @@ import java.util.Date;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -79,7 +80,8 @@ public class TestS3AGetFileStatus extends AbstractS3AMockTest {
     ObjectListing objects = mock(ObjectListing.class);
     when(objects.getCommonPrefixes()).thenReturn(
         Collections.singletonList("dir/"));
-    when(objects.getObjectSummaries()).thenReturn(Collections.emptyList());
+    when(objects.getObjectSummaries()).thenReturn(
+        Collections.<S3ObjectSummary>emptyList());
     when(s3.listObjects(any(ListObjectsRequest.class))).thenReturn(objects);
     FileStatus stat = fs.getFileStatus(path);
     assertNotNull(stat);
@@ -94,8 +96,10 @@ public class TestS3AGetFileStatus extends AbstractS3AMockTest {
     when(s3.getObjectMetadata(BUCKET, key)).thenThrow(NOT_FOUND);
     when(s3.getObjectMetadata(BUCKET, key + "/")).thenThrow(NOT_FOUND);
     ObjectListing objects = mock(ObjectListing.class);
-    when(objects.getCommonPrefixes()).thenReturn(Collections.emptyList());
-    when(objects.getObjectSummaries()).thenReturn(Collections.emptyList());
+    when(objects.getCommonPrefixes()).thenReturn(
+        Collections.<String>emptyList());
+    when(objects.getObjectSummaries()).thenReturn(
+        Collections.<S3ObjectSummary>emptyList());
     when(s3.listObjects(any(ListObjectsRequest.class))).thenReturn(objects);
     FileStatus stat = fs.getFileStatus(path);
     assertNotNull(stat);
@@ -111,8 +115,10 @@ public class TestS3AGetFileStatus extends AbstractS3AMockTest {
     when(s3.getObjectMetadata(BUCKET, key)).thenThrow(NOT_FOUND);
     when(s3.getObjectMetadata(BUCKET, key + "/")).thenThrow(NOT_FOUND);
     ObjectListing objects = mock(ObjectListing.class);
-    when(objects.getCommonPrefixes()).thenReturn(Collections.emptyList());
-    when(objects.getObjectSummaries()).thenReturn(Collections.emptyList());
+    when(objects.getCommonPrefixes()).thenReturn(
+        Collections.<String>emptyList());
+    when(objects.getObjectSummaries()).thenReturn(
+        Collections.<S3ObjectSummary>emptyList());
     when(s3.listObjects(any(ListObjectsRequest.class))).thenReturn(objects);
     exception.expect(FileNotFoundException.class);
     fs.getFileStatus(path);
