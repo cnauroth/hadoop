@@ -24,12 +24,12 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@code DirListingMetadata} models a directory listing stored in a
- * {@link MetadataStore}.
+ * {@link MetadataStore}.  Instances of this class are mutable and thread-safe.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
@@ -38,7 +38,7 @@ public class DirListingMetadata {
   private final Path path;
 
   /** Using a map for fast find / remove with large directories. */
-  private Map<Path, FileStatus> listMap = new HashMap<>();
+  private Map<Path, FileStatus> listMap = new ConcurrentHashMap<>();
 
   private boolean isAuthoritative;
 
