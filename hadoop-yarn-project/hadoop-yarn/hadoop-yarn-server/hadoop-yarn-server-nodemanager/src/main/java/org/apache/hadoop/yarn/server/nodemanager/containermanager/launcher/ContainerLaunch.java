@@ -267,7 +267,7 @@ public class ContainerLaunch implements Callable<Integer> {
         // Write out the environment
         exec.writeLaunchEnv(containerScriptOutStream, environment,
           localResources, launchContext.getCommands(),
-            new Path(containerLogDirs.get(0)));
+            new Path(containerLogDirs.get(0)), user);
 
         // /////////// End of writing out container-script
 
@@ -1201,16 +1201,16 @@ public class ContainerLaunch implements Callable<Integer> {
 
   private void recordContainerLogDir(ContainerId containerId,
       String logDir) throws IOException{
+    container.setLogDir(logDir);
     if (container.isRetryContextSet()) {
-      container.setLogDir(logDir);
       context.getNMStateStore().storeContainerLogDir(containerId, logDir);
     }
   }
 
   private void recordContainerWorkDir(ContainerId containerId,
       String workDir) throws IOException{
+    container.setWorkDir(workDir);
     if (container.isRetryContextSet()) {
-      container.setWorkDir(workDir);
       context.getNMStateStore().storeContainerWorkDir(containerId, workDir);
     }
   }

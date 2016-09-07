@@ -330,8 +330,8 @@ public class DockerContainerExecutor extends ContainerExecutor {
    * the docker image and write them out to an OutputStream.
    */
   public void writeLaunchEnv(OutputStream out, Map<String, String> environment,
-    Map<Path, List<String>> resources, List<String> command, Path logDir)
-    throws IOException {
+      Map<Path, List<String>> resources, List<String> command, Path logDir,
+      String user) throws IOException {
     ContainerLaunch.ShellScriptBuilder sb =
       ContainerLaunch.ShellScriptBuilder.create();
 
@@ -488,6 +488,12 @@ public class DockerContainerExecutor extends ContainerExecutor {
         continue;
       }
     }
+  }
+
+  @Override
+  public void symLink(String target, String symlink)
+      throws IOException {
+
   }
 
   /**

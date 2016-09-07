@@ -534,6 +534,18 @@ public class YarnConfiguration extends Configuration {
   public static final int
       DEFAULT_RM_SYSTEM_METRICS_PUBLISHER_DISPATCHER_POOL_SIZE = 10;
 
+  /**
+   * The {@code AMLauncher.createAMContainerLaunchContext()} method will log the
+   * command being executed to the RM log if this property is true. Commands
+   * may contain sensitive information, such as application or service
+   * passwords, making logging the commands a security risk. In cases where
+   * the cluster may be running applications with such commands, this property
+   * should be set to false. Commands are only logged at the debug level.
+   */
+  public static final String RM_AMLAUNCHER_LOG_COMMAND =
+      RM_PREFIX + "amlauncher.log.command";
+  public static final boolean DEFAULT_RM_AMLAUNCHER_LOG_COMMAND = false;
+
   //RM delegation token related keys
   public static final String RM_DELEGATION_KEY_UPDATE_INTERVAL_KEY =
     RM_PREFIX + "delegation.key.update-interval";
@@ -2699,7 +2711,7 @@ public class YarnConfiguration extends Configuration {
       RM_PREFIX + "am-scheduling.node-blacklisting-enabled";
   @Private
   public static final boolean DEFAULT_AM_SCHEDULING_NODE_BLACKLISTING_ENABLED =
-      true;
+      false;
 
   @Private
   /**
@@ -2709,7 +2721,7 @@ public class YarnConfiguration extends Configuration {
       RM_PREFIX + "am-scheduling.node-blacklisting-disable-threshold";
   @Private
   public static final float
-      DEFAULT_AM_SCHEDULING_NODE_BLACKLISTING_DISABLE_THRESHOLD = 0.8f;
+      DEFAULT_AM_SCHEDULING_NODE_BLACKLISTING_DISABLE_THRESHOLD = 0.2f;
 
   private static final String NM_SCRIPT_BASED_NODE_LABELS_PROVIDER_PREFIX =
       NM_NODE_LABELS_PROVIDER_PREFIX + "script.";

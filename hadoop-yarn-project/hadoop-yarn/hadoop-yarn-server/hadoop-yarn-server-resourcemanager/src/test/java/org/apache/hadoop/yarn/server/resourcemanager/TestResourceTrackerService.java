@@ -299,6 +299,8 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
     RMApp app = rm.submitApp(2000);
     MockAM am = MockRM.launchAndRegisterAM(app, rm, nm1);
     ApplicationAttemptId aaid = app.getCurrentAppAttempt().getAppAttemptId();
+    nm1.nodeHeartbeat(aaid, 2, ContainerState.RUNNING);
+    nm3.nodeHeartbeat(true);
 
     // Graceful decommission host1 and host3
     writeToHostsFile("host1", "host3");
@@ -308,7 +310,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
 
     // host1 should be DECOMMISSIONING due to running containers.
     // host3 should become DECOMMISSIONED.
-    nm1.nodeHeartbeat(aaid, 2, ContainerState.RUNNING);
+    nm1.nodeHeartbeat(true);
     nm3.nodeHeartbeat(true);
     rm.waitForState(id1, NodeState.DECOMMISSIONING);
     rm.waitForState(id3, NodeState.DECOMMISSIONED);
@@ -1127,7 +1129,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
     NMContainerStatus report =
         NMContainerStatus.newInstance(
           ContainerId.newContainerId(
-            ApplicationAttemptId.newInstance(app.getApplicationId(), 2), 1),
+            ApplicationAttemptId.newInstance(app.getApplicationId(), 2), 1), 0,
           ContainerState.COMPLETE, Resource.newInstance(1024, 1),
           "Dummy Completed", 0, Priority.newInstance(10), 1234);
     rm.getResourceTrackerService().handleNMContainerStatus(report, null);
@@ -1138,7 +1140,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
         (RMAppAttemptImpl) app.getCurrentAppAttempt();
     currentAttempt.setMasterContainer(null);
     report = NMContainerStatus.newInstance(
-          ContainerId.newContainerId(currentAttempt.getAppAttemptId(), 0),
+          ContainerId.newContainerId(currentAttempt.getAppAttemptId(), 0), 0,
           ContainerState.COMPLETE, Resource.newInstance(1024, 1),
           "Dummy Completed", 0, Priority.newInstance(10), 1234);
     rm.getResourceTrackerService().handleNMContainerStatus(report, null);
@@ -1150,7 +1152,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
     // Case 2.1: AppAttemptId is null
     report = NMContainerStatus.newInstance(
           ContainerId.newContainerId(
-            ApplicationAttemptId.newInstance(app.getApplicationId(), 2), 1),
+            ApplicationAttemptId.newInstance(app.getApplicationId(), 2), 1), 0,
           ContainerState.COMPLETE, Resource.newInstance(1024, 1),
           "Dummy Completed", 0, Priority.newInstance(10), 1234);
     try {
@@ -1165,7 +1167,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
         (RMAppAttemptImpl) app.getCurrentAppAttempt();
     currentAttempt.setMasterContainer(null);
     report = NMContainerStatus.newInstance(
-      ContainerId.newContainerId(currentAttempt.getAppAttemptId(), 0),
+      ContainerId.newContainerId(currentAttempt.getAppAttemptId(), 0), 0,
       ContainerState.COMPLETE, Resource.newInstance(1024, 1),
       "Dummy Completed", 0, Priority.newInstance(10), 1234);
     try {

@@ -18,25 +18,8 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager;
 
-import static org.apache.hadoop.service.Service.STATE.STARTED;
-
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -59,6 +42,8 @@ import org.apache.hadoop.yarn.api.protocolrecords.GetContainerStatusesRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.GetContainerStatusesResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.IncreaseContainersResourceRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.IncreaseContainersResourceResponse;
+import org.apache.hadoop.yarn.api.protocolrecords.ResourceLocalizationRequest;
+import org.apache.hadoop.yarn.api.protocolrecords.ResourceLocalizationResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.SignalContainerRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.SignalContainerResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
@@ -74,6 +59,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.LogAggregationContext;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -127,7 +113,9 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Cont
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.launcher.ContainersLauncher;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.launcher.ContainersLauncherEventType;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.launcher.SignalContainersLauncherEvent;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.localizer.LocalResourceRequest;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.localizer.ResourceLocalizationService;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.localizer.event.ContainerLocalizationRequestEvent;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.localizer.event.LocalizationEvent;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.localizer.event.LocalizationEventType;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.localizer.sharedcache.SharedCacheUploadEventType;
@@ -152,8 +140,25 @@ import org.apache.hadoop.yarn.server.utils.YarnServerSecurityUtils;
 import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.ByteString;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+
+import static org.apache.hadoop.service.Service.STATE.STARTED;
 
 public class ContainerManagerImpl extends CompositeService implements
     ContainerManager {
@@ -1014,9 +1019,12 @@ public class ContainerManagerImpl extends CompositeService implements
           }
         }
 
+        this.context.getNMStateStore().storeContainer(containerId,
+            containerTokenIdentifier.getVersion(), request);
         dispatcher.getEventHandler().handle(
           new ApplicationContainerInitEvent(container));
-        this.context.getNMStateStore().storeContainer(containerId, request);
+        this.context.getNMStateStore().storeContainer(containerId,
+            containerTokenIdentifier.getVersion(), request);
 
         this.context.getContainerTokenSecretManager().startContainerSuccessful(
           containerTokenIdentifier);
@@ -1098,7 +1106,8 @@ public class ContainerManagerImpl extends CompositeService implements
           // an updated NMToken.
           updateNMTokenIdentifier(nmTokenIdentifier);
           Resource resource = containerTokenIdentifier.getResource();
-          changeContainerResourceInternal(containerId, resource, true);
+          changeContainerResourceInternal(containerId,
+              containerTokenIdentifier.getVersion(), resource, true);
           successfullyIncreasedContainers.add(containerId);
         } catch (YarnException | InvalidToken e) {
           failedContainers.put(containerId, SerializedException.newInstance(e));
@@ -1112,8 +1121,8 @@ public class ContainerManagerImpl extends CompositeService implements
   }
 
   @SuppressWarnings("unchecked")
-  private void changeContainerResourceInternal(
-      ContainerId containerId, Resource targetResource, boolean increase)
+  private void changeContainerResourceInternal(ContainerId containerId,
+      int containerVersion, Resource targetResource, boolean increase)
           throws YarnException, IOException {
     Container container = context.getContainers().get(containerId);
     // Check container existence
@@ -1180,7 +1189,7 @@ public class ContainerManagerImpl extends CompositeService implements
       if (!serviceStopped) {
         // Persist container resource change for recovery
         this.context.getNMStateStore().storeContainerResourceChanged(
-            containerId, targetResource);
+            containerId, containerVersion, targetResource);
         getContainersMonitor().handle(
             new ChangeMonitoringContainerResourceEvent(
                 containerId, targetResource));
@@ -1441,7 +1450,7 @@ public class ContainerManagerImpl extends CompositeService implements
           : containersDecreasedEvent.getContainersToDecrease()) {
         try {
           changeContainerResourceInternal(container.getId(),
-              container.getResource(), false);
+              container.getVersion(), container.getResource(), false);
         } catch (YarnException e) {
           LOG.error("Unable to decrease container resource", e);
         } catch (IOException e) {
@@ -1512,6 +1521,39 @@ public class ContainerManagerImpl extends CompositeService implements
       SignalContainerRequest request) throws YarnException, IOException {
     internalSignalToContainer(request, "Application Master");
     return new SignalContainerResponsePBImpl();
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public ResourceLocalizationResponse localize(
+      ResourceLocalizationRequest request) throws YarnException, IOException {
+
+    ContainerId containerId = request.getContainerId();
+    Container container = context.getContainers().get(containerId);
+    if (container == null) {
+      throw new YarnException("Specified " + containerId + " does not exist!");
+    }
+    if (!container.getContainerState()
+        .equals(org.apache.hadoop.yarn.server.nodemanager.
+            containermanager.container.ContainerState.RUNNING)) {
+      throw new YarnException(
+          containerId + " is at " + container.getContainerState()
+              + " state. Not able to localize new resources.");
+    }
+
+    try {
+      Map<LocalResourceVisibility, Collection<LocalResourceRequest>> req =
+          container.getResourceSet().addResources(request.getLocalResources());
+      if (req != null && !req.isEmpty()) {
+        dispatcher.getEventHandler()
+            .handle(new ContainerLocalizationRequestEvent(container, req));
+      }
+    } catch (URISyntaxException e) {
+      LOG.info("Error when parsing local resource URI for " + containerId, e);
+      throw new YarnException(e);
+    }
+
+    return ResourceLocalizationResponse.newInstance();
   }
 
   @SuppressWarnings("unchecked")
