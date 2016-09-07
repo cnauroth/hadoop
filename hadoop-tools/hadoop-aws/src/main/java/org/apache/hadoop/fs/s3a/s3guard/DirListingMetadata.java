@@ -44,12 +44,12 @@ public class DirListingMetadata {
 
   /**
    * Create a directory listing metadata container.
+   *
    * @param path Path of the directory.
    * @param listing Entries in the directory.
-   * @param isAuthoritative true iff listing is the full
-   *     contents of the directory, and the calling client reports
-   *     that this may be cached as the full and authoritative
-   *     listing of all files in the directory.
+   * @param isAuthoritative true iff listing is the full contents of the
+   *     directory, and the calling client reports that this may be cached as
+   *     the full and authoritative listing of all files in the directory.
    */
   public DirListingMetadata(Path path, Collection<FileStatus> listing,
       boolean isAuthoritative) {
@@ -70,20 +70,34 @@ public class DirListingMetadata {
   }
 
   /**
-   * @return true iff this directory listing is full and authoritative
-   * within the scope of the {@code MetadataStore} that returned it.
+   * @return entries in the directory
+   */
+  public Collection<FileStatus> getFileStatuses() {
+    return listMap.values();
+  }
+
+  /**
+   * @return true iff this directory listing is full and authoritative within
+   * the scope of the {@code MetadataStore} that returned it.
    */
   public boolean isAuthoritative() {
     return isAuthoritative;
   }
 
   /**
-   * Lookup entry within this directory listing.  This may return null if
-   * the {@code MetadataStore} only tracks a partial set of the directory
-   * entries. In the case where {@link #isAuthoritative()} is true, however,
-   * this function returns null iff the directory is known not to contain the
-   * listing at given path (within the scope of the {@code MetadataStore} that
-   * returned it).
+   * Marks this directory listing as full and authoritative.
+   */
+  public void setAuthoritative() {
+    isAuthoritative = true;
+  }
+
+  /**
+   * Lookup entry within this directory listing.  This may return null if the
+   * {@code MetadataStore} only tracks a partial set of the directory entries.
+   * In the case where {@link #isAuthoritative()} is true, however, this
+   * function returns null iff the directory is known not to contain the listing
+   * at given path (within the scope of the {@code MetadataStore} that returned
+   * it).
    *
    * @param path of entry to look for
    * @return entry, or null if it is not present or not being tracked.
@@ -93,9 +107,19 @@ public class DirListingMetadata {
   }
 
   /**
-   * Add a file entry to the directory listing.  If this listing already
-   * contains a {@code FileStatus} with the same path, it will be replaced.
-   * @param fileStatus File entry to add to this directory listing.
+   * Remove entry from this directory.
+   *
+   * @param path of entry to remove
+   */
+  public void remove(Path path) {
+    listMap.remove(path);
+  }
+
+  /**
+   * Add an entry to the directory listing.  If this listing already contains a
+   * {@code FileStatus} with the same path, it will be replaced.
+   *
+   * @param fileStatus entry to add to this directory listing.
    */
   public void put(FileStatus fileStatus) {
     // TODO assert that fileStatus is a proper child of path.

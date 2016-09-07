@@ -112,7 +112,7 @@ public interface MetadataStore extends Closeable {
    * of the directory listing.  {@code MetadataStore} implementations may
    * subsequently keep track of all modifications to the directory contents at
    * this path, and return authoritative results from subsequent calls to
-   * {@link #listChildren(Path)}. See {@link DirListingMetadata()}.
+   * {@link #listChildren(Path)}. See {@link DirListingMetadata}.
    *
    * Any authoritative results returned are only authoritative for the scope
    * of the {@code MetadataStore}:  A per-process {@code MetadataStore}, for
@@ -121,7 +121,7 @@ public interface MetadataStore extends Closeable {
    * another process.
    *
    * @param meta Directory listing metadata.
-   * @throws IOException
+   * @throws IOException if there is an error
    */
   void put(DirListingMetadata meta) throws IOException;
 }
