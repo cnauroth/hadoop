@@ -34,7 +34,7 @@ import org.apache.hadoop.fs.Path;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
-public abstract class MetadataStore implements Closeable {
+public interface MetadataStore extends Closeable {
 
   /**
    * Performs one-time initialization of the metadata store.
@@ -42,7 +42,7 @@ public abstract class MetadataStore implements Closeable {
    * @param conf {@code Configuration}
    * @throws IOException if there is an error
    */
-  public abstract void initialize(Configuration conf) throws IOException;
+  void initialize(Configuration conf) throws IOException;
 
   /**
    * Deletes exactly one path.
@@ -50,7 +50,7 @@ public abstract class MetadataStore implements Closeable {
    * @param path the path to delete
    * @throws IOException if there is an error
    */
-  public abstract void delete(Path path) throws IOException;
+  void delete(Path path) throws IOException;
 
   /**
    * Deletes the entire sub-tree rooted at the given path.
@@ -62,7 +62,7 @@ public abstract class MetadataStore implements Closeable {
    * @param path the root of the sub-tree to delete
    * @throws IOException if there is an error
    */
-  public abstract void deleteSubtree(Path path) throws IOException;
+  void deleteSubtree(Path path) throws IOException;
 
   /**
    * Gets metadata for a path.
@@ -71,7 +71,7 @@ public abstract class MetadataStore implements Closeable {
    * @return metadata for {@code path}, {@code null} if not found
    * @throws IOException if there is an error
    */
-  public abstract PathMetadata get(Path path) throws IOException;
+  PathMetadata get(Path path) throws IOException;
 
   /**
    * Lists metadata for all direct children of a path.
@@ -81,7 +81,7 @@ public abstract class MetadataStore implements Closeable {
    *     but possibly empty
    * @throws IOException if there is an error
    */
-  public abstract DirListingMetadata listChildren(Path path) throws IOException;
+  DirListingMetadata listChildren(Path path) throws IOException;
 
   /**
    * Moves metadata from {@code src} to {@code dst}, including all descendants
@@ -91,7 +91,7 @@ public abstract class MetadataStore implements Closeable {
    * @param dst the destination path
    * @throws IOException if there is an error
    */
-  public abstract void move(Path src, Path dst) throws IOException;
+  void move(Path src, Path dst) throws IOException;
 
   /**
    * Saves metadata for exactly one path.  For a deeply nested path, this method
@@ -104,7 +104,7 @@ public abstract class MetadataStore implements Closeable {
    * @param meta the metadata to save
    * @throws IOException if there is an error
    */
-  public abstract void put(PathMetadata meta) throws IOException;
+  void put(PathMetadata meta) throws IOException;
 
   /**
    * Save directory listing metadata. Callers may save a partial directory
@@ -123,5 +123,5 @@ public abstract class MetadataStore implements Closeable {
    * @param meta Directory listing metadata.
    * @throws IOException
    */
-  public abstract void put(DirListingMetadata meta) throws IOException;
+  void put(DirListingMetadata meta) throws IOException;
 }
