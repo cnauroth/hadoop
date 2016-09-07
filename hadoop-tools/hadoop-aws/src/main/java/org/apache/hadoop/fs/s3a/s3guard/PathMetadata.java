@@ -49,4 +49,11 @@ class PathMetadata {
   public final FileStatus getFileStatus() {
     return fileStatus;
   }
+
+  @Override
+  public String toString() {
+    return "PathMetadata{" +
+        "fileStatus=" + fileStatus +
+        '}';
+  }
 }
