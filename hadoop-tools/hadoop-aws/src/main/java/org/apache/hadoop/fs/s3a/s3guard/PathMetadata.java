@@ -29,16 +29,16 @@ import org.apache.hadoop.fs.FileStatus;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
-class PathMetadata<T extends FileStatus> {
+class PathMetadata {
 
-  private final T fileStatus;
+  private final FileStatus fileStatus;
 
   /**
    * Creates a new {@code PathMetadata} containing given {@code FileStatus}.
    *
    * @param fileStatus file status
    */
-  public PathMetadata(T fileStatus) {
+  public PathMetadata(FileStatus fileStatus) {
     Preconditions.checkNotNull(fileStatus);
     this.fileStatus = fileStatus;
   }
@@ -46,7 +46,7 @@ class PathMetadata<T extends FileStatus> {
   /**
    * @return {@code FileStatus} contained in this {@code PathMetadata}.
    */
-  public final T getFileStatus() {
+  public final FileStatus getFileStatus() {
     return fileStatus;
   }
 }

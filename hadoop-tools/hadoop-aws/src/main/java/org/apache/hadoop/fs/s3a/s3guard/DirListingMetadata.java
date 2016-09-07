@@ -33,12 +33,12 @@ import java.util.Map;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
-public class DirListingMetadata <T extends FileStatus> {
+public class DirListingMetadata {
 
   private final Path path;
 
   /** Using a map for fast find / remove with large directories. */
-  private Map<Path, T> listMap = new HashMap<>();
+  private Map<Path, FileStatus> listMap = new HashMap<>();
 
   private boolean isAuthoritative;
 
@@ -51,11 +51,11 @@ public class DirListingMetadata <T extends FileStatus> {
    *     that this may be cached as the full and authoritative
    *     listing of all files in the directory.
    */
-  public DirListingMetadata(Path path, Collection<T> listing,
+  public DirListingMetadata(Path path, Collection<FileStatus> listing,
       boolean isAuthoritative) {
     this.path = path;
     if (listing != null) {
-      for (T entry : listing) {
+      for (FileStatus entry : listing) {
         listMap.put(entry.getPath(), entry);
       }
     }
@@ -88,7 +88,7 @@ public class DirListingMetadata <T extends FileStatus> {
    * @param path of entry to look for
    * @return entry, or null if it is not present or not being tracked.
    */
-  public T get(Path path) {
+  public FileStatus get(Path path) {
     return listMap.get(path);
   }
 
@@ -97,7 +97,7 @@ public class DirListingMetadata <T extends FileStatus> {
    * contains a {@code FileStatus} with the same path, it will be replaced.
    * @param fileStatus File entry to add to this directory listing.
    */
-  public void put(T fileStatus) {
+  public void put(FileStatus fileStatus) {
     // TODO assert that fileStatus is a proper child of path.
     // TODO unit test for this class?
     listMap.put(fileStatus.getPath(), fileStatus);

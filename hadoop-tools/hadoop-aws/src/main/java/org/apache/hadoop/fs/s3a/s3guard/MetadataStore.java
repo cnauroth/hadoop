@@ -34,7 +34,7 @@ import org.apache.hadoop.fs.Path;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
-public abstract class MetadataStore<T extends FileStatus> implements Closeable {
+public abstract class MetadataStore implements Closeable {
 
   /**
    * Performs one-time initialization of the metadata store.
@@ -71,7 +71,7 @@ public abstract class MetadataStore<T extends FileStatus> implements Closeable {
    * @return metadata for {@code path}, {@code null} if not found
    * @throws IOException if there is an error
    */
-  public abstract PathMetadata<T> get(Path path) throws IOException;
+  public abstract PathMetadata get(Path path) throws IOException;
 
   /**
    * Lists metadata for all direct children of a path.
@@ -81,8 +81,7 @@ public abstract class MetadataStore<T extends FileStatus> implements Closeable {
    *     but possibly empty
    * @throws IOException if there is an error
    */
-  public abstract DirListingMetadata<T> listChildren(Path path)
-      throws IOException;
+  public abstract DirListingMetadata listChildren(Path path) throws IOException;
 
   /**
    * Moves metadata from {@code src} to {@code dst}, including all descendants
@@ -105,7 +104,7 @@ public abstract class MetadataStore<T extends FileStatus> implements Closeable {
    * @param meta the metadata to save
    * @throws IOException if there is an error
    */
-  public abstract void put(PathMetadata<T> meta) throws IOException;
+  public abstract void put(PathMetadata meta) throws IOException;
 
   /**
    * Save directory listing metadata. Callers may save a partial directory
@@ -124,5 +123,5 @@ public abstract class MetadataStore<T extends FileStatus> implements Closeable {
    * @param meta Directory listing metadata.
    * @throws IOException
    */
-  public abstract void put(DirListingMetadata<T> meta) throws IOException;
+  public abstract void put(DirListingMetadata meta) throws IOException;
 }
