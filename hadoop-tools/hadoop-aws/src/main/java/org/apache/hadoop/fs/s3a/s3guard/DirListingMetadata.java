@@ -27,6 +27,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.base.Preconditions;
+
 /**
  * {@code DirListingMetadata} models a directory listing stored in a
  * {@link MetadataStore}.  Instances of this class are mutable and thread-safe.
@@ -53,6 +55,7 @@ public class DirListingMetadata {
    */
   public DirListingMetadata(Path path, Collection<FileStatus> listing,
       boolean isAuthoritative) {
+    Preconditions.checkNotNull(path, "path must be non-null");
     this.path = path;
     if (listing != null) {
       for (FileStatus entry : listing) {
@@ -99,32 +102,35 @@ public class DirListingMetadata {
    * at given path (within the scope of the {@code MetadataStore} that returned
    * it).
    *
-   * @param path of entry to look for
+   * @param childPath path of entry to look for.
    * @return entry, or null if it is not present or not being tracked.
    */
-  public FileStatus get(Path path) {
-    return listMap.get(path);
+  public FileStatus get(Path childPath) {
+    checkChildPath(childPath);
+    return listMap.get(childPath);
   }
 
   /**
    * Remove entry from this directory.
    *
-   * @param path of entry to remove
+   * @param childPath path of entry to remove.
    */
-  public void remove(Path path) {
-    listMap.remove(path);
+  public void remove(Path childPath) {
+    checkChildPath(childPath);
+    listMap.remove(childPath);
   }
 
   /**
    * Add an entry to the directory listing.  If this listing already contains a
    * {@code FileStatus} with the same path, it will be replaced.
    *
-   * @param fileStatus entry to add to this directory listing.
+   * @param childFileStatus entry to add to this directory listing.
    */
   public void put(FileStatus fileStatus) {
-    // TODO assert that fileStatus is a proper child of path.
-    // TODO unit test for this class?
-    listMap.put(fileStatus.getPath(), fileStatus);
+    Preconditions.checkNotNull(fileStatus, "childfileStatus must be non-null");
+    Path childPath = fileStatus.getPath();
+    checkChildPath(childPath);
+    listMap.put(childPath, fileStatus);
   }
 
   @Override
@@ -134,5 +140,18 @@ public class DirListingMetadata {
         ", listMap=" + listMap +
         ", isAuthoritative=" + isAuthoritative +
         '}';
+  }
+
+  /**
+   * Performs pre-condition checks on child path arguments.
+   *
+   * @param childPath path to check.
+   */
+  private void checkChildPath(Path childPath) {
+    Preconditions.checkNotNull(childPath, "childPath must be non-null");
+    Preconditions.checkArgument(!childPath.isRoot(),
+        "childPath cannot be the root path");
+    Preconditions.checkArgument(childPath.getParent().equals(path),
+        "childPath must be a child of path");
   }
 }

@@ -39,7 +39,7 @@ class PathMetadata {
    * @param fileStatus file status
    */
   public PathMetadata(FileStatus fileStatus) {
-    Preconditions.checkNotNull(fileStatus);
+    Preconditions.checkNotNull(fileStatus, "fileStatus must be non-null");
     this.fileStatus = fileStatus;
   }
 
