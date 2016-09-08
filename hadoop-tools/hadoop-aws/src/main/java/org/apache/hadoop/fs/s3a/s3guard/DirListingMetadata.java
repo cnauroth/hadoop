@@ -126,11 +126,12 @@ public class DirListingMetadata {
    *
    * @param childFileStatus entry to add to this directory listing.
    */
-  public void put(FileStatus fileStatus) {
-    Preconditions.checkNotNull(fileStatus, "childfileStatus must be non-null");
-    Path childPath = fileStatus.getPath();
+  public void put(FileStatus childFileStatus) {
+    Preconditions.checkNotNull(childFileStatus,
+        "childFileStatus must be non-null");
+    Path childPath = childFileStatus.getPath();
     checkChildPath(childPath);
-    listMap.put(childPath, fileStatus);
+    listMap.put(childPath, childFileStatus);
   }
 
   @Override
