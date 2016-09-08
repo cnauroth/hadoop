@@ -88,6 +88,20 @@ public class TestDirListingMetadata {
   }
 
   @Test
+  public void testListingUnmodifiable() {
+    Path path = new Path("/path");
+    FileStatus stat1 = new S3AFileStatus(true, true, new Path(path, "dir1"));
+    FileStatus stat2 = new S3AFileStatus(true, false, new Path(path, "dir2"));
+    FileStatus stat3 = new S3AFileStatus(123, 456, new Path(path, "file1"),
+        789);
+    List<FileStatus> listing = Arrays.asList(stat1, stat2, stat3);
+    DirListingMetadata meta = new DirListingMetadata(path, listing, false);
+    assertNotNull(meta.getFileStatuses());
+    exception.expect(UnsupportedOperationException.class);
+    meta.getFileStatuses().clear();
+  }
+
+  @Test
   public void testAuthoritative() {
     Path path = new Path("/path");
     DirListingMetadata meta = new DirListingMetadata(path, null, true);

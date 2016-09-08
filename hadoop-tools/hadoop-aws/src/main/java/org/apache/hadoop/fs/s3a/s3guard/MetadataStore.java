@@ -76,8 +76,9 @@ public interface MetadataStore extends Closeable {
    * Lists metadata for all direct children of a path.
    *
    * @param path the path to list
-   * @return metadata for all direct children of {@code path}, not {@code null},
-   *     but possibly empty
+   * @return metadata for all direct children of {@code path} which are being
+   *     tracked by the MetadataStore, or {@code null} if the path was not found
+   *     in the MetadataStore.
    * @throws IOException if there is an error
    */
   DirListingMetadata listChildren(Path path) throws IOException;

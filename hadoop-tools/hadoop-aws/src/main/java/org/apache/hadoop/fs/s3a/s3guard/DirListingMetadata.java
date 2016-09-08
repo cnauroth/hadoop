@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -76,7 +77,7 @@ public class DirListingMetadata {
    * @return entries in the directory
    */
   public Collection<FileStatus> getFileStatuses() {
-    return listMap.values();
+    return Collections.unmodifiableCollection(listMap.values());
   }
 
   /**
