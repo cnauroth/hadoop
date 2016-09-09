@@ -53,8 +53,8 @@ public class TestDirListingMetadata {
     Path path = new Path("/path");
     DirListingMetadata meta = new DirListingMetadata(path, null, false);
     assertEquals(path, meta.getPath());
-    assertNotNull(meta.getFileStatuses());
-    assertTrue(meta.getFileStatuses().isEmpty());
+    assertNotNull(meta.getListing());
+    assertTrue(meta.getListing().isEmpty());
     assertFalse(meta.isAuthoritative());
   }
 
@@ -64,41 +64,45 @@ public class TestDirListingMetadata {
     DirListingMetadata meta = new DirListingMetadata(path,
         Collections.emptyList(), false);
     assertEquals(path, meta.getPath());
-    assertNotNull(meta.getFileStatuses());
-    assertTrue(meta.getFileStatuses().isEmpty());
+    assertNotNull(meta.getListing());
+    assertTrue(meta.getListing().isEmpty());
     assertFalse(meta.isAuthoritative());
   }
 
   @Test
   public void testListing() {
     Path path = new Path("/path");
-    FileStatus stat1 = new S3AFileStatus(true, true, new Path(path, "dir1"));
-    FileStatus stat2 = new S3AFileStatus(true, false, new Path(path, "dir2"));
-    FileStatus stat3 = new S3AFileStatus(123, 456, new Path(path, "file1"),
-        789);
-    List<FileStatus> listing = Arrays.asList(stat1, stat2, stat3);
+    PathMetadata pathMeta1 = new PathMetadata(
+        new S3AFileStatus(true, true, new Path(path, "dir1")));
+    PathMetadata pathMeta2 = new PathMetadata(
+        new S3AFileStatus(true, false, new Path(path, "dir2")));
+    PathMetadata pathMeta3 = new PathMetadata(
+        new S3AFileStatus(123, 456, new Path(path, "file1"), 789));
+    List<PathMetadata> listing = Arrays.asList(pathMeta1, pathMeta2, pathMeta3);
     DirListingMetadata meta = new DirListingMetadata(path, listing, false);
     assertEquals(path, meta.getPath());
-    assertNotNull(meta.getFileStatuses());
-    assertFalse(meta.getFileStatuses().isEmpty());
-    assertTrue(meta.getFileStatuses().contains(stat1));
-    assertTrue(meta.getFileStatuses().contains(stat2));
-    assertTrue(meta.getFileStatuses().contains(stat3));
+    assertNotNull(meta.getListing());
+    assertFalse(meta.getListing().isEmpty());
+    assertTrue(meta.getListing().contains(pathMeta1));
+    assertTrue(meta.getListing().contains(pathMeta2));
+    assertTrue(meta.getListing().contains(pathMeta3));
     assertFalse(meta.isAuthoritative());
   }
 
   @Test
   public void testListingUnmodifiable() {
     Path path = new Path("/path");
-    FileStatus stat1 = new S3AFileStatus(true, true, new Path(path, "dir1"));
-    FileStatus stat2 = new S3AFileStatus(true, false, new Path(path, "dir2"));
-    FileStatus stat3 = new S3AFileStatus(123, 456, new Path(path, "file1"),
-        789);
-    List<FileStatus> listing = Arrays.asList(stat1, stat2, stat3);
+    PathMetadata pathMeta1 = new PathMetadata(
+        new S3AFileStatus(true, true, new Path(path, "dir1")));
+    PathMetadata pathMeta2 = new PathMetadata(
+        new S3AFileStatus(true, false, new Path(path, "dir2")));
+    PathMetadata pathMeta3 = new PathMetadata(
+        new S3AFileStatus(123, 456, new Path(path, "file1"), 789));
+    List<PathMetadata> listing = Arrays.asList(pathMeta1, pathMeta2, pathMeta3);
     DirListingMetadata meta = new DirListingMetadata(path, listing, false);
-    assertNotNull(meta.getFileStatuses());
+    assertNotNull(meta.getListing());
     exception.expect(UnsupportedOperationException.class);
-    meta.getFileStatuses().clear();
+    meta.getListing().clear();
   }
 
   @Test
@@ -106,8 +110,8 @@ public class TestDirListingMetadata {
     Path path = new Path("/path");
     DirListingMetadata meta = new DirListingMetadata(path, null, true);
     assertEquals(path, meta.getPath());
-    assertNotNull(meta.getFileStatuses());
-    assertTrue(meta.getFileStatuses().isEmpty());
+    assertNotNull(meta.getListing());
+    assertTrue(meta.getListing().isEmpty());
     assertTrue(meta.isAuthoritative());
   }
 
@@ -116,8 +120,8 @@ public class TestDirListingMetadata {
     Path path = new Path("/path");
     DirListingMetadata meta = new DirListingMetadata(path, null, false);
     assertEquals(path, meta.getPath());
-    assertNotNull(meta.getFileStatuses());
-    assertTrue(meta.getFileStatuses().isEmpty());
+    assertNotNull(meta.getListing());
+    assertTrue(meta.getListing().isEmpty());
     assertFalse(meta.isAuthoritative());
     meta.setAuthoritative();
     assertTrue(meta.isAuthoritative());
@@ -126,22 +130,24 @@ public class TestDirListingMetadata {
   @Test
   public void testGet() {
     Path path = new Path("/path");
-    FileStatus stat1 = new S3AFileStatus(true, true, new Path(path, "dir1"));
-    FileStatus stat2 = new S3AFileStatus(true, false, new Path(path, "dir2"));
-    FileStatus stat3 = new S3AFileStatus(123, 456, new Path(path, "file1"),
-        789);
-    List<FileStatus> listing = Arrays.asList(stat1, stat2, stat3);
+    PathMetadata pathMeta1 = new PathMetadata(
+        new S3AFileStatus(true, true, new Path(path, "dir1")));
+    PathMetadata pathMeta2 = new PathMetadata(
+        new S3AFileStatus(true, false, new Path(path, "dir2")));
+    PathMetadata pathMeta3 = new PathMetadata(
+        new S3AFileStatus(123, 456, new Path(path, "file1"), 789));
+    List<PathMetadata> listing = Arrays.asList(pathMeta1, pathMeta2, pathMeta3);
     DirListingMetadata meta = new DirListingMetadata(path, listing, false);
     assertEquals(path, meta.getPath());
-    assertNotNull(meta.getFileStatuses());
-    assertFalse(meta.getFileStatuses().isEmpty());
-    assertTrue(meta.getFileStatuses().contains(stat1));
-    assertTrue(meta.getFileStatuses().contains(stat2));
-    assertTrue(meta.getFileStatuses().contains(stat3));
+    assertNotNull(meta.getListing());
+    assertFalse(meta.getListing().isEmpty());
+    assertTrue(meta.getListing().contains(pathMeta1));
+    assertTrue(meta.getListing().contains(pathMeta2));
+    assertTrue(meta.getListing().contains(pathMeta3));
     assertFalse(meta.isAuthoritative());
-    assertEquals(stat1, meta.get(stat1.getPath()));
-    assertEquals(stat2, meta.get(stat2.getPath()));
-    assertEquals(stat3, meta.get(stat3.getPath()));
+    assertEquals(pathMeta1, meta.get(pathMeta1.getFileStatus().getPath()));
+    assertEquals(pathMeta2, meta.get(pathMeta2.getFileStatus().getPath()));
+    assertEquals(pathMeta3, meta.get(pathMeta3.getFileStatus().getPath()));
     assertNull(meta.get(new Path(path, "notfound")));
   }
 
@@ -175,23 +181,26 @@ public class TestDirListingMetadata {
   @Test
   public void testPut() {
     Path path = new Path("/path");
-    FileStatus stat1 = new S3AFileStatus(true, true, new Path(path, "dir1"));
-    FileStatus stat2 = new S3AFileStatus(true, false, new Path(path, "dir2"));
-    FileStatus stat3 = new S3AFileStatus(123, 456, new Path(path, "file1"),
-        789);
-    List<FileStatus> listing = Arrays.asList(stat1, stat2, stat3);
+    PathMetadata pathMeta1 = new PathMetadata(
+        new S3AFileStatus(true, true, new Path(path, "dir1")));
+    PathMetadata pathMeta2 = new PathMetadata(
+        new S3AFileStatus(true, false, new Path(path, "dir2")));
+    PathMetadata pathMeta3 = new PathMetadata(
+        new S3AFileStatus(123, 456, new Path(path, "file1"), 789));
+    List<PathMetadata> listing = Arrays.asList(pathMeta1, pathMeta2, pathMeta3);
     DirListingMetadata meta = new DirListingMetadata(path, listing, false);
     assertEquals(path, meta.getPath());
-    assertNotNull(meta.getFileStatuses());
-    assertFalse(meta.getFileStatuses().isEmpty());
-    assertTrue(meta.getFileStatuses().contains(stat1));
-    assertTrue(meta.getFileStatuses().contains(stat2));
-    assertTrue(meta.getFileStatuses().contains(stat3));
+    assertNotNull(meta.getListing());
+    assertFalse(meta.getListing().isEmpty());
+    assertTrue(meta.getListing().contains(pathMeta1));
+    assertTrue(meta.getListing().contains(pathMeta2));
+    assertTrue(meta.getListing().contains(pathMeta3));
     assertFalse(meta.isAuthoritative());
-    FileStatus stat4 = new S3AFileStatus(true, true, new Path(path, "dir3"));
-    meta.put(stat4);
-    assertTrue(meta.getFileStatuses().contains(stat4));
-    assertEquals(stat4, meta.get(stat4.getPath()));
+    PathMetadata pathMeta4 = new PathMetadata(
+        new S3AFileStatus(true, true, new Path(path, "dir3")));
+    meta.put(pathMeta4.getFileStatus());
+    assertTrue(meta.getListing().contains(pathMeta4));
+    assertEquals(pathMeta4, meta.get(pathMeta4.getFileStatus().getPath()));
   }
 
   @Test
@@ -233,22 +242,24 @@ public class TestDirListingMetadata {
   @Test
   public void testRemove() {
     Path path = new Path("/path");
-    FileStatus stat1 = new S3AFileStatus(true, true, new Path(path, "dir1"));
-    FileStatus stat2 = new S3AFileStatus(true, false, new Path(path, "dir2"));
-    FileStatus stat3 = new S3AFileStatus(123, 456, new Path(path, "file1"),
-        789);
-    List<FileStatus> listing = Arrays.asList(stat1, stat2, stat3);
+    PathMetadata pathMeta1 = new PathMetadata(
+        new S3AFileStatus(true, true, new Path(path, "dir1")));
+    PathMetadata pathMeta2 = new PathMetadata(
+        new S3AFileStatus(true, false, new Path(path, "dir2")));
+    PathMetadata pathMeta3 = new PathMetadata(
+        new S3AFileStatus(123, 456, new Path(path, "file1"), 789));
+    List<PathMetadata> listing = Arrays.asList(pathMeta1, pathMeta2, pathMeta3);
     DirListingMetadata meta = new DirListingMetadata(path, listing, false);
     assertEquals(path, meta.getPath());
-    assertNotNull(meta.getFileStatuses());
-    assertFalse(meta.getFileStatuses().isEmpty());
-    assertTrue(meta.getFileStatuses().contains(stat1));
-    assertTrue(meta.getFileStatuses().contains(stat2));
-    assertTrue(meta.getFileStatuses().contains(stat3));
+    assertNotNull(meta.getListing());
+    assertFalse(meta.getListing().isEmpty());
+    assertTrue(meta.getListing().contains(pathMeta1));
+    assertTrue(meta.getListing().contains(pathMeta2));
+    assertTrue(meta.getListing().contains(pathMeta3));
     assertFalse(meta.isAuthoritative());
-    meta.remove(stat1.getPath());
-    assertFalse(meta.getFileStatuses().contains(stat1));
-    assertNull(meta.get(stat1.getPath()));
+    meta.remove(pathMeta1.getFileStatus().getPath());
+    assertFalse(meta.getListing().contains(pathMeta1));
+    assertNull(meta.get(pathMeta1.getFileStatus().getPath()));
   }
 
   @Test

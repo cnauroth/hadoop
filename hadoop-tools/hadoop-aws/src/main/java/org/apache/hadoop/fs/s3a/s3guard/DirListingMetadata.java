@@ -41,7 +41,7 @@ public class DirListingMetadata {
   private final Path path;
 
   /** Using a map for fast find / remove with large directories. */
-  private Map<Path, FileStatus> listMap = new ConcurrentHashMap<>();
+  private Map<Path, PathMetadata> listMap = new ConcurrentHashMap<>();
 
   private boolean isAuthoritative;
 
@@ -54,13 +54,13 @@ public class DirListingMetadata {
    *     directory, and the calling client reports that this may be cached as
    *     the full and authoritative listing of all files in the directory.
    */
-  public DirListingMetadata(Path path, Collection<FileStatus> listing,
+  public DirListingMetadata(Path path, Collection<PathMetadata> listing,
       boolean isAuthoritative) {
     Preconditions.checkNotNull(path, "path must be non-null");
     this.path = path;
     if (listing != null) {
-      for (FileStatus entry : listing) {
-        listMap.put(entry.getPath(), entry);
+      for (PathMetadata entry : listing) {
+        listMap.put(entry.getFileStatus().getPath(), entry);
       }
     }
     this.isAuthoritative  = isAuthoritative;
@@ -76,7 +76,7 @@ public class DirListingMetadata {
   /**
    * @return entries in the directory
    */
-  public Collection<FileStatus> getFileStatuses() {
+  public Collection<PathMetadata> getListing() {
     return Collections.unmodifiableCollection(listMap.values());
   }
 
@@ -106,7 +106,7 @@ public class DirListingMetadata {
    * @param childPath path of entry to look for.
    * @return entry, or null if it is not present or not being tracked.
    */
-  public FileStatus get(Path childPath) {
+  public PathMetadata get(Path childPath) {
     checkChildPath(childPath);
     return listMap.get(childPath);
   }
@@ -132,7 +132,7 @@ public class DirListingMetadata {
         "childFileStatus must be non-null");
     Path childPath = childFileStatus.getPath();
     checkChildPath(childPath);
-    listMap.put(childPath, childFileStatus);
+    listMap.put(childPath, new PathMetadata(childFileStatus));
   }
 
   @Override

@@ -51,6 +51,14 @@ class PathMetadata {
   }
 
   @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof PathMetadata)) {
+      return false;
+    }
+    return this.fileStatus.equals(((PathMetadata)o).fileStatus);
+  }
+
+  @Override
   public String toString() {
     return "PathMetadata{" +
         "fileStatus=" + fileStatus +
