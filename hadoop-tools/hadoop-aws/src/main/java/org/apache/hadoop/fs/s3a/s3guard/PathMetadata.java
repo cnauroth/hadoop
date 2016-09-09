@@ -59,6 +59,11 @@ class PathMetadata {
   }
 
   @Override
+  public int hashCode() {
+    return fileStatus.hashCode();
+  }
+
+  @Override
   public String toString() {
     return "PathMetadata{" +
         "fileStatus=" + fileStatus +
