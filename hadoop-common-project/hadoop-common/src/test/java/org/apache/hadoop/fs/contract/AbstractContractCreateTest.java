@@ -114,6 +114,7 @@ public abstract class AbstractContractCreateTest extends
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testOverwriteNonEmptyDirectory() throws Throwable {
     describe("verify trying to create a file over a non-empty dir fails");
     Path path = path("testOverwriteNonEmptyDirectory");
@@ -121,7 +122,8 @@ public abstract class AbstractContractCreateTest extends
     try {
       assertIsDirectory(path);
     } catch (AssertionError failure) {
-      if (isSupported(IS_BLOBSTORE)) {
+      if (isSupported(IS_BLOBSTORE) ||
+          isSupported(CREATE_OVERWRITES_DIRECTORY)) {
         // file/directory hack surfaces here
         throw new AssumptionViolatedException(failure.toString(), failure);
       }
@@ -137,7 +139,8 @@ public abstract class AbstractContractCreateTest extends
       FileStatus status = getFileSystem().getFileStatus(path);
 
       boolean isDir = status.isDirectory();
-      if (!isDir && isSupported(IS_BLOBSTORE)) {
+      if (!isDir && (isSupported(IS_BLOBSTORE) ||
+          isSupported(CREATE_OVERWRITES_DIRECTORY))) {
         // object store: downgrade to a skip so that the failure is visible
         // in test results
         skip("Object store allows a file to overwrite a directory");
@@ -160,6 +163,7 @@ public abstract class AbstractContractCreateTest extends
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testCreatedFileIsImmediatelyVisible() throws Throwable {
     describe("verify that a newly created file exists as soon as open returns");
     Path path = path("testCreatedFileIsImmediatelyVisible");
@@ -170,7 +174,8 @@ public abstract class AbstractContractCreateTest extends
                                    1024)) {
       if (!getFileSystem().exists(path)) {
 
-        if (isSupported(IS_BLOBSTORE)) {
+        if (isSupported(IS_BLOBSTORE) ||
+            isSupported(CREATE_VISIBILITY_DELAYED)) {
           // object store: downgrade to a skip so that the failure is visible
           // in test results
           skip("Filesystem is an object store and newly created files are not immediately visible");

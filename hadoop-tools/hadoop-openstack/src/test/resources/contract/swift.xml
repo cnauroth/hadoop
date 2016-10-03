@@ -33,7 +33,12 @@
   </property>
 
   <property>
-    <name>fs.contract.is-blobstore</name>
+    <name>fs.contract.create-overwrites-directory</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>fs.contract.create-visibility-delayed</name>
     <value>true</value>
   </property>
 
