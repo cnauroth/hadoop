@@ -121,7 +121,7 @@ public abstract class AbstractContractCreateTest extends
     try {
       assertIsDirectory(path);
     } catch (AssertionError failure) {
-      if (isSupported(IS_BLOBSTORE)) {
+      if (isSupported(CREATE_OVERWRITES_DIRECTORY)) {
         // file/directory hack surfaces here
         throw new AssumptionViolatedException(failure.toString(), failure);
       }
@@ -137,7 +137,7 @@ public abstract class AbstractContractCreateTest extends
       FileStatus status = getFileSystem().getFileStatus(path);
 
       boolean isDir = status.isDirectory();
-      if (!isDir && isSupported(IS_BLOBSTORE)) {
+      if (!isDir && isSupported(CREATE_OVERWRITES_DIRECTORY)) {
         // object store: downgrade to a skip so that the failure is visible
         // in test results
         skip("Object store allows a file to overwrite a directory");
@@ -170,7 +170,7 @@ public abstract class AbstractContractCreateTest extends
                                    1024)) {
       if (!getFileSystem().exists(path)) {
 
-        if (isSupported(IS_BLOBSTORE)) {
+        if (isSupported(CREATE_VISIBILITY_DELAYED)) {
           // object store: downgrade to a skip so that the failure is visible
           // in test results
           skip("Filesystem is an object store and newly created files are not immediately visible");
