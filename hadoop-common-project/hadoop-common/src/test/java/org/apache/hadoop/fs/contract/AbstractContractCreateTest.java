@@ -138,9 +138,9 @@ public abstract class AbstractContractCreateTest extends
 
       boolean isDir = status.isDirectory();
       if (!isDir && isSupported(CREATE_OVERWRITES_DIRECTORY)) {
-        // object store: downgrade to a skip so that the failure is visible
-        // in test results
-        skip("Object store allows a file to overwrite a directory");
+        // For some file systems, downgrade to a skip so that the failure is
+        // visible in test results.
+        skip("This Filesystem allows a file to overwrite a directory");
       }
       fail("write of file over dir succeeded");
     } catch (FileAlreadyExistsException expected) {
@@ -171,9 +171,9 @@ public abstract class AbstractContractCreateTest extends
       if (!getFileSystem().exists(path)) {
 
         if (isSupported(CREATE_VISIBILITY_DELAYED)) {
-          // object store: downgrade to a skip so that the failure is visible
-          // in test results
-          skip("Filesystem is an object store and newly created files are not immediately visible");
+          // For some file systems, downgrade to a skip so that the failure is
+          // visible in test results.
+          skip("This Filesystem delays visibility of newly created files");
         }
         assertPathExists("expected path to be visible before anything written",
                          path);
