@@ -1197,14 +1197,14 @@ org.apache.hadoop.fs.s3a.AWSS3IOException: Received permanent redirect response
   addressed using the specified endpoint. Please send all future requests to
   this endpoint. (Service: Amazon S3; Status Code: 301;
   Error Code: PermanentRedirect; Request ID: 7D39EC1021C61B11)
-	at org.apache.hadoop.fs.s3a.S3AUtils.translateException(S3AUtils.java:132)
-	at org.apache.hadoop.fs.s3a.S3AFileSystem.initMultipartUploads(S3AFileSystem.java:287)
-	at org.apache.hadoop.fs.s3a.S3AFileSystem.initialize(S3AFileSystem.java:203)
-	at org.apache.hadoop.fs.FileSystem.createFileSystem(FileSystem.java:2895)
-	at org.apache.hadoop.fs.FileSystem.access$200(FileSystem.java:102)
-	at org.apache.hadoop.fs.FileSystem$Cache.getInternal(FileSystem.java:2932)
-	at org.apache.hadoop.fs.FileSystem$Cache.get(FileSystem.java:2914)
-	at org.apache.hadoop.fs.FileSystem.get(FileSystem.java:390)
+        at org.apache.hadoop.fs.s3a.S3AUtils.translateException(S3AUtils.java:132)
+        at org.apache.hadoop.fs.s3a.S3AFileSystem.initMultipartUploads(S3AFileSystem.java:287)
+        at org.apache.hadoop.fs.s3a.S3AFileSystem.initialize(S3AFileSystem.java:203)
+        at org.apache.hadoop.fs.FileSystem.createFileSystem(FileSystem.java:2895)
+        at org.apache.hadoop.fs.FileSystem.access$200(FileSystem.java:102)
+        at org.apache.hadoop.fs.FileSystem$Cache.getInternal(FileSystem.java:2932)
+        at org.apache.hadoop.fs.FileSystem$Cache.get(FileSystem.java:2914)
+        at org.apache.hadoop.fs.FileSystem.get(FileSystem.java:390)
 ```
 
 1. Use the [Specific endpoint of the bucket's S3 service](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region)

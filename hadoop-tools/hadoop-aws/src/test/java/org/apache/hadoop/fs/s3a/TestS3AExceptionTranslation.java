@@ -24,7 +24,6 @@ import static org.apache.hadoop.fs.s3a.S3AUtils.*;
 import static org.junit.Assert.*;
 
 import java.io.EOFException;
-import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.nio.file.AccessDeniedException;
 import java.util.Collections;
