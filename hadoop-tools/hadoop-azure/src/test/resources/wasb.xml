@@ -56,7 +56,7 @@
     <value>true</value>
   </property>
 
-  <property>
+ <property>
     <name>fs.contract.is-case-sensitive</name>
     <value>true</value>
   </property>
