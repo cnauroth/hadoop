@@ -64,10 +64,7 @@ public interface ContractOptions {
    * Blobstore flag. Implies it's not a real directory tree and
    * consistency is below that which Hadoop expects
    * {@value}
-   * @deprecated use {@link #CREATE_VISIBILITY_DELAYED} or
-   *     {@link CREATE_OVERWRITES_DIRECTORY}
    */
-  @Deprecated
   String IS_BLOBSTORE = "is-blobstore";
 
   /**
