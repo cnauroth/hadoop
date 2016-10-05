@@ -109,7 +109,7 @@ public class AclEntry {
 
   /**
    * Returns a string representation guaranteed to be stable across versions to
-   * satisfy backward compatiblity requirements, such as for shell command
+   * satisfy backward compatibility requirements, such as for shell command
    * output or serialization.  The format of this string representation matches
    * what is expected by the {@link #parseAclSpec(String, boolean)} and
    * {@link #parseAclEntry(String, boolean)} methods.
