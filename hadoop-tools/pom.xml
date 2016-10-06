@@ -46,7 +46,7 @@
     <module>hadoop-sls</module>
     <module>hadoop-aws</module>
     <module>hadoop-azure</module>
-    <module>hadoop-hcfs-client</module>
+    <module>hadoop-cloud-storage</module>
   </modules>
 
   <build>
