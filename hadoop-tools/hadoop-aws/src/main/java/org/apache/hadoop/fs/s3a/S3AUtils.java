@@ -22,7 +22,6 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
@@ -304,7 +303,8 @@ public final class S3AUtils {
       credentials.add(new BasicAWSCredentialsProvider(
               creds.getUser(), creds.getPassword()));
       credentials.add(new EnvironmentVariableCredentialsProvider());
-      credentials.add(new InstanceProfileCredentialsProvider());
+      credentials.add(
+          SingletonInstanceProfileCredentialsProvider.getInstance());
     } else {
       for (Class<?> aClass : awsClasses) {
         credentials.add(createAWSCredentialProvider(conf,

@@ -271,15 +271,36 @@ of `com.amazonaws.auth.AWSCredentialsProvider` may also be used.
         com.amazonaws.auth.AWSCredentialsProvider.
 
         These are loaded and queried in sequence for a valid set of credentials.
-        Each listed class must provide either an accessible constructor accepting
-        java.net.URI and org.apache.hadoop.conf.Configuration, or an accessible
-        default constructor.
+        Each listed class must implement one of the following means of
+        construction, which are attempted in order:
+        1) an accessible constructor accepting java.net.URI and
+            org.apache.hadoop.conf.Configuration,
+        2) an accessible static method named getInstance that accepts no
+           arguments and returns an instance of
+           com.amazonaws.auth.AWSCredentialsProvider, or
+        3) an accessible default constructor.
 
         Specifying org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider allows
         anonymous access to a publicly accessible S3 bucket without any credentials.
         Please note that allowing anonymous access to an S3 bucket compromises
         security and therefore is unsuitable for most use cases. It can be useful
         for accessing public data sets without requiring AWS credentials.
+
+        If unspecified, then the default list of credential provider classes,
+        queried in sequence, is:
+        1) org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider: supports
+            static configuration of AWS access key ID and secret access key.
+            See also fs.s3a.access.key and fs.s3a.secret.key.
+        2) com.amazonaws.auth.EnvironmentVariableCredentialsProvider: supports
+            configuration of AWS access key ID and secret access key in
+            environment variables named AWS_ACCESS_KEY_ID and
+            AWS_SECRET_ACCESS_KEY, as documented in the AWS SDK.
+        3) org.apache.hadoop.fs.s3a.SingletonInstanceProfileCredentialsProvider:
+            a singleton instance of
+            com.amazonaws.auth.InstanceProfileCredentialsProvider from the AWS
+            SDK, which supports use of instance profile credentials if running
+            in an EC2 VM.  Using this singleton potentially reduces load on the
+            EC2 instance metadata service for multi-threaded applications.
       </description>
     </property>
 
@@ -352,12 +373,13 @@ AWS Credential Providers are classes which can be used by the Amazon AWS SDK to
 obtain an AWS login from a different source in the system, including environment
 variables, JVM properties and configuration files.
 
-There are three AWS Credential Providers inside the `hadoop-aws` JAR:
+There are four AWS Credential Providers inside the `hadoop-aws` JAR:
 
 | classname | description |
 |-----------|-------------|
 | `org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider`| Session Credentials |
 | `org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider`| Simple name/secret credentials |
+| `org.apache.hadoop.fs.s3a.SingletonInstanceProfileCredentialsProvider`| Singleton instance of EC2 Metadata Credentials, which can reduce load on the EC2 instance metadata service.  (See below.) |
 | `org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider`| Anonymous Login |
 
 There are also many in the Amazon SDKs, in particular two which are automatically
@@ -467,7 +489,7 @@ This means that the default S3A authentication chain can be defined as
       <value>
       org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider,
       com.amazonaws.auth.EnvironmentVariableCredentialsProvider,
-      com.amazonaws.auth.InstanceProfileCredentialsProvider
+      org.apache.hadoop.fs.s3a.SingletonInstanceProfileCredentialsProvider
       </value>
     </property>
 
