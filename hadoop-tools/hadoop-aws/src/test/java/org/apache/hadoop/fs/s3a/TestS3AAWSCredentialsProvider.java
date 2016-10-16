@@ -107,7 +107,7 @@ public class TestS3AAWSCredentialsProvider {
         Arrays.asList(
             BasicAWSCredentialsProvider.class,
             EnvironmentVariableCredentialsProvider.class,
-            InstanceProfileCredentialsProvider.class);
+            SingletonInstanceProfileCredentialsProvider.class);
     assertCredentialProviders(expectedClasses, list1);
     assertCredentialProviders(expectedClasses, list2);
     assertSameInstanceProfileCredentialsProvider(list1.getProviders().get(2),
@@ -120,9 +120,8 @@ public class TestS3AAWSCredentialsProvider {
     Configuration conf = new Configuration();
     List<Class<? extends AWSCredentialsProvider>> expectedClasses =
         Arrays.asList(
-            BasicAWSCredentialsProvider.class,
             EnvironmentVariableCredentialsProvider.class,
-            InstanceProfileCredentialsProvider.class,
+            SingletonInstanceProfileCredentialsProvider.class,
             AnonymousAWSCredentialsProvider.class);
     conf.set(AWS_CREDENTIALS_PROVIDER, buildClassListString(expectedClasses));
     AWSCredentialProviderList list1 = S3AUtils.createAWSCredentialProviderSet(
@@ -131,8 +130,8 @@ public class TestS3AAWSCredentialsProvider {
         uri2, conf, uri2);
     assertCredentialProviders(expectedClasses, list1);
     assertCredentialProviders(expectedClasses, list2);
-    assertSameInstanceProfileCredentialsProvider(list1.getProviders().get(2),
-        list2.getProviders().get(2));
+    assertSameInstanceProfileCredentialsProvider(list1.getProviders().get(1),
+        list2.getProviders().get(1));
   }
 
   /**
@@ -219,12 +218,18 @@ public class TestS3AAWSCredentialsProvider {
     }
   }
 
+  private static void assertInstanceOf(Class<?> expectedClass, Object obj) {
+    assertTrue(String.format("Expected instance of class %s, but is %s.",
+        expectedClass, obj.getClass()),
+        expectedClass.isAssignableFrom(obj.getClass()));
+  }
+
   private static void assertSameInstanceProfileCredentialsProvider(
       AWSCredentialsProvider provider1, AWSCredentialsProvider provider2) {
     assertNotNull(provider1);
-    assertTrue(provider1 instanceof InstanceProfileCredentialsProvider);
+    assertInstanceOf(InstanceProfileCredentialsProvider.class, provider1);
     assertNotNull(provider2);
-    assertTrue(provider2 instanceof InstanceProfileCredentialsProvider);
+    assertInstanceOf(InstanceProfileCredentialsProvider.class, provider2);
     assertSame("Expected all usage of InstanceProfileCredentialsProvider to "
         + "share a singleton instance, but found unique instances.",
         provider1, provider2);
