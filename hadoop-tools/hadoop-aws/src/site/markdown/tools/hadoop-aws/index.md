@@ -273,12 +273,12 @@ of `com.amazonaws.auth.AWSCredentialsProvider` may also be used.
         These are loaded and queried in sequence for a valid set of credentials.
         Each listed class must implement one of the following means of
         construction, which are attempted in order:
-        1) an accessible constructor accepting java.net.URI and
+        1) a public constructor accepting java.net.URI and
             org.apache.hadoop.conf.Configuration,
-        2) an accessible static method named getInstance that accepts no
+        2) a public static method named getInstance that accepts no
            arguments and returns an instance of
            com.amazonaws.auth.AWSCredentialsProvider, or
-        3) an accessible default constructor.
+        3) a public default constructor.
 
         Specifying org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider allows
         anonymous access to a publicly accessible S3 bucket without any credentials.
@@ -391,6 +391,26 @@ set up in the authentication chain:
 | `com.amazonaws.auth.InstanceProfileCredentialsProvider`| EC2 Metadata Credentials |
 | `com.amazonaws.auth.EnvironmentVariableCredentialsProvider`| AWS Environment Variables |
 
+
+*EC2 Metadata Credentials with `SharedInstanceProfileCredentialsProvider`*
+
+Applications running in EC2 may associate an IAM role with the VM and query the
+[EC2 Instance Metadata Service](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html)
+for credentials to access S3.  Within the AWS SDK, this functionality is
+provided by `InstanceProfileCredentialsProvider`.  Heavily multi-threaded
+applications may trigger a high volume of calls to the instance metadata service
+and trigger throttling: either an HTTP 429 response or a forcible close of the
+connection.
+
+To mitigate against this problem, `hadoop-aws` ships with a variant of
+`InstanceProfileCredentialsProvider` called
+`SharedInstanceProfileCredentialsProvider`.  Using this ensures that all
+instances of S3A reuse the same instance profile credentials instead of issuing
+a large volume of redundant metadata service calls.
+
+If `fs.s3a.aws.credentials.provider` refers to
+`com.amazonaws.auth.InstanceProfileCredentialsProvider`, S3A automatically uses
+`org.apache.hadoop.fs.s3a.SharedInstanceProfileCredentialsProvider` instead.
 
 *Session Credentials with `TemporaryAWSCredentialsProvider`*
 

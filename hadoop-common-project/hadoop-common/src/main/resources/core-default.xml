@@ -877,12 +877,12 @@
     These are loaded and queried in sequence for a valid set of credentials.
     Each listed class must implement one of the following means of
     construction, which are attempted in order:
-    1) an accessible constructor accepting java.net.URI and
+    1) a public constructor accepting java.net.URI and
         org.apache.hadoop.conf.Configuration,
-    2) an accessible static method named getInstance that accepts no
+    2) a public static method named getInstance that accepts no
        arguments and returns an instance of
        com.amazonaws.auth.AWSCredentialsProvider, or
-    3) an accessible default constructor.
+    3) a public default constructor.
 
     Specifying org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider allows
     anonymous access to a publicly accessible S3 bucket without any credentials.
