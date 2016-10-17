@@ -368,7 +368,8 @@ public final class S3AUtils {
       }
 
       // X.getInstance()
-      Method factory = getFactoryMethod(credClass, "getInstance");
+      Method factory = getFactoryMethod(credClass, AWSCredentialsProvider.class,
+          "getInstance");
       if (factory != null) {
         credentials = (AWSCredentialsProvider)factory.invoke(null);
         return credentials;
@@ -383,8 +384,9 @@ public final class S3AUtils {
 
       // no supported constructor or factory method found
       throw new IOException(String.format("%s " + CONSTRUCTOR_EXCEPTION
-          + ".  A class specified in %s must provide an accessible constructor "
-          + "accepting URI and Configuration, or an accessible default "
+          + ".  A class specified in %s must provide a public constructor "
+          + "accepting URI and Configuration, or a public factory method named "
+          + "getInstance that accepts no arguments, or a public default "
           + "constructor.", className, AWS_CREDENTIALS_PROVIDER));
     } catch (ReflectiveOperationException | IllegalArgumentException e) {
       // supported constructor or factory method found, but the call failed
@@ -502,23 +504,40 @@ public final class S3AUtils {
     return v;
   }
 
-  // TODO JavaDoc
+  /**
+   * Returns the public constructor of {@code cl} specified by the list of
+   * {@code args} or {@code null} if {@code cl} has no accessible constructor
+   * that matches that specification.
+   * @param cl class
+   * @param args constructor argument types
+   * @return constructor or null
+   */
   private static Constructor<?> getConstructor(Class<?> cl, Class<?>... args) {
     try {
-      Constructor c = cl.getDeclaredConstructor(args);
-      return Modifier.isPublic(c.getModifiers()) ? c : null;
+      Constructor cons = cl.getDeclaredConstructor(args);
+      return Modifier.isPublic(cons.getModifiers()) ? cons : null;
     } catch (NoSuchMethodException | SecurityException e) {
       return null;
     }
   }
 
-  // TODO JavaDoc
-  private static Method getFactoryMethod(Class<?> cl, String name) {
+  /**
+   * Returns the public static method of {@code cl} that accepts no arguments
+   * and returns {@code returnType} specified by {@code methodName} or
+   * {@code null} if {@code cl} has accessible method that matches that
+   * specification.
+   * @param cl class
+   * @param returnType return type
+   * @param methodName method name
+   * @return method or null
+   */
+  private static Method getFactoryMethod(Class<?> cl, Class<?> returnType,
+      String methodName) {
     try {
-      Method m = cl.getDeclaredMethod(name);
+      Method m = cl.getDeclaredMethod(methodName);
       if (Modifier.isPublic(m.getModifiers()) &&
           Modifier.isStatic(m.getModifiers()) &&
-          AWSCredentialsProvider.class.isAssignableFrom(m.getReturnType())) {
+          returnType.isAssignableFrom(m.getReturnType())) {
         return m;
       } else {
         return null;
