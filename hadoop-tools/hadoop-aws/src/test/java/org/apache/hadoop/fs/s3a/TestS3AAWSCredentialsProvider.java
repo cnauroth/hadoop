@@ -20,6 +20,7 @@ package org.apache.hadoop.fs.s3a;
 
 import static org.apache.hadoop.fs.s3a.Constants.*;
 import static org.apache.hadoop.fs.s3a.S3ATestConstants.*;
+import static org.apache.hadoop.fs.s3a.S3ATestUtils.*;
 import static org.apache.hadoop.fs.s3a.S3AUtils.*;
 import static org.junit.Assert.*;
 
@@ -247,12 +248,6 @@ public class TestS3AAWSCredentialsProvider {
     }
   }
 
-  private static void assertInstanceOf(Class<?> expectedClass, Object obj) {
-    assertTrue(String.format("Expected instance of class %s, but is %s.",
-        expectedClass, obj.getClass()),
-        expectedClass.isAssignableFrom(obj.getClass()));
-  }
-
   private static void assertSameInstanceProfileCredentialsProvider(
       AWSCredentialsProvider provider1, AWSCredentialsProvider provider2) {
     assertNotNull(provider1);
@@ -262,17 +257,5 @@ public class TestS3AAWSCredentialsProvider {
     assertSame("Expected all usage of InstanceProfileCredentialsProvider to "
         + "share a singleton instance, but found unique instances.",
         provider1, provider2);
-  }
-
-  private static <T extends Class<?>> String buildClassListString(
-      List<T> classes) {
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < classes.size(); ++i) {
-      if (i > 0) {
-        sb.append(',');
-      }
-      sb.append(classes.get(i).getName());
-    }
-    return sb.toString();
   }
 }
