@@ -146,7 +146,8 @@ public class TestS3AAWSCredentialsProvider {
     URI uri1 = new URI("s3a://bucket1"), uri2 = new URI("s3a://bucket2");
     Configuration conf = new Configuration();
     List<Class<? extends AWSCredentialsProvider>> expectedClasses =
-        Arrays.asList(InstanceProfileCredentialsProvider.class);
+        Arrays.<Class<? extends AWSCredentialsProvider>>asList(
+            InstanceProfileCredentialsProvider.class);
     conf.set(AWS_CREDENTIALS_PROVIDER, buildClassListString(expectedClasses));
     AWSCredentialProviderList list1 = S3AUtils.createAWSCredentialProviderSet(
         uri1, conf, uri1);
