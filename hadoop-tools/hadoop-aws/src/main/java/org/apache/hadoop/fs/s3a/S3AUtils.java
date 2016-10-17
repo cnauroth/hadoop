@@ -331,12 +331,12 @@ public final class S3AUtils {
    * class must implement one of the following means of construction, which are
    * attempted in order:
    *
-   * 1) an accessible constructor accepting java.net.URI and
+   * 1) a public constructor accepting java.net.URI and
    *     org.apache.hadoop.conf.Configuration,
-   * 2) an accessible static method named getInstance that accepts no
-   *     arguments and returns an instance of
-   *     com.amazonaws.auth.AWSCredentialsProvider, or
-   * 3) an accessible default constructor.
+   * 2) a public static method named getInstance that accepts no
+   *    arguments and returns an instance of
+   *    com.amazonaws.auth.AWSCredentialsProvider, or
+   * 3) a public default constructor.
    *
    * @param conf configuration
    * @param credClass credential class
@@ -506,8 +506,8 @@ public final class S3AUtils {
 
   /**
    * Returns the public constructor of {@code cl} specified by the list of
-   * {@code args} or {@code null} if {@code cl} has no accessible constructor
-   * that matches that specification.
+   * {@code args} or {@code null} if {@code cl} has no public constructor that
+   * matches that specification.
    * @param cl class
    * @param args constructor argument types
    * @return constructor or null
@@ -524,7 +524,7 @@ public final class S3AUtils {
   /**
    * Returns the public static method of {@code cl} that accepts no arguments
    * and returns {@code returnType} specified by {@code methodName} or
-   * {@code null} if {@code cl} has accessible method that matches that
+   * {@code null} if {@code cl} has no public static method that matches that
    * specification.
    * @param cl class
    * @param returnType return type

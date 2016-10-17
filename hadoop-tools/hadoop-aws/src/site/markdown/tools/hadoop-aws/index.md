@@ -406,9 +406,8 @@ To mitigate against this problem, `hadoop-aws` ships with a variant of
 `InstanceProfileCredentialsProvider` called
 `SharedInstanceProfileCredentialsProvider`.  Using this ensures that all
 instances of S3A reuse the same instance profile credentials instead of issuing
-a large volume of redundant metadata service calls.
-
-If `fs.s3a.aws.credentials.provider` refers to
+a large volume of redundant metadata service calls.  If
+`fs.s3a.aws.credentials.provider` refers to
 `com.amazonaws.auth.InstanceProfileCredentialsProvider`, S3A automatically uses
 `org.apache.hadoop.fs.s3a.SharedInstanceProfileCredentialsProvider` instead.
 

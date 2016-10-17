@@ -228,6 +228,11 @@ public class TestS3AAWSCredentialsProvider {
     S3AUtils.createAWSCredentialProviderSet(uri, conf, uri);
   }
 
+  /**
+   * Asserts expected provider classes in list.
+   * @param expectedClasses expected provider classes
+   * @param list providers to check
+   */
   private static void assertCredentialProviders(
       List<Class<? extends AWSCredentialsProvider>> expectedClasses,
       AWSCredentialProviderList list) {
@@ -248,6 +253,12 @@ public class TestS3AAWSCredentialsProvider {
     }
   }
 
+  /**
+   * Asserts that two different references point to the same shared instance of
+   * InstanceProfileCredentialsProvider using a descriptive assertion message.
+   * @param provider1 provider to check
+   * @param provider2 provider to check
+   */
   private static void assertSameInstanceProfileCredentialsProvider(
       AWSCredentialsProvider provider1, AWSCredentialsProvider provider2) {
     assertNotNull(provider1);
