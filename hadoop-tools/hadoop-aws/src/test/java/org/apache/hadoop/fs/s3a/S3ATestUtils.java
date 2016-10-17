@@ -38,7 +38,7 @@ import static org.apache.hadoop.fs.s3a.Constants.*;
 /**
  * Utilities for the S3A tests.
  */
-public class S3ATestUtils {
+public final class S3ATestUtils {
 
   /**
    * Create the test filesystem.
@@ -105,7 +105,7 @@ public class S3ATestUtils {
       throw new AssumptionViolatedException("No test filesystem in "
           + TEST_FS_S3A_NAME);
     }
-    FileContext fc = FileContext.getFileContext(testURI,conf);
+    FileContext fc = FileContext.getFileContext(testURI, conf);
     return fc;
   }
 
@@ -353,7 +353,7 @@ public class S3ATestUtils {
     }
 
     /**
-     * Get the statistic
+     * Get the statistic.
      * @return the statistic
      */
     public Statistic getStatistic() {
@@ -396,5 +396,11 @@ public class S3ATestUtils {
       sb.append(classes.get(i).getName());
     }
     return sb.toString();
+  }
+
+  /**
+   * This class should not be instantiated.
+   */
+  private S3ATestUtils() {
   }
 }
