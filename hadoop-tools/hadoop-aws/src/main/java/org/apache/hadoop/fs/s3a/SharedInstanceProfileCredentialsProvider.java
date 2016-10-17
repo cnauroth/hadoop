@@ -43,25 +43,25 @@ import org.apache.hadoop.classification.InterfaceStability;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Stable
-public final class SingletonInstanceProfileCredentialsProvider
+public final class SharedInstanceProfileCredentialsProvider
     extends InstanceProfileCredentialsProvider {
 
-  private static final SingletonInstanceProfileCredentialsProvider INSTANCE =
-      new SingletonInstanceProfileCredentialsProvider();
+  private static final SharedInstanceProfileCredentialsProvider INSTANCE =
+      new SharedInstanceProfileCredentialsProvider();
 
   /**
    * Returns the singleton instance.
    *
    * @return singleton instance
    */
-  public static SingletonInstanceProfileCredentialsProvider getInstance() {
+  public static SharedInstanceProfileCredentialsProvider getInstance() {
     return INSTANCE;
   }
 
   /**
    * Default constructor, defined explicitly as private to enforce singleton.
    */
-  private SingletonInstanceProfileCredentialsProvider() {
+  private SharedInstanceProfileCredentialsProvider() {
     super();
   }
 }

@@ -310,13 +310,13 @@ public final class S3AUtils {
               creds.getUser(), creds.getPassword()));
       credentials.add(new EnvironmentVariableCredentialsProvider());
       credentials.add(
-          SingletonInstanceProfileCredentialsProvider.getInstance());
+          SharedInstanceProfileCredentialsProvider.getInstance());
     } else {
       for (Class<?> aClass : awsClasses) {
         if (aClass == InstanceProfileCredentialsProvider.class) {
           LOG.debug("Found {}, but will use {} instead.", aClass.getName(),
-              SingletonInstanceProfileCredentialsProvider.class.getName());
-          aClass = SingletonInstanceProfileCredentialsProvider.class;
+              SharedInstanceProfileCredentialsProvider.class.getName());
+          aClass = SharedInstanceProfileCredentialsProvider.class;
         }
         credentials.add(createAWSCredentialProvider(conf,
             aClass,

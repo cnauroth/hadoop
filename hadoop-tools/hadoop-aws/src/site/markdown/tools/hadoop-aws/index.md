@@ -295,12 +295,13 @@ of `com.amazonaws.auth.AWSCredentialsProvider` may also be used.
             configuration of AWS access key ID and secret access key in
             environment variables named AWS_ACCESS_KEY_ID and
             AWS_SECRET_ACCESS_KEY, as documented in the AWS SDK.
-        3) org.apache.hadoop.fs.s3a.SingletonInstanceProfileCredentialsProvider:
-            a singleton instance of
+        3) org.apache.hadoop.fs.s3a.SharedInstanceProfileCredentialsProvider:
+            a shared instance of
             com.amazonaws.auth.InstanceProfileCredentialsProvider from the AWS
             SDK, which supports use of instance profile credentials if running
-            in an EC2 VM.  Using this singleton potentially reduces load on the
-            EC2 instance metadata service for multi-threaded applications.
+            in an EC2 VM.  Using this shared instance potentially reduces load
+            on the EC2 instance metadata service for multi-threaded
+            applications.
       </description>
     </property>
 
@@ -379,7 +380,7 @@ There are four AWS Credential Providers inside the `hadoop-aws` JAR:
 |-----------|-------------|
 | `org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider`| Session Credentials |
 | `org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider`| Simple name/secret credentials |
-| `org.apache.hadoop.fs.s3a.SingletonInstanceProfileCredentialsProvider`| Singleton instance of EC2 Metadata Credentials, which can reduce load on the EC2 instance metadata service.  (See below.) |
+| `org.apache.hadoop.fs.s3a.SharedInstanceProfileCredentialsProvider`| Shared instance of EC2 Metadata Credentials, which can reduce load on the EC2 instance metadata service.  (See below.) |
 | `org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider`| Anonymous Login |
 
 There are also many in the Amazon SDKs, in particular two which are automatically
@@ -489,7 +490,7 @@ This means that the default S3A authentication chain can be defined as
       <value>
       org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider,
       com.amazonaws.auth.EnvironmentVariableCredentialsProvider,
-      org.apache.hadoop.fs.s3a.SingletonInstanceProfileCredentialsProvider
+      org.apache.hadoop.fs.s3a.SharedInstanceProfileCredentialsProvider
       </value>
     </property>
 
