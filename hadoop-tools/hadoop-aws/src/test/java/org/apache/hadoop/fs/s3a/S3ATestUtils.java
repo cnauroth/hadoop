@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import static org.apache.hadoop.fs.contract.ContractTestUtils.skip;
@@ -37,7 +38,7 @@ import static org.apache.hadoop.fs.s3a.Constants.*;
 /**
  * Utilities for the S3A tests.
  */
-public class S3ATestUtils {
+public final class S3ATestUtils {
 
   /**
    * Create the test filesystem.
@@ -104,7 +105,7 @@ public class S3ATestUtils {
       throw new AssumptionViolatedException("No test filesystem in "
           + TEST_FS_S3A_NAME);
     }
-    FileContext fc = FileContext.getFileContext(testURI,conf);
+    FileContext fc = FileContext.getFileContext(testURI, conf);
     return fc;
   }
 
@@ -352,7 +353,7 @@ public class S3ATestUtils {
     }
 
     /**
-     * Get the statistic
+     * Get the statistic.
      * @return the statistic
      */
     public Statistic getStatistic() {
@@ -366,5 +367,40 @@ public class S3ATestUtils {
     public long getStartingValue() {
       return startingValue;
     }
+  }
+
+  /**
+   * Asserts that {@code obj} is an instance of {@code expectedClass} using a
+   * descriptive assertion message.
+   * @param expectedClass class
+   * @param obj object to check
+   */
+  public static void assertInstanceOf(Class<?> expectedClass, Object obj) {
+    Assert.assertTrue(String.format("Expected instance of class %s, but is %s.",
+        expectedClass, obj.getClass()),
+        expectedClass.isAssignableFrom(obj.getClass()));
+  }
+
+  /**
+   * Builds a comma-separated list of class names.
+   * @param classes list of classes
+   * @return comma-separated list of class names
+   */
+  public static <T extends Class<?>> String buildClassListString(
+      List<T> classes) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < classes.size(); ++i) {
+      if (i > 0) {
+        sb.append(',');
+      }
+      sb.append(classes.get(i).getName());
+    }
+    return sb.toString();
+  }
+
+  /**
+   * This class should not be instantiated.
+   */
+  private S3ATestUtils() {
   }
 }
