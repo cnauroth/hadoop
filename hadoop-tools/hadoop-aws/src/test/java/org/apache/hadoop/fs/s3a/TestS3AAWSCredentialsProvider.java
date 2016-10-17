@@ -55,6 +55,12 @@ public class TestS3AAWSCredentialsProvider {
   }
 
   @Test
+  public void testProviderAbstractClass() throws Exception {
+    expectProviderInstantiationFailure(AbstractProvider.class.getName(),
+        ABSTRACT_PROVIDER);
+  }
+
+  @Test
   public void testProviderNotAClass() throws Exception {
     expectProviderInstantiationFailure("NoSuchClass",
         "ClassNotFoundException");
@@ -96,7 +102,7 @@ public class TestS3AAWSCredentialsProvider {
   }
 
   @Test
-  public void testCredentialProvidersDefault() throws Exception {
+  public void testDefaultChain() throws Exception {
     URI uri1 = new URI("s3a://bucket1"), uri2 = new URI("s3a://bucket2");
     Configuration conf = new Configuration();
     AWSCredentialProviderList list1 = S3AUtils.createAWSCredentialProviderSet(
@@ -115,7 +121,7 @@ public class TestS3AAWSCredentialsProvider {
   }
 
   @Test
-  public void testCredentialProvidersConfigured() throws Exception {
+  public void testConfiguredChain() throws Exception {
     URI uri1 = new URI("s3a://bucket1"), uri2 = new URI("s3a://bucket2");
     Configuration conf = new Configuration();
     List<Class<? extends AWSCredentialsProvider>> expectedClasses =
@@ -132,6 +138,29 @@ public class TestS3AAWSCredentialsProvider {
     assertCredentialProviders(expectedClasses, list2);
     assertSameInstanceProfileCredentialsProvider(list1.getProviders().get(1),
         list2.getProviders().get(1));
+  }
+
+  @Test
+  public void testConfiguredChainUsesSharedInstanceProfile() throws Exception {
+    URI uri1 = new URI("s3a://bucket1"), uri2 = new URI("s3a://bucket2");
+    Configuration conf = new Configuration();
+    List<Class<? extends AWSCredentialsProvider>> expectedClasses =
+        Arrays.asList(InstanceProfileCredentialsProvider.class);
+    conf.set(AWS_CREDENTIALS_PROVIDER, buildClassListString(expectedClasses));
+    AWSCredentialProviderList list1 = S3AUtils.createAWSCredentialProviderSet(
+        uri1, conf, uri1);
+    AWSCredentialProviderList list2 = S3AUtils.createAWSCredentialProviderSet(
+        uri2, conf, uri2);
+    assertCredentialProviders(expectedClasses, list1);
+    assertCredentialProviders(expectedClasses, list2);
+    assertSameInstanceProfileCredentialsProvider(list1.getProviders().get(0),
+        list2.getProviders().get(0));
+  }
+
+  /**
+   * A credential provider declared as abstract, so it cannot be instantiated.
+   */
+  static abstract class AbstractProvider implements AWSCredentialsProvider {
   }
 
   /**

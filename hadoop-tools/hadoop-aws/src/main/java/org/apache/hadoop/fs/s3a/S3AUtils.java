@@ -22,6 +22,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
@@ -67,6 +68,8 @@ public final class S3AUtils {
       = "instantiation exception";
   static final String NOT_AWS_PROVIDER =
       "does not implement AWSCredentialsProvider";
+  static final String ABSTRACT_PROVIDER =
+      "is abstract and therefore cannot be created";
   static final String ENDPOINT_KEY = "Endpoint";
 
   private S3AUtils() {
@@ -310,6 +313,11 @@ public final class S3AUtils {
           SingletonInstanceProfileCredentialsProvider.getInstance());
     } else {
       for (Class<?> aClass : awsClasses) {
+        if (aClass == InstanceProfileCredentialsProvider.class) {
+          LOG.debug("Found {}, but will use {} instead.", aClass.getName(),
+              SingletonInstanceProfileCredentialsProvider.class.getName());
+          aClass = SingletonInstanceProfileCredentialsProvider.class;
+        }
         credentials.add(createAWSCredentialProvider(conf,
             aClass,
             fsURI));
@@ -345,7 +353,9 @@ public final class S3AUtils {
     if (!AWSCredentialsProvider.class.isAssignableFrom(credClass)) {
       throw new IOException("Class " + credClass + " " + NOT_AWS_PROVIDER);
     }
-    // TODO check for abstract class
+    if (Modifier.isAbstract(credClass.getModifiers())) {
+      throw new IOException("Class " + credClass + " " + ABSTRACT_PROVIDER);
+    }
     LOG.debug("Credential provider class is {}", className);
 
     try {
