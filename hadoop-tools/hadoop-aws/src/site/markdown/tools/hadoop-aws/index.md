@@ -302,12 +302,12 @@ of `com.amazonaws.auth.AWSCredentialsProvider` may also be used.
         These are loaded and queried in sequence for a valid set of credentials.
         Each listed class must implement one of the following means of
         construction, which are attempted in order:
-        1) a public constructor accepting java.net.URI and
+        1. a public constructor accepting java.net.URI and
             org.apache.hadoop.conf.Configuration,
-        2) a public static method named getInstance that accepts no
+        2. a public static method named getInstance that accepts no
            arguments and returns an instance of
            com.amazonaws.auth.AWSCredentialsProvider, or
-        3) a public default constructor.
+        3. a public default constructor.
 
         Specifying org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider allows
         anonymous access to a publicly accessible S3 bucket without any credentials.
@@ -317,14 +317,14 @@ of `com.amazonaws.auth.AWSCredentialsProvider` may also be used.
 
         If unspecified, then the default list of credential provider classes,
         queried in sequence, is:
-        1) org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider: supports
+        1. org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider: supports
             static configuration of AWS access key ID and secret access key.
             See also fs.s3a.access.key and fs.s3a.secret.key.
-        2) com.amazonaws.auth.EnvironmentVariableCredentialsProvider: supports
+        2. com.amazonaws.auth.EnvironmentVariableCredentialsProvider: supports
             configuration of AWS access key ID and secret access key in
             environment variables named AWS_ACCESS_KEY_ID and
             AWS_SECRET_ACCESS_KEY, as documented in the AWS SDK.
-        3) org.apache.hadoop.fs.s3a.SharedInstanceProfileCredentialsProvider:
+        3. org.apache.hadoop.fs.s3a.SharedInstanceProfileCredentialsProvider:
             a shared instance of
             com.amazonaws.auth.InstanceProfileCredentialsProvider from the AWS
             SDK, which supports use of instance profile credentials if running

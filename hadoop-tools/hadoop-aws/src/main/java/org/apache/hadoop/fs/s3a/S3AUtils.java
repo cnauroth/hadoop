@@ -331,12 +331,14 @@ public final class S3AUtils {
    * class must implement one of the following means of construction, which are
    * attempted in order:
    *
-   * 1) a public constructor accepting java.net.URI and
-   *     org.apache.hadoop.conf.Configuration,
-   * 2) a public static method named getInstance that accepts no
+   * <ol>
+   * <li>a public constructor accepting java.net.URI and
+   *     org.apache.hadoop.conf.Configuration</li>
+   * <li>a public static method named getInstance that accepts no
    *    arguments and returns an instance of
-   *    com.amazonaws.auth.AWSCredentialsProvider, or
-   * 3) a public default constructor.
+   *    com.amazonaws.auth.AWSCredentialsProvider, or</li>
+   * <li>a public default constructor.</li>
+   * </ol>
    *
    * @param conf configuration
    * @param credClass credential class
