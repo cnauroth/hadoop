@@ -305,7 +305,7 @@ public final class S3AUtils {
       credentials.add(new BasicAWSCredentialsProvider(
               creds.getUser(), creds.getPassword()));
       credentials.add(new EnvironmentVariableCredentialsProvider());
-      credentials.add(new InstanceProfileCredentialsProvider());
+      credentials.add(InstanceProfileCredentialsProvider.getInstance());
     } else {
       for (Class<?> aClass : awsClasses) {
         credentials.add(createAWSCredentialProvider(conf,
